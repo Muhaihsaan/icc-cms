@@ -1,31 +1,61 @@
-version: '3'
-
 services:
-  payload:
-    image: node:18-alpine
+  postgres:
+    image: postgres:16
+    restart: always
     ports:
-      - '3000:3000'
-    volumes:
-      - .:/home/node/app
-      - node_modules:/home/node/app/node_modules
-    working_dir: /home/node/app/
-    command: sh -c "yarn install && yarn dev"
-    depends_on:
-      - mongo
-    env_file:
-      - .env
+      - '5644:5432'
+    environment:
+      POSTGRES_DB: powerbuilding-cms
+      POSTGRES_USER: powerbuilding
+      POSTGRES_PASSWORD: powerbuilding123
+    # volumes:
+    #   - pgdata:/var/lib/postgresql/data
+    networks:
+      - pbcms_network
 
-  mongo:
-    image: mongo:latest
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: always
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - '27017:27017'
-    command:
-      - --storageEngine=wiredTiger
-    volumes:
-      - data:/data/db
-    logging:
-      driver: none
+       - '19111:9000'   
+       - '19012:9001'  
+    command: server /data --console-address ":9001"
+    # volumes:
+    #   - minio_data:/data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - pbcms_network
+
+  createbuckets:
+    image: minio/mc
+    container_name: createbucket
+    entrypoint: >
+      /bin/sh -c "
+      echo '⏳ Waiting for MinIO API...';
+      until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 2; done;
+      until mc mb local/pbcms-dev; do sleep 2; done;
+      mc anonymous set public local/pbcms-dev;
+      echo '✅ Bucket created';
+      exit 0;"
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: 'no'
+    networks:
+      - pbcms_network
 
 volumes:
-  data:
-  node_modules:
+  pgdata:
+  minio_data:
+
+networks:
+  pbcms_network:
+    driver: bridge

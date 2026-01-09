@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { RelatedPosts } from '@/blocks/RelatedPosts/Component'
 import { PayloadRedirects } from '@/components/PayloadRedirects'
 import configPromise from '@payload-config'
-import { getPayload } from 'payload'
+import { createLocalReq, getPayload, type PayloadRequest } from 'payload'
 import { draftMode } from 'next/headers'
 import React, { cache } from 'react'
 import RichText from '@/components/RichText'
@@ -14,6 +14,19 @@ import { PostHero } from '@/heros/PostHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import PageClient from './page.client'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
+import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import type { Tenant } from '@/payload-types'
+
+type TenantRequest = PayloadRequest & { tenant?: Tenant | null }
+
+const createTenantRequest = async (
+  payload: Awaited<ReturnType<typeof getPayload>>,
+  tenant: Tenant,
+) => {
+  const payloadReq: TenantRequest = await createLocalReq({ user: undefined }, payload)
+  payloadReq.tenant = tenant
+  return payloadReq
+}
 
 export async function generateStaticParams() {
   const payload = await getPayload({ config: configPromise })
@@ -26,12 +39,14 @@ export async function generateStaticParams() {
 
   const params = await Promise.all(
     tenants.docs.map(async (tenant) => {
+      const payloadReq = await createTenantRequest(payload, tenant)
       const posts = await payload.find({
         collection: 'posts',
         draft: false,
         limit: 1000,
         pagination: false,
         select: { slug: true },
+        req: payloadReq,
         where: { 'tenant.id': { equals: tenant.id } },
       })
       return posts.docs.map(({ slug }) => ({
@@ -100,6 +115,9 @@ const queryPostBySlug = cache(
     const { isEnabled: draft } = await draftMode()
 
     const payload = await getPayload({ config: configPromise })
+    const tenant = await fetchTenantByDomain(tenantDomain)
+    if (!tenant) return null
+    const payloadReq = await createTenantRequest(payload, tenant)
 
     const result = await payload.find({
       collection: 'posts',
@@ -107,6 +125,7 @@ const queryPostBySlug = cache(
       limit: 1,
       overrideAccess: draft,
       pagination: false,
+      req: payloadReq,
       where: {
         and: [{ slug: { equals: slug } }, { 'tenant.domain': { equals: tenantDomain } }],
       },

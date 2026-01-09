@@ -1,12 +1,20 @@
 import type { CollectionConfig } from 'payload'
 
+import {
+  isSuperAdmin,
+  tenantPublicReadAccess,
+  tenantReadAccess,
+  usersCreateAccess,
+} from '@/access/accessPermission'
 import { link } from '@/fields/link'
 import { revalidateHeader } from './hooks/revalidateHeader'
 
 export const Header: CollectionConfig = {
   slug: 'header',
   access: {
-    read: () => true,
+    create: usersCreateAccess,
+    read: tenantPublicReadAccess(),
+    update: tenantReadAccess,
   },
   fields: [
     {
@@ -23,6 +31,15 @@ export const Header: CollectionConfig = {
         components: {
           RowLabel: '@/Header/RowLabel#RowLabel',
         },
+      },
+    },
+    {
+      name: 'deletedAt',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
       },
     },
   ],

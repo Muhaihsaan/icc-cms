@@ -202,6 +202,7 @@ export interface Page {
     description?: string | null;
   };
   publishedAt?: string | null;
+  deletedAt?: string | null;
   slug?: string | null;
   slugLock?: boolean | null;
   updatedAt: string;
@@ -228,6 +229,7 @@ export interface Tenant {
    * If checked, logging in is not required to read. Useful for building public pages.
    */
   allowPublicRead?: boolean | null;
+  deletedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -254,6 +256,7 @@ export interface Media {
     };
     [k: string]: unknown;
   } | null;
+  deletedAt?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -359,6 +362,7 @@ export interface Post {
     description?: string | null;
   };
   publishedAt?: string | null;
+  deletedAt?: string | null;
   authors?: (number | User)[] | null;
   populatedAuthors?:
     | {
@@ -378,7 +382,9 @@ export interface Post {
  */
 export interface Category {
   id: number;
+  tenant?: (number | null) | Tenant;
   title: string;
+  deletedAt?: string | null;
   slug?: string | null;
   slugLock?: boolean | null;
   parent?: (number | null) | Category;
@@ -399,8 +405,9 @@ export interface Category {
  */
 export interface User {
   id: number;
-  roles?: ('super-admin' | 'user')[] | null;
+  roles?: 'super-admin' | null;
   name?: string | null;
+  deletedAt?: string | null;
   tenants?:
     | {
         tenant: number | Tenant;
@@ -795,6 +802,7 @@ export interface Header {
         id?: string | null;
       }[]
     | null;
+  deletedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -825,6 +833,7 @@ export interface Footer {
         id?: string | null;
       }[]
     | null;
+  deletedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1141,6 +1150,7 @@ export interface PagesSelect<T extends boolean = true> {
         description?: T;
       };
   publishedAt?: T;
+  deletedAt?: T;
   slug?: T;
   slugLock?: T;
   updatedAt?: T;
@@ -1250,6 +1260,7 @@ export interface PostsSelect<T extends boolean = true> {
         description?: T;
       };
   publishedAt?: T;
+  deletedAt?: T;
   authors?: T;
   populatedAuthors?:
     | T
@@ -1271,6 +1282,7 @@ export interface MediaSelect<T extends boolean = true> {
   tenant?: T;
   alt?: T;
   caption?: T;
+  deletedAt?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -1362,7 +1374,9 @@ export interface MediaSelect<T extends boolean = true> {
  * via the `definition` "categories_select".
  */
 export interface CategoriesSelect<T extends boolean = true> {
+  tenant?: T;
   title?: T;
+  deletedAt?: T;
   slug?: T;
   slugLock?: T;
   parent?: T;
@@ -1384,6 +1398,7 @@ export interface CategoriesSelect<T extends boolean = true> {
 export interface UsersSelect<T extends boolean = true> {
   roles?: T;
   name?: T;
+  deletedAt?: T;
   tenants?:
     | T
     | {
@@ -1418,6 +1433,7 @@ export interface TenantsSelect<T extends boolean = true> {
   slug?: T;
   logo?: T;
   allowPublicRead?: T;
+  deletedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1441,6 +1457,7 @@ export interface HeaderSelect<T extends boolean = true> {
             };
         id?: T;
       };
+  deletedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1464,6 +1481,7 @@ export interface FooterSelect<T extends boolean = true> {
             };
         id?: T;
       };
+  deletedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

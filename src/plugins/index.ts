@@ -12,7 +12,7 @@ import { searchFields } from '@/search/fieldOverrides'
 import { beforeSyncWithSearch } from '@/search/beforeSync'
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
 import type { Config, Page, Post } from '@/payload-types'
-import { isSuperAdmin } from '@/access/isSuperAdmin'
+import { isSuperAdmin } from '@/access/accessPermission'
 
 import { getServerSideURL } from '@/utilities/getURL'
 
@@ -104,13 +104,10 @@ export const plugins: Plugin[] = [
     collections: {
       pages: {},
       posts: {},
-      header: {
-        isGlobal: true,
-      },
-      footer: {
-        isGlobal: true,
-      },
+      header: {},
+      footer: {},
       media: {},
+      categories: {},
     },
     userHasAccessToAllTenants: (user) => isSuperAdmin(user),
     tenantsArrayField: {

@@ -8,8 +8,13 @@ import {
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-import { anyone } from '../access/anyone'
-import { authenticated } from '../access/authenticated'
+import {
+  authenticated,
+  isSuperAdmin,
+  tenantPublicReadAccess,
+  tenantReadAccess,
+  usersCreateAccess,
+} from '../access/accessPermission'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -17,10 +22,10 @@ const dirname = path.dirname(filename)
 export const Media: CollectionConfig = {
   slug: 'media',
   access: {
-    create: authenticated,
+    create: usersCreateAccess,
     delete: authenticated,
-    read: anyone,
-    update: authenticated,
+    read: tenantPublicReadAccess(),
+    update: tenantReadAccess,
   },
   fields: [
     {
@@ -36,6 +41,15 @@ export const Media: CollectionConfig = {
           return [...rootFeatures, FixedToolbarFeature(), InlineToolbarFeature()]
         },
       }),
+    },
+    {
+      name: 'deletedAt',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
+      },
     },
   ],
   upload: {

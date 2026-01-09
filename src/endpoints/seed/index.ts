@@ -1,4 +1,4 @@
-import type { CollectionSlug, GlobalSlug, Payload, PayloadRequest, File } from 'payload'
+import type { CollectionSlug, Payload, PayloadRequest, File } from 'payload'
 
 import { contactForm as contactFormData } from './contact-form'
 import { contact as contactPageData } from './contact-page'
@@ -9,9 +9,12 @@ import { imageHero1 } from './image-hero-1'
 import { post1 } from './post-1'
 import { post2 } from './post-2'
 import { post3 } from './post-3'
+import { Roles } from '@/access/accessPermission'
 
 const collections: CollectionSlug[] = [
   'categories',
+  'footer',
+  'header',
   'media',
   'pages',
   'posts',
@@ -19,7 +22,6 @@ const collections: CollectionSlug[] = [
   'form-submissions',
   'search',
 ]
-const globals: GlobalSlug[] = ['header', 'footer']
 
 // Next.js revalidation errors are normal when seeding the database without a server running
 // i.e. running `yarn seed` locally instead of using the admin UI within an active app
@@ -38,24 +40,9 @@ export const seed = async ({
   // as well as the collections and globals
   // this is because while `yarn seed` drops the database
   // the custom `/api/seed` endpoint does not
-  payload.logger.info(`— Clearing collections and globals...`)
+  payload.logger.info(`— Clearing collections...`)
 
   // clear the database
-  await Promise.all(
-    globals.map((global) =>
-      payload.updateGlobal({
-        slug: global,
-        data: {
-          navItems: [],
-        },
-        depth: 0,
-        context: {
-          disableRevalidate: true,
-        },
-      }),
-    ),
-  )
-
   await Promise.all(
     collections.map((collection) => payload.db.deleteMany({ collection, req, where: {} })),
   )
@@ -66,7 +53,7 @@ export const seed = async ({
       .map((collection) => payload.db.deleteVersions({ collection, req, where: {} })),
   )
 
-  payload.logger.info(`— Seeding demo author and user...`)
+  payload.logger.info(`— Seeding tenant and admin user...`)
 
   await payload.delete({
     collection: 'users',
@@ -75,6 +62,50 @@ export const seed = async ({
       email: {
         equals: 'demo-author@example.com',
       },
+    },
+  })
+
+  const existingTenant = await payload.find({
+    collection: 'tenants',
+    limit: 1,
+    depth: 0,
+  })
+
+  const tenant =
+    existingTenant.docs[0] ||
+    (await payload.create({
+      collection: 'tenants',
+      data: {
+        name: 'Default Tenant',
+        slug: 'default',
+        domain: 'localhost',
+        allowPublicRead: true,
+      },
+    }))
+
+  await payload.delete({
+    collection: 'users',
+    depth: 0,
+    where: {
+      email: {
+        equals: 'admin@local.cms',
+      },
+    },
+  })
+
+  await payload.create({
+    collection: 'users',
+    data: {
+      name: 'Admin User',
+      email: 'admin@local.cms',
+      password: 'admin123',
+      roles: Roles.superAdmin,
+      tenants: [
+        {
+          tenant: tenant.id,
+          roles: [Roles.tenantAdmin],
+        },
+      ],
     },
   })
 
@@ -280,11 +311,11 @@ export const seed = async ({
     }),
   ])
 
-  payload.logger.info(`— Seeding globals...`)
+  payload.logger.info(`— Seeding header and footer...`)
 
   await Promise.all([
-    payload.updateGlobal({
-      slug: 'header',
+    payload.create({
+      collection: 'header',
       data: {
         navItems: [
           {
@@ -307,8 +338,8 @@ export const seed = async ({
         ],
       },
     }),
-    payload.updateGlobal({
-      slug: 'footer',
+    payload.create({
+      collection: 'footer',
       data: {
         navItems: [
           {
