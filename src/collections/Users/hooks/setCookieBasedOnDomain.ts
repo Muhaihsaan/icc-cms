@@ -1,19 +1,32 @@
 import type { CollectionAfterLoginHook } from 'payload'
 import { mergeHeaders, generateCookie, getCookieExpiration } from 'payload'
 
+const pickHost = (req: { headers: Headers }): string | null => {
+  const forwarded = req.headers.get('x-forwarded-host')
+  const raw = forwarded ?? req.headers.get('host')
+  if (!raw) return null
+
+  const withoutPort = raw.split(',')[0]?.trim().split(':')[0] ?? ''
+  const lower = withoutPort.toLowerCase()
+  const normalized = lower.startsWith('www.') ? lower.slice(4) : lower
+
+  return normalized || null
+}
+
 export const setCookieBasedOnDomain: CollectionAfterLoginHook = async ({ req, user }) => {
+  const host = pickHost(req)
+  if (!host) return user
+
   const tenant = await req.payload.find({
     collection: 'tenants',
     depth: 0,
     limit: 1,
     where: {
-      domain: {
-        equals: req.headers.get('host')?.split(':')[0],
-      },
+      domain: { equals: host },
     },
   })
 
-  if (tenant && tenant.docs.length > 0) {
+  if (tenant.docs.length > 0) {
     const secure = process.env.NODE_ENV === 'production'
     const tenantCookie = generateCookie({
       name: 'payload-tenant',
@@ -24,9 +37,8 @@ export const setCookieBasedOnDomain: CollectionAfterLoginHook = async ({ req, us
       value: String(tenant.docs[0].id),
     })
 
-    const newHeaders = new Headers({
-      'Set-Cookie': tenantCookie as string,
-    })
+    const newHeaders = new Headers()
+    newHeaders.set('Set-Cookie', `${tenantCookie}`)
 
     req.responseHeaders = req.responseHeaders
       ? mergeHeaders(req.responseHeaders, newHeaders)

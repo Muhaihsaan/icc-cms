@@ -370,7 +370,7 @@ export interface Post {
   authors: (number | User)[];
   populatedAuthors?:
     | {
-        id?: string | null;
+        id?: number | null;
         name?: string | null;
       }[]
     | null;

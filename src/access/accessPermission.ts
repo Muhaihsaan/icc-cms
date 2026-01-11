@@ -245,6 +245,12 @@ const getTenantAllowPublicRead = async ({
   return Boolean(tenant?.allowPublicRead)
 }
 
+const whereTenantScoped = (tenantIds: Array<string | number>): Where => {
+  return {
+    and: [{ tenant: { in: tenantIds } }, { deletedAt: { exists: false } }],
+  }
+}
+
 // Allow read access to tenant-scoped documents for tenant members.
 export const tenantMemberReadAccess: Access = ({ req }) => {
   const { user } = req
@@ -252,10 +258,7 @@ export const tenantMemberReadAccess: Access = ({ req }) => {
   if (isSuperAdmin(user)) return true
   if (hasTenantReadRole(user)) {
     const tenantIds = getTenantIds(user)
-    const where: Where = {
-      and: [{ tenant: { in: tenantIds } }, { deletedAt: { exists: false } }],
-    }
-    return where
+    return whereTenantScoped(tenantIds)
   }
   return false
 }
@@ -267,10 +270,7 @@ export const tenantReadAccess: Access = ({ req }) => {
   if (isSuperAdmin(user)) return true
   if (hasTenantRole(user, Roles.tenantAdmin)) {
     const tenantIds = getTenantIds(user)
-    const where: Where = {
-      and: [{ tenant: { in: tenantIds } }, { deletedAt: { exists: false } }],
-    }
-    return where
+    return whereTenantScoped(tenantIds)
   }
   return false
 }
@@ -319,12 +319,9 @@ export const usersCreateAccess: Access = ({ req }) => {
   if (adminTenantIds.length === 0) return false
 
   const tenantId = normalizeTenantId(getTenantFromReq(req))
-  if (tenantId) {
-    return adminTenantIds.includes(tenantId)
-  }
+  if (tenantId) return adminTenantIds.includes(tenantId)
 
-  // Allow create when the user only has one tenant-admin assignment and no tenant context is set.
-  return adminTenantIds.length === 1
+  return false
 }
 
 // Allow tenant admins and guest writers to create posts with limits.
@@ -375,11 +372,9 @@ export const postsUpdateAccess: Access = ({ req }) => {
   if (isSuperAdmin(user)) return true
   if (hasTenantRole(user, Roles.tenantAdmin)) {
     const tenantIds = getTenantIds(user)
-    const where: Where = {
-      and: [{ tenant: { in: tenantIds } }, { deletedAt: { exists: false } }],
-    }
-    return where
+    return whereTenantScoped(tenantIds)
   }
+
   if (!hasTenantRole(user, Roles.guestWriter)) return false
 
   const where: Where = {

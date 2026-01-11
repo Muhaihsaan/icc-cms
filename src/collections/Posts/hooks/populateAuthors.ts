@@ -1,36 +1,35 @@
 import type { CollectionAfterReadHook } from 'payload'
-import { User } from 'src/payload-types'
+import type { Post, User } from 'src/payload-types'
 
-// The `user` collection has access control locked so that users are not publicly accessible
-// This means that we need to populate the authors manually here to protect user privacy
-// GraphQL will not return mutated user data that differs from the underlying schema
-// So we use an alternative `populatedAuthors` field to populate the user data, hidden from the admin UI
-export const populateAuthors: CollectionAfterReadHook = async ({ doc, req, req: { payload } }) => {
-  if (doc?.authors && doc?.authors?.length > 0) {
-    const authorDocs: User[] = []
+type UserId = User['id']
 
-    for (const author of doc.authors) {
-      try {
-        const authorDoc = await payload.findByID({
-          id: typeof author === 'object' ? author?.id : author,
-          collection: 'users',
-          depth: 0,
-        })
+export const populateAuthors: CollectionAfterReadHook<Post> = async ({ doc, req }) => {
+  if (!doc.authors || doc.authors.length === 0) return doc
 
-        if (authorDoc) {
-          authorDocs.push(authorDoc)
-        }
+  const authorIds = doc.authors.map((a) => (typeof a === 'number' ? a : a.id))
 
-        if (authorDocs.length > 0) {
-          doc.populatedAuthors = authorDocs.map((authorDoc) => ({
-            id: authorDoc.id,
-            name: authorDoc.name,
-          }))
-        }
-      } catch {
-        // swallow error
-      }
+  try {
+    const result = await req.payload.find({
+      collection: 'users',
+      depth: 0,
+      limit: authorIds.length,
+      where: { id: { in: authorIds } },
+      overrideAccess: true,
+      select: { id: true, name: true },
+    })
+
+    const byId = new Map<UserId, { id: UserId; name: User['name'] }>()
+    for (const u of result.docs) {
+      byId.set(u.id, { id: u.id, name: u.name })
     }
+
+    doc.populatedAuthors = authorIds.map((id) => byId.get(id)).filter((x) => x !== undefined)
+  } catch (err) {
+    req.payload.logger?.error?.({
+      msg: 'populateAuthors failed',
+      postId: doc.id,
+      err,
+    })
   }
 
   return doc

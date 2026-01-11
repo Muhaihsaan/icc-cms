@@ -11,7 +11,9 @@ const assignUsersToOneTenant = ({ req, value }: AssignUsersToOneTenantArgs) => {
   const { user, tenant } = req
   if (!user) return value
   if (user?.roles?.includes(Roles.superAdmin)) return value
+
   let currentTenant = normalizeTenantId(tenant)
+
   if (!currentTenant) {
     const userTenants = user?.tenants || []
     if (userTenants.length === 1) {
@@ -19,9 +21,8 @@ const assignUsersToOneTenant = ({ req, value }: AssignUsersToOneTenantArgs) => {
     }
   }
 
-  if (!currentTenant) {
-    throw new Error('Tenant context is required to assign a user to a tenant.')
-  }
+  if (!currentTenant) return value
+
   return [{ tenant: currentTenant, roles: [Roles.tenantViewer] }]
 }
 

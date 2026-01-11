@@ -1,4 +1,9 @@
-import type { CollectionAfterChangeHook, CollectionBeforeChangeHook, CollectionConfig, Where } from 'payload'
+import type {
+  CollectionAfterChangeHook,
+  CollectionBeforeChangeHook,
+  CollectionConfig,
+  Where,
+} from 'payload'
 
 import {
   BlocksFeature,
@@ -14,7 +19,6 @@ import {
   isSuperAdmin,
   Roles,
   tenantPublicReadAccess,
-  tenantReadAccess,
   tenantCollectionAdminAccess,
   postsCreateAccess,
   postsUpdateAccess,
@@ -68,17 +72,13 @@ const logGuestWriterCreate: CollectionAfterChangeHook = async ({ req, operation 
     depth: 0,
     overrideAccess: true,
   })
-  const limit =
-    typeof userDoc?.guestWriterPostLimit === 'number' ? userDoc.guestWriterPostLimit : 1
+  const limit = typeof userDoc?.guestWriterPostLimit === 'number' ? userDoc.guestWriterPostLimit : 1
 
   const where: Where = {
     and: [
       { authors: { contains: user.id } },
       {
-        or: [
-          { _status: { equals: 'published' } },
-          { publishedAt: { exists: true } },
-        ],
+        or: [{ _status: { equals: 'published' } }, { publishedAt: { exists: true } }],
       },
     ],
   }
@@ -282,6 +282,7 @@ export const Posts: CollectionConfig<'posts'> = {
       hasMany: true,
       relationTo: 'users',
       required: true,
+      maxDepth: 0,
     },
     // This field is only used to populate the user data via the `populateAuthors` hook
     // This is because the `user` collection has access control locked to protect user privacy
@@ -299,7 +300,7 @@ export const Posts: CollectionConfig<'posts'> = {
       fields: [
         {
           name: 'id',
-          type: 'text',
+          type: 'number',
         },
         {
           name: 'name',
