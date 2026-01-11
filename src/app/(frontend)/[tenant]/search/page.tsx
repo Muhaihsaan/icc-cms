@@ -5,22 +5,35 @@ import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import React from 'react'
 import { Search } from '@/search/Component'
-import PageClient from './page.client'
+import PageClient from '../../search/page.client'
 import { CardPostData } from '@/components/Card'
+import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { createTenantRequest } from '@/utilities/createTenantRequest'
+import { notFound } from 'next/navigation'
 
 type Args = {
+  params: Promise<{
+    tenant: string
+  }>
   searchParams: Promise<{
-    q: string
+    q?: string
   }>
 }
-export default async function Page({ searchParams: searchParamsPromise }: Args) {
+
+export default async function Page({ params: paramsPromise, searchParams: searchParamsPromise }: Args) {
   const { q: query } = await searchParamsPromise
+  const { tenant } = await paramsPromise
   const payload = await getPayload({ config: configPromise })
+
+  const tenantDoc = await fetchTenantByDomain(tenant)
+  if (!tenantDoc) notFound()
+  const payloadReq = await createTenantRequest(payload, tenantDoc)
 
   const posts = await payload.find({
     collection: 'search',
     depth: 1,
     limit: 12,
+    req: payloadReq,
     select: {
       title: true,
       slug: true,
@@ -32,31 +45,46 @@ export default async function Page({ searchParams: searchParamsPromise }: Args) 
     ...(query
       ? {
           where: {
-            or: [
+            and: [
               {
-                title: {
-                  like: query,
+                'doc.value.tenant': {
+                  equals: tenantDoc.id,
                 },
               },
               {
-                'meta.description': {
-                  like: query,
-                },
-              },
-              {
-                'meta.title': {
-                  like: query,
-                },
-              },
-              {
-                slug: {
-                  like: query,
-                },
+                or: [
+                  {
+                    title: {
+                      like: query,
+                    },
+                  },
+                  {
+                    'meta.description': {
+                      like: query,
+                    },
+                  },
+                  {
+                    'meta.title': {
+                      like: query,
+                    },
+                  },
+                  {
+                    slug: {
+                      like: query,
+                    },
+                  },
+                ],
               },
             ],
           },
         }
-      : {}),
+      : {
+          where: {
+            'doc.value.tenant': {
+              equals: tenantDoc.id,
+            },
+          },
+        }),
   })
 
   return (
@@ -67,7 +95,7 @@ export default async function Page({ searchParams: searchParamsPromise }: Args) 
           <h1 className="mb-8 lg:mb-16">Search</h1>
 
           <div className="max-w-[50rem] mx-auto">
-            <Search />
+            <Search tenantDomain={tenant} />
           </div>
         </div>
       </div>

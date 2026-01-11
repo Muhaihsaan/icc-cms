@@ -7,6 +7,9 @@ import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import React from 'react'
 import PageClient from './page.client'
+import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { createTenantRequest } from '@/utilities/createTenantRequest'
+import { notFound } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,19 +22,23 @@ type Args = {
 export default async function Page({ params: paramsPromise }: Args) {
   const { tenant } = await paramsPromise
   const payload = await getPayload({ config: configPromise })
-  console.log('tenant in posts index', tenant)
+
+  const tenantDoc = await fetchTenantByDomain(tenant)
+  if (!tenantDoc) notFound()
+  const payloadReq = await createTenantRequest(payload, tenantDoc)
+
   const posts = await payload.find({
     collection: 'posts',
     depth: 1,
     limit: 12,
     overrideAccess: false,
+    req: payloadReq,
     select: {
       title: true,
       slug: true,
       categories: true,
       meta: true,
     },
-    where: { 'tenant.domain': { equals: tenant } },
   })
 
   return (

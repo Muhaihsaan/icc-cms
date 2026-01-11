@@ -1,48 +1,21 @@
-import type { AccessArgs, CollectionConfig } from 'payload'
+import type { CollectionConfig } from 'payload'
 
-import { isSuperAdmin, normalizeTenantId, Roles } from '@/access/accessPermission'
+import {
+  isSuperAdmin,
+  isSuperAdminAccess,
+  isSuperAdminFieldAccess,
+  tenantManagedCollections,
+  tenantsReadAccess,
+  tenantsUpdateAccess,
+} from '@/access/accessPermission'
 
 export const Tenants: CollectionConfig = {
   slug: 'tenants',
   access: {
-    create: ({ req: { user } }: AccessArgs) => {
-      return user?.roles?.includes('super-admin') || false
-    },
-    delete: ({ req: { user } }: AccessArgs) => {
-      return user?.roles?.includes('super-admin') || false
-    },
-    read: ({ req: { user } }: AccessArgs) => {
-      if (!user) return false
-      if (isSuperAdmin(user)) return true
-      if (!user.tenants) return false
-
-      const tenantIds = user.tenants
-        .filter((tenantEntry) => tenantEntry.roles?.includes(Roles.tenantAdmin))
-        .map((tenantEntry) => normalizeTenantId(tenantEntry.tenant))
-        .filter((value): value is string | number => value !== undefined)
-
-      if (tenantIds.length === 0) return false
-
-      return {
-        id: { in: tenantIds },
-      }
-    },
-    update: ({ req: { user } }: AccessArgs) => {
-      if (!user) return false
-      if (isSuperAdmin(user)) return true
-      if (!user.tenants) return false
-
-      const tenantIds = user.tenants
-        .filter((tenantEntry) => tenantEntry.roles?.includes(Roles.tenantAdmin))
-        .map((tenantEntry) => normalizeTenantId(tenantEntry.tenant))
-        .filter((value): value is string | number => value !== undefined)
-
-      if (tenantIds.length === 0) return false
-
-      return {
-        id: { in: tenantIds },
-      }
-    },
+    create: isSuperAdminAccess,
+    delete: isSuperAdminAccess,
+    read: tenantsReadAccess,
+    update: tenantsUpdateAccess,
   },
   admin: {
     useAsTitle: 'name',
@@ -84,6 +57,24 @@ export const Tenants: CollectionConfig = {
       },
       defaultValue: true,
       index: true,
+    },
+    {
+      name: 'allowedCollections',
+      type: 'select',
+      access: {
+        create: isSuperAdminFieldAccess,
+        update: isSuperAdminFieldAccess,
+        read: isSuperAdminFieldAccess,
+      },
+      admin: {
+        description: 'If empty, all collections are available to this tenant.',
+        position: 'sidebar',
+      },
+      hasMany: true,
+      options: tenantManagedCollections.map((collection) => ({
+        label: collection,
+        value: collection,
+      })),
     },
     {
       name: 'deletedAt',

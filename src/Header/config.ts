@@ -4,7 +4,9 @@ import {
   isSuperAdmin,
   tenantPublicReadAccess,
   tenantReadAccess,
+  tenantCollectionAdminAccess,
   usersCreateAccess,
+  withTenantCollectionAccess,
 } from '@/access/accessPermission'
 import { link } from '@/fields/link'
 import { revalidateHeader } from './hooks/revalidateHeader'
@@ -12,9 +14,10 @@ import { revalidateHeader } from './hooks/revalidateHeader'
 export const Header: CollectionConfig = {
   slug: 'header',
   access: {
-    create: usersCreateAccess,
-    read: tenantPublicReadAccess(),
-    update: tenantReadAccess,
+    admin: tenantCollectionAdminAccess('header'),
+    create: withTenantCollectionAccess('header', usersCreateAccess),
+    read: withTenantCollectionAccess('header', tenantPublicReadAccess()),
+    update: withTenantCollectionAccess('header', tenantReadAccess),
   },
   fields: [
     {

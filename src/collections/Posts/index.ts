@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionAfterChangeHook, CollectionBeforeChangeHook, CollectionConfig, Where } from 'payload'
 
 import {
   BlocksFeature,
@@ -12,9 +12,13 @@ import {
 import {
   authenticated,
   isSuperAdmin,
+  Roles,
   tenantPublicReadAccess,
   tenantReadAccess,
-  usersCreateAccess,
+  tenantCollectionAdminAccess,
+  postsCreateAccess,
+  postsUpdateAccess,
+  withTenantCollectionAccess,
 } from '../../access/accessPermission'
 import { Banner } from '../../blocks/Banner/config'
 import { Code } from '../../blocks/Code/config'
@@ -32,13 +36,76 @@ import {
 } from '@payloadcms/plugin-seo/fields'
 import { slugField } from '@/fields/slug'
 
+const isGuestWriterUser = (user: { tenants?: { roles?: string[] | null }[] | null } | null) =>
+  Boolean(
+    user?.tenants?.some(
+      (tenantEntry) =>
+        Array.isArray(tenantEntry?.roles) && tenantEntry.roles.includes(Roles.guestWriter),
+    ),
+  )
+
+const assignGuestWriterAuthor: CollectionBeforeChangeHook = ({ req, data }) => {
+  const { user } = req
+  if (!user) return data
+  if (!isGuestWriterUser(user)) return data
+
+  const nextData = typeof data === 'object' && data ? data : {}
+  return {
+    ...nextData,
+    authors: [user.id],
+  }
+}
+
+const logGuestWriterCreate: CollectionAfterChangeHook = async ({ req, operation }) => {
+  if (operation !== 'create') return
+  const { user } = req
+  if (!user) return
+  if (!isGuestWriterUser(user)) return
+
+  const userDoc = await req.payload.findByID({
+    collection: 'users',
+    id: user.id,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const limit =
+    typeof userDoc?.guestWriterPostLimit === 'number' ? userDoc.guestWriterPostLimit : 1
+
+  const where: Where = {
+    and: [
+      { authors: { contains: user.id } },
+      {
+        or: [
+          { _status: { equals: 'published' } },
+          { publishedAt: { exists: true } },
+        ],
+      },
+    ],
+  }
+
+  const { totalDocs } = await req.payload.count({
+    collection: 'posts',
+    overrideAccess: true,
+    req: undefined,
+    where,
+  })
+
+  req.payload.logger.info({
+    msg: 'guestWriterPostLimit after create',
+    userId: user.id,
+    limit,
+    publishedCount: totalDocs,
+  })
+}
+
 export const Posts: CollectionConfig<'posts'> = {
   slug: 'posts',
   access: {
-    create: usersCreateAccess,
-    delete: authenticated,
-    read: tenantPublicReadAccess({ publishedOnly: true }),
-    update: tenantReadAccess,
+    admin: tenantCollectionAdminAccess('posts'),
+    create: withTenantCollectionAccess('posts', postsCreateAccess),
+    delete: withTenantCollectionAccess('posts', authenticated),
+    read: withTenantCollectionAccess('posts', tenantPublicReadAccess({ publishedOnly: true })),
+    update: withTenantCollectionAccess('posts', postsUpdateAccess),
   },
   // This config controls what's populated by default when a post is referenced
   // https://payloadcms.com/docs/queries/select#defaultpopulate-collection-config-property
@@ -53,6 +120,9 @@ export const Posts: CollectionConfig<'posts'> = {
     },
   },
   admin: {
+    components: {
+      Description: '@/collections/Posts/GuestWriterLimitDescription#GuestWriterLimitDescription',
+    },
     defaultColumns: ['title', 'slug', 'updatedAt'],
     livePreview: {
       url: ({ data, req }) => {
@@ -203,9 +273,15 @@ export const Posts: CollectionConfig<'posts'> = {
       type: 'relationship',
       admin: {
         position: 'sidebar',
+        readOnly: true,
+      },
+      defaultValue: ({ req }) => {
+        if (isGuestWriterUser(req.user)) return [req.user?.id].filter(Boolean)
+        return undefined
       },
       hasMany: true,
       relationTo: 'users',
+      required: true,
     },
     // This field is only used to populate the user data via the `populateAuthors` hook
     // This is because the `user` collection has access control locked to protect user privacy
@@ -234,7 +310,8 @@ export const Posts: CollectionConfig<'posts'> = {
     ...slugField(),
   ],
   hooks: {
-    afterChange: [revalidatePost],
+    beforeChange: [assignGuestWriterAuthor],
+    afterChange: [logGuestWriterCreate, revalidatePost],
     afterRead: [populateAuthors],
     afterDelete: [revalidateDelete],
   },

@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { RelatedPosts } from '@/blocks/RelatedPosts/Component'
 import { PayloadRedirects } from '@/components/PayloadRedirects'
 import configPromise from '@payload-config'
-import { createLocalReq, getPayload, type PayloadRequest } from 'payload'
+import { getPayload } from 'payload'
 import { draftMode } from 'next/headers'
 import React, { cache } from 'react'
 import RichText from '@/components/RichText'
@@ -15,18 +15,7 @@ import { generateMeta } from '@/utilities/generateMeta'
 import PageClient from './page.client'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
-import type { Tenant } from '@/payload-types'
-
-type TenantRequest = PayloadRequest & { tenant?: Tenant | null }
-
-const createTenantRequest = async (
-  payload: Awaited<ReturnType<typeof getPayload>>,
-  tenant: Tenant,
-) => {
-  const payloadReq: TenantRequest = await createLocalReq({ user: undefined }, payload)
-  payloadReq.tenant = tenant
-  return payloadReq
-}
+import { createTenantRequest } from '@/utilities/createTenantRequest'
 
 export async function generateStaticParams() {
   const payload = await getPayload({ config: configPromise })
@@ -75,14 +64,14 @@ export default async function Post({ params: paramsPromise }: Args) {
     slug,
   })
 
-  if (!post) return <PayloadRedirects url={url} />
+  if (!post) return <PayloadRedirects tenantDomain={tenant} url={url} />
 
   return (
     <article className="pt-16 pb-16">
       <PageClient />
 
       {/* Allows redirects for valid pages too */}
-      <PayloadRedirects disableNotFound url={url} />
+      <PayloadRedirects disableNotFound tenantDomain={tenant} url={url} />
 
       {draft && <LivePreviewListener />}
 

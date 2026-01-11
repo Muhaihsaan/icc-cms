@@ -36,7 +36,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ tenant, data }) => {
         <Link href="/">
           <Logo tenant={tenant} loading="eager" priority="high" className="invert dark:invert-0" />
         </Link>
-        <HeaderNav data={data} />
+        <HeaderNav data={data} tenant={tenant} />
       </div>
     </header>
   )

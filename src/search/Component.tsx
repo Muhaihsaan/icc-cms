@@ -5,15 +5,15 @@ import React, { useState, useEffect } from 'react'
 import { useDebounce } from '@/utilities/useDebounce'
 import { useRouter } from 'next/navigation'
 
-export const Search: React.FC = () => {
+export const Search: React.FC<{ tenantDomain: string }> = ({ tenantDomain }) => {
   const [value, setValue] = useState('')
   const router = useRouter()
 
   const debouncedValue = useDebounce(value)
 
   useEffect(() => {
-    router.push(`/search${debouncedValue ? `?q=${debouncedValue}` : ''}`)
-  }, [debouncedValue, router])
+    router.push(`/${tenantDomain}/search${debouncedValue ? `?q=${debouncedValue}` : ''}`)
+  }, [debouncedValue, router, tenantDomain])
 
   return (
     <div>

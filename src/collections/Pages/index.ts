@@ -5,7 +5,9 @@ import {
   isSuperAdmin,
   tenantPublicReadAccess,
   tenantReadAccess,
+  tenantCollectionAdminAccess,
   usersCreateAccess,
+  withTenantCollectionAccess,
 } from '../../access/accessPermission'
 import { Archive } from '../../blocks/ArchiveBlock/config'
 import { CallToAction } from '../../blocks/CallToAction/config'
@@ -29,10 +31,11 @@ import {
 export const Pages: CollectionConfig<'pages'> = {
   slug: 'pages',
   access: {
-    create: usersCreateAccess,
-    delete: authenticated,
-    read: tenantPublicReadAccess({ publishedOnly: true }),
-    update: tenantReadAccess,
+    admin: tenantCollectionAdminAccess('pages'),
+    create: withTenantCollectionAccess('pages', usersCreateAccess),
+    delete: withTenantCollectionAccess('pages', authenticated),
+    read: withTenantCollectionAccess('pages', tenantPublicReadAccess({ publishedOnly: true })),
+    update: withTenantCollectionAccess('pages', tenantReadAccess),
   },
   // This config controls what's populated by default when a page is referenced
   // https://payloadcms.com/docs/queries/select#defaultpopulate-collection-config-property

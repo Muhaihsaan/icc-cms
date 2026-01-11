@@ -13,7 +13,9 @@ import {
   isSuperAdmin,
   tenantPublicReadAccess,
   tenantReadAccess,
+  tenantCollectionAdminAccess,
   usersCreateAccess,
+  withTenantCollectionAccess,
 } from '../access/accessPermission'
 
 const filename = fileURLToPath(import.meta.url)
@@ -22,10 +24,11 @@ const dirname = path.dirname(filename)
 export const Media: CollectionConfig = {
   slug: 'media',
   access: {
-    create: usersCreateAccess,
-    delete: authenticated,
-    read: tenantPublicReadAccess(),
-    update: tenantReadAccess,
+    admin: tenantCollectionAdminAccess('media'),
+    create: withTenantCollectionAccess('media', usersCreateAccess),
+    delete: withTenantCollectionAccess('media', authenticated),
+    read: withTenantCollectionAccess('media', tenantPublicReadAccess()),
+    update: withTenantCollectionAccess('media', tenantReadAccess),
   },
   fields: [
     {

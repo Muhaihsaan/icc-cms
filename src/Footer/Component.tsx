@@ -13,8 +13,7 @@ interface HeaderProps {
 
 export async function Footer({ tenant }: HeaderProps) {
   if (!tenant) return
-  const tenantId = tenant.id
-  const footerData = (await getTenantCachedGlobal('footer', 1, tenantId)()) as Footer
+  const footerData = (await getTenantCachedGlobal('footer', 1, tenant)()) as Footer
 
   const navItems = footerData?.navItems || []
 

@@ -2,7 +2,12 @@ import type { Metadata } from 'next'
 
 import { PayloadRedirects } from '@/components/PayloadRedirects'
 import configPromise from '@payload-config'
-import { createLocalReq, getPayload, type PayloadRequest, type RequiredDataFromCollectionSlug } from 'payload'
+import {
+  createLocalReq,
+  getPayload,
+  type PayloadRequest,
+  type RequiredDataFromCollectionSlug,
+} from 'payload'
 import { draftMode } from 'next/headers'
 import React, { cache } from 'react'
 import { homeStatic } from '@/endpoints/seed/home-static'
@@ -17,7 +22,10 @@ import type { Tenant } from '@/payload-types'
 
 type TenantRequest = PayloadRequest & { tenant?: Tenant | null }
 
-const createTenantRequest = async (payload: Awaited<ReturnType<typeof getPayload>>, tenant: Tenant) => {
+const createTenantRequest = async (
+  payload: Awaited<ReturnType<typeof getPayload>>,
+  tenant: Tenant,
+) => {
   const payloadReq: TenantRequest = await createLocalReq({ user: undefined }, payload)
   payloadReq.tenant = tenant
   return payloadReq
@@ -71,14 +79,14 @@ export default async function Page({ params }: Args) {
   })
 
   if (!page && pageSlug === 'home') page = homeStatic
-  if (!page) return <PayloadRedirects url={`/${pageSlug}`} />
+  if (!page) return <PayloadRedirects tenantDomain={tenant} url={`/${pageSlug}`} />
 
   const { hero, layout } = page
 
   return (
     <article className="pt-16 pb-24">
       <PageClient />
-      <PayloadRedirects disableNotFound url={`/${pageSlug}`} />
+      <PayloadRedirects disableNotFound tenantDomain={tenant} url={`/${pageSlug}`} />
       {draft && <LivePreviewListener />}
       <RenderHero {...hero} />
       <RenderBlocks blocks={layout} />

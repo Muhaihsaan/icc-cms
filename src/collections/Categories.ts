@@ -5,17 +5,20 @@ import {
   isSuperAdmin,
   tenantPublicReadAccess,
   tenantReadAccess,
+  tenantCollectionAdminAccess,
   usersCreateAccess,
+  withTenantCollectionAccess,
 } from '../access/accessPermission'
 import { slugField } from '@/fields/slug'
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
   access: {
-    create: usersCreateAccess,
-    delete: authenticated,
-    read: tenantPublicReadAccess(),
-    update: tenantReadAccess,
+    admin: tenantCollectionAdminAccess('categories'),
+    create: withTenantCollectionAccess('categories', usersCreateAccess),
+    delete: withTenantCollectionAccess('categories', authenticated),
+    read: withTenantCollectionAccess('categories', tenantPublicReadAccess()),
+    update: withTenantCollectionAccess('categories', tenantReadAccess),
   },
   admin: {
     useAsTitle: 'title',

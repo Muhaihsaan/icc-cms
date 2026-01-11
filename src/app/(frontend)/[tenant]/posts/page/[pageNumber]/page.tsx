@@ -8,22 +8,29 @@ import { getPayload } from 'payload'
 import React from 'react'
 import PageClient from './page.client'
 import { notFound } from 'next/navigation'
+import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { createTenantRequest } from '@/utilities/createTenantRequest'
 
 export const revalidate = 600
 
 type Args = {
   params: Promise<{
+    tenant: string
     pageNumber: string
   }>
 }
 
 export default async function Page({ params: paramsPromise }: Args) {
-  const { pageNumber } = await paramsPromise
+  const { pageNumber, tenant } = await paramsPromise
   const payload = await getPayload({ config: configPromise })
 
   const sanitizedPageNumber = Number(pageNumber)
 
   if (!Number.isInteger(sanitizedPageNumber)) notFound()
+
+  const tenantDoc = await fetchTenantByDomain(tenant)
+  if (!tenantDoc) notFound()
+  const payloadReq = await createTenantRequest(payload, tenantDoc)
 
   const posts = await payload.find({
     collection: 'posts',
@@ -31,6 +38,7 @@ export default async function Page({ params: paramsPromise }: Args) {
     limit: 12,
     page: sanitizedPageNumber,
     overrideAccess: false,
+    req: payloadReq,
   })
 
   return (
@@ -71,18 +79,33 @@ export async function generateMetadata({ params: paramsPromise }: Args): Promise
 
 export async function generateStaticParams() {
   const payload = await getPayload({ config: configPromise })
-  const { totalDocs } = await payload.count({
-    collection: 'posts',
-    overrideAccess: false,
+  const tenants = await payload.find({
+    collection: 'tenants',
+    limit: 1000,
+    pagination: false,
   })
 
-  const totalPages = Math.ceil(totalDocs / 10)
+  const params = await Promise.all(
+    tenants.docs.map(async (tenant) => {
+      const payloadReq = await createTenantRequest(payload, tenant)
+      const { totalDocs } = await payload.count({
+        collection: 'posts',
+        overrideAccess: false,
+        req: payloadReq,
+        where: {
+          tenant: {
+            equals: tenant.id,
+          },
+        },
+      })
 
-  const pages: { pageNumber: string }[] = []
+      const totalPages = Math.ceil(totalDocs / 10)
+      return Array.from({ length: totalPages }).map((_, index) => ({
+        tenant: tenant.domain,
+        pageNumber: String(index + 1),
+      }))
+    }),
+  )
 
-  for (let i = 1; i <= totalPages; i++) {
-    pages.push({ pageNumber: String(i) })
-  }
-
-  return pages
+  return params.flat()
 }

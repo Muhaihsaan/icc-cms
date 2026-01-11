@@ -11,8 +11,7 @@ interface HeaderProps {
 export async function Header({ tenant }: HeaderProps) {
   if (!tenant) return
 
-  const tenantId = tenant.id
-  const headerData = (await getTenantCachedGlobal('header', 1, tenantId)()) as Header
+  const headerData = (await getTenantCachedGlobal('header', 1, tenant)()) as Header
 
   return <HeaderClient tenant={tenant} data={headerData} />
 }

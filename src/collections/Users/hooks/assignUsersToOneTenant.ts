@@ -1,18 +1,10 @@
 import type { AccessArgs } from 'payload'
 import { Roles } from '@/access/accessPermission'
+import { normalizeTenantId } from '@/access/helpers'
 
 type AssignUsersToOneTenantArgs = {
   req: AccessArgs['req'] & { tenant?: { id?: string } }
   value?: unknown
-}
-
-const normalizeTenantId = (value: unknown): string | number | undefined => {
-  if (typeof value === 'string' || typeof value === 'number') return value
-  if (value && typeof value === 'object' && 'id' in value) {
-    const id = value.id
-    if (typeof id === 'string' || typeof id === 'number') return id
-  }
-  return undefined
 }
 
 const assignUsersToOneTenant = ({ req, value }: AssignUsersToOneTenantArgs) => {

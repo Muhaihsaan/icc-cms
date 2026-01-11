@@ -5,8 +5,8 @@ import {
   isSuperAdmin,
   isSuperAdminAccess,
   isSuperAdminFieldAccess,
-  isSuperAdminOrEditor,
   isSuperAdminOrEditorFieldAccess,
+  isSuperAdminOrTenantMember,
   Roles,
   usersBootstrapCreateAccess,
   usersCreateAccess,
@@ -14,6 +14,17 @@ import {
 } from '../../access/accessPermission'
 import assignUsersToOneTenant from './hooks/assignUsersToOneTenant'
 import { setCookieBasedOnDomain } from './hooks/setCookieBasedOnDomain'
+
+const isGuestWriterAssignment = (data?: {
+  tenants?: { roles?: string[] | null }[] | null
+}): boolean => {
+  return Boolean(
+    data?.tenants?.some(
+      (tenantEntry) =>
+        Array.isArray(tenantEntry?.roles) && tenantEntry.roles.includes(Roles.guestWriter),
+    ),
+  )
+}
 
 const defaultTenantArrayField = tenantsArrayField({
   tenantsArrayFieldName: 'tenants',
@@ -28,7 +39,7 @@ const defaultTenantArrayField = tenantsArrayField({
       defaultValue: [Roles.tenantViewer],
       hasMany: true,
       required: true,
-      options: [Roles.tenantAdmin, Roles.tenantViewer],
+      options: [Roles.tenantAdmin, Roles.tenantViewer, Roles.guestWriter],
       access: {
         update: isSuperAdminFieldAccess,
       },
@@ -39,7 +50,7 @@ const defaultTenantArrayField = tenantsArrayField({
 export const Users: CollectionConfig = {
   slug: 'users',
   access: {
-    admin: isSuperAdminOrEditor,
+    admin: isSuperAdminOrTenantMember,
     create: usersBootstrapCreateAccess,
     delete: isSuperAdminAccess,
     update: usersReadAccess,
@@ -67,6 +78,22 @@ export const Users: CollectionConfig = {
     {
       name: 'name',
       type: 'text',
+    },
+    {
+      name: 'guestWriterPostLimit',
+      type: 'number',
+      access: {
+        create: isSuperAdminFieldAccess,
+        update: isSuperAdminFieldAccess,
+        read: isSuperAdminFieldAccess,
+      },
+      admin: {
+        position: 'sidebar',
+        condition: (data, siblingData, { user }) =>
+          isSuperAdmin(user) && (isGuestWriterAssignment(data) || isGuestWriterAssignment(siblingData)),
+        description: 'Maximum number of published posts a guest-writer can create.',
+      },
+      defaultValue: 1,
     },
     {
       name: 'deletedAt',

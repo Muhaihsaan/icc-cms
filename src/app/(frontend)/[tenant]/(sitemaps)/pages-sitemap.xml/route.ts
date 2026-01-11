@@ -3,9 +3,16 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { unstable_cache } from 'next/cache'
 
+import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { createTenantRequest } from '@/utilities/createTenantRequest'
+
 const getPagesSitemap = unstable_cache(
-  async () => {
+  async (tenantDomain: string) => {
     const payload = await getPayload({ config })
+    const tenant = await fetchTenantByDomain(tenantDomain)
+    if (!tenant) return []
+    const payloadReq = await createTenantRequest(payload, tenant)
+
     const SITE_URL =
       process.env.NEXT_PUBLIC_SERVER_URL ||
       process.env.VERCEL_PROJECT_PRODUCTION_URL ||
@@ -13,15 +20,25 @@ const getPagesSitemap = unstable_cache(
 
     const results = await payload.find({
       collection: 'pages',
+      req: payloadReq,
       overrideAccess: false,
       draft: false,
       depth: 0,
       limit: 1000,
       pagination: false,
       where: {
-        _status: {
-          equals: 'published',
-        },
+        and: [
+          {
+            _status: {
+              equals: 'published',
+            },
+          },
+          {
+            tenant: {
+              equals: tenant.id,
+            },
+          },
+        ],
       },
       select: {
         slug: true,
@@ -33,11 +50,11 @@ const getPagesSitemap = unstable_cache(
 
     const defaultSitemap = [
       {
-        loc: `${SITE_URL}/search`,
+        loc: `${SITE_URL}/${tenantDomain}/search`,
         lastmod: dateFallback,
       },
       {
-        loc: `${SITE_URL}/posts`,
+        loc: `${SITE_URL}/${tenantDomain}/posts`,
         lastmod: dateFallback,
       },
     ]
@@ -46,8 +63,9 @@ const getPagesSitemap = unstable_cache(
       ? results.docs
           .filter((page) => Boolean(page?.slug))
           .map((page) => {
+            const slug = page?.slug === 'home' ? '' : page?.slug
             return {
-              loc: page?.slug === 'home' ? `${SITE_URL}/` : `${SITE_URL}/${page?.slug}`,
+              loc: `${SITE_URL}/${tenantDomain}/${slug}`.replace(/\/$/, '/'),
               lastmod: page.updatedAt || dateFallback,
             }
           })
@@ -61,8 +79,8 @@ const getPagesSitemap = unstable_cache(
   },
 )
 
-export async function GET() {
-  const sitemap = await getPagesSitemap()
+export async function GET(_req: Request, { params }: { params: { tenant: string } }) {
+  const sitemap = await getPagesSitemap(params.tenant)
 
   return getServerSideSitemap(sitemap)
 }

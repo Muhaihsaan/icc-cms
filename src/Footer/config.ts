@@ -4,7 +4,9 @@ import {
   isSuperAdmin,
   tenantPublicReadAccess,
   tenantReadAccess,
+  tenantCollectionAdminAccess,
   usersCreateAccess,
+  withTenantCollectionAccess,
 } from '@/access/accessPermission'
 import { link } from '@/fields/link'
 import { revalidateFooter } from './hooks/revalidateFooter'
@@ -12,9 +14,10 @@ import { revalidateFooter } from './hooks/revalidateFooter'
 export const Footer: CollectionConfig = {
   slug: 'footer',
   access: {
-    create: usersCreateAccess,
-    read: tenantPublicReadAccess(),
-    update: tenantReadAccess,
+    admin: tenantCollectionAdminAccess('footer'),
+    create: withTenantCollectionAccess('footer', usersCreateAccess),
+    read: withTenantCollectionAccess('footer', tenantPublicReadAccess()),
+    update: withTenantCollectionAccess('footer', tenantReadAccess),
   },
   fields: [
     {

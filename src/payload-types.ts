@@ -229,6 +229,10 @@ export interface Tenant {
    * If checked, logging in is not required to read. Useful for building public pages.
    */
   allowPublicRead?: boolean | null;
+  /**
+   * If empty, all collections are available to this tenant.
+   */
+  allowedCollections?: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[] | null;
   deletedAt?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -363,7 +367,7 @@ export interface Post {
   };
   publishedAt?: string | null;
   deletedAt?: string | null;
-  authors?: (number | User)[] | null;
+  authors: (number | User)[];
   populatedAuthors?:
     | {
         id?: string | null;
@@ -407,11 +411,15 @@ export interface User {
   id: number;
   roles?: 'super-admin' | null;
   name?: string | null;
+  /**
+   * Maximum number of published posts a guest-writer can create.
+   */
+  guestWriterPostLimit?: number | null;
   deletedAt?: string | null;
   tenants?:
     | {
         tenant: number | Tenant;
-        roles: ('tenant-admin' | 'tenant-viewer')[];
+        roles: ('tenant-admin' | 'tenant-viewer' | 'guest-writer')[];
         id?: string | null;
       }[]
     | null;
@@ -1398,6 +1406,7 @@ export interface CategoriesSelect<T extends boolean = true> {
 export interface UsersSelect<T extends boolean = true> {
   roles?: T;
   name?: T;
+  guestWriterPostLimit?: T;
   deletedAt?: T;
   tenants?:
     | T
@@ -1433,6 +1442,7 @@ export interface TenantsSelect<T extends boolean = true> {
   slug?: T;
   logo?: T;
   allowPublicRead?: T;
+  allowedCollections?: T;
   deletedAt?: T;
   updatedAt?: T;
   createdAt?: T;
