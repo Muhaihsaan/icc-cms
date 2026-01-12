@@ -201,6 +201,7 @@ export interface Page {
     image?: (number | null) | Media;
     description?: string | null;
   };
+  tenantDomain?: string | null;
   publishedAt?: string | null;
   deletedAt?: string | null;
   slug?: string | null;
@@ -1157,6 +1158,7 @@ export interface PagesSelect<T extends boolean = true> {
         image?: T;
         description?: T;
       };
+  tenantDomain?: T;
   publishedAt?: T;
   deletedAt?: T;
   slug?: T;

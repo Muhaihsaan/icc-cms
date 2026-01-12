@@ -28,6 +28,10 @@ async function getGlobal(collection: Global, depth = 0, tenant: Tenant | null) {
  * Returns a unstable_cache function mapped with the cache tag for the slug
  */
 export const getTenantCachedGlobal = (collection: Global, depth = 0, tenant: Tenant | null) =>
-  unstable_cache(async () => getGlobal(collection, depth, tenant), [collection, tenant?.id], {
-    tags: [`global_${collection}`],
-  })
+  unstable_cache(
+    async () => getGlobal(collection, depth, tenant),
+    [collection, `${tenant?.id ?? ''}`],
+    {
+      tags: [`global_${collection}`],
+    },
+  )

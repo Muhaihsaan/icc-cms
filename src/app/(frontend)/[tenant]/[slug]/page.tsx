@@ -9,8 +9,7 @@ import {
   type RequiredDataFromCollectionSlug,
 } from 'payload'
 import { draftMode } from 'next/headers'
-import React, { cache } from 'react'
-import { homeStatic } from '@/endpoints/seed/home-static'
+import { unstable_cache } from 'next/cache'
 
 import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { RenderHero } from '@/heros/RenderHero'
@@ -20,7 +19,14 @@ import { LivePreviewListener } from '@/components/LivePreviewListener'
 import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import type { Tenant } from '@/payload-types'
 
+// treats this route as dynamic SSR to prevent accidental SSG behavior
+export const dynamic = 'force-dynamic'
+
 type TenantRequest = PayloadRequest & { tenant?: Tenant | null }
+
+type Args = {
+  params: Promise<{ tenant: string; slug: string }>
+}
 
 const createTenantRequest = async (
   payload: Awaited<ReturnType<typeof getPayload>>,
@@ -31,41 +37,45 @@ const createTenantRequest = async (
   return payloadReq
 }
 
-export async function generateStaticParams() {
+async function queryPageBySlugUncached(args: {
+  tenantDomain: string
+  slug: string
+  draft: boolean
+}) {
   const payload = await getPayload({ config: configPromise })
 
-  const tenants = await payload.find({
-    collection: 'tenants',
-    limit: 1000,
+  const tenant = await fetchTenantByDomain(args.tenantDomain)
+  if (!tenant) return null
+
+  const payloadReq = await createTenantRequest(payload, tenant)
+
+  const result = await payload.find({
+    collection: 'pages',
+    draft: args.draft,
+    limit: 1,
     pagination: false,
+    overrideAccess: args.draft,
+    req: payloadReq,
+    where: {
+      and: [{ slug: { equals: args.slug } }, { tenant: { equals: tenant.id } }],
+    },
   })
 
-  const params = await Promise.all(
-    tenants.docs.map(async (tenant) => {
-      const payloadReq = await createTenantRequest(payload, tenant)
-      const pages = await payload.find({
-        collection: 'pages',
-        draft: false,
-        limit: 1000,
-        pagination: false,
-        select: { slug: true },
-        req: payloadReq,
-        where: { tenant: { equals: tenant.id } },
-      })
-
-      return pages.docs.map(({ slug }) => ({
-        tenant: tenant.domain,
-        slug,
-      }))
-    }),
-  )
-
-  return params.flat()
+  return result.docs?.[0] || null
 }
 
-type Args = {
-  params: Promise<{ tenant: string; slug: string }>
-}
+// Cached only for published mode (draft=false) so Payload hooks can revalidateTag(...) later.
+const queryPageBySlugCached = (tenantDomain: string, slug: string) =>
+  unstable_cache(
+    async () => queryPageBySlugUncached({ tenantDomain, slug, draft: false }),
+    ['page-by-slug', tenantDomain, slug],
+    {
+      tags: [
+        'pages-sitemap',
+        `page:${tenantDomain}:${slug}`, // per-page tag for precise invalidation
+      ],
+    },
+  )()
 
 export default async function Page({ params }: Args) {
   const { isEnabled: draft } = await draftMode()
@@ -73,16 +83,13 @@ export default async function Page({ params }: Args) {
 
   const pageSlug = slug || 'home'
 
-  let page: RequiredDataFromCollectionSlug<'pages'> | null = await queryPageBySlug({
-    tenantDomain: tenant, // <- denormalized field on `pages`
-    slug: pageSlug,
-  })
+  const page: RequiredDataFromCollectionSlug<'pages'> | null = draft
+    ? await queryPageBySlugUncached({ tenantDomain: tenant, slug: pageSlug, draft: true })
+    : await queryPageBySlugCached(tenant, pageSlug)
 
-  if (!page && pageSlug === 'home') page = homeStatic
   if (!page) return <PayloadRedirects tenantDomain={tenant} url={`/${pageSlug}`} />
 
   const { hero, layout } = page
-
   return (
     <article className="pt-16 pb-24">
       <PageClient />
@@ -95,33 +102,13 @@ export default async function Page({ params }: Args) {
 }
 
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
+  const { isEnabled: draft } = await draftMode()
   const { tenant, slug } = await params
   const pageSlug = slug || 'home'
 
-  const page = await queryPageBySlug({ tenantDomain: tenant, slug: pageSlug })
+  const page = draft
+    ? await queryPageBySlugUncached({ tenantDomain: tenant, slug: pageSlug, draft: true })
+    : await queryPageBySlugCached(tenant, pageSlug)
+
   return generateMeta({ doc: page })
 }
-
-const queryPageBySlug = cache(
-  async ({ tenantDomain, slug }: { tenantDomain: string; slug: string }) => {
-    const { isEnabled: draft } = await draftMode()
-    const payload = await getPayload({ config: configPromise })
-    const tenant = await fetchTenantByDomain(tenantDomain)
-    if (!tenant) return null
-    const payloadReq = await createTenantRequest(payload, tenant)
-
-    const result = await payload.find({
-      collection: 'pages',
-      draft,
-      limit: 1,
-      pagination: false,
-      overrideAccess: draft,
-      req: payloadReq,
-      where: {
-        and: [{ slug: { equals: slug } }, { tenant: { equals: tenant.id } }],
-      },
-    })
-
-    return result.docs?.[0] || null
-  },
-)

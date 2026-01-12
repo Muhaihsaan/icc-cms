@@ -11,6 +11,9 @@ import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { createTenantRequest } from '@/utilities/createTenantRequest'
 import { notFound } from 'next/navigation'
 
+// treats this route as dynamic SSR to prevent accidental SSG behavior
+export const dynamic = 'force-dynamic'
+
 type Args = {
   params: Promise<{
     tenant: string
@@ -20,7 +23,10 @@ type Args = {
   }>
 }
 
-export default async function Page({ params: paramsPromise, searchParams: searchParamsPromise }: Args) {
+export default async function Page({
+  params: paramsPromise,
+  searchParams: searchParamsPromise,
+}: Args) {
   const { q: query } = await searchParamsPromise
   const { tenant } = await paramsPromise
   const payload = await getPayload({ config: configPromise })
@@ -100,7 +106,7 @@ export default async function Page({ params: paramsPromise, searchParams: search
         </div>
       </div>
 
-      {posts.totalDocs > 0 ? (
+      {posts.docs.length > 0 ? (
         <CollectionArchive posts={posts.docs as CardPostData[]} />
       ) : (
         <div className="container">No results found.</div>

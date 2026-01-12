@@ -11,6 +11,7 @@ import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
 import { createTenantRequest } from '@/utilities/createTenantRequest'
 import { notFound } from 'next/navigation'
 
+// treats this route as dynamic SSR to prevent accidental SSG behavior
 export const dynamic = 'force-dynamic'
 
 type Args = {

@@ -2,7 +2,21 @@ import { createLocalReq, type Payload, type PayloadRequest } from 'payload'
 
 import type { Tenant } from '@/payload-types'
 
-export type TenantRequest = PayloadRequest & { tenant?: Tenant | null }
+/**
+ * Base request that MAY have a tenant
+ * (used in middleware, loaders, guards)
+ */
+export type TenantRequest = PayloadRequest & {
+  tenant?: Tenant | null
+}
+
+/**
+ * Request that DEFINITELY has a tenant
+ * (used in hooks, CMS logic, rendering)
+ */
+export type TenantScopedRequest = PayloadRequest & {
+  tenant: Tenant
+}
 
 export const createTenantRequest = async (
   payload: Payload,

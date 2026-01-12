@@ -121,6 +121,14 @@ export const Pages: CollectionConfig<'pages'> = {
       ],
     },
     {
+      name: 'tenantDomain',
+      type: 'text',
+      admin: {
+        hidden: true,
+        readOnly: true,
+      },
+    },
+    {
       name: 'publishedAt',
       type: 'date',
       admin: {

@@ -9,7 +9,6 @@ import {
   isSuperAdminOrTenantMember,
   Roles,
   usersBootstrapCreateAccess,
-  usersCreateAccess,
   usersReadAccess,
 } from '../../access/accessPermission'
 import assignUsersToOneTenant from './hooks/assignUsersToOneTenant'

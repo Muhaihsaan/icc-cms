@@ -19,6 +19,9 @@ import { notFound } from 'next/navigation'
 import './globals.css'
 import { getServerSideURL } from '@/utilities/getURL'
 
+// treats this route as dynamic SSR to prevent accidental SSG behavior
+export const dynamic = 'force-dynamic'
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { isEnabled } = await draftMode()
   const headersList = await headers()
