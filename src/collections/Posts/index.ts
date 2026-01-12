@@ -30,6 +30,8 @@ import { MediaBlock } from '../../blocks/MediaBlock/config'
 import { generatePreviewPath } from '../../utilities/generatePreviewPath'
 import { populateAuthors } from './hooks/populateAuthors'
 import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
+import type { FieldAccess } from 'payload'
+import type { User, Post } from '@/payload-types'
 
 import {
   MetaDescriptionField,
@@ -40,62 +42,26 @@ import {
 } from '@payloadcms/plugin-seo/fields'
 import { slugField } from '@/fields/slug'
 
-const isGuestWriterUser = (user: { tenants?: { roles?: string[] | null }[] | null } | null) =>
-  Boolean(
-    user?.tenants?.some(
-      (tenantEntry) =>
-        Array.isArray(tenantEntry?.roles) && tenantEntry.roles.includes(Roles.guestWriter),
-    ),
-  )
+const isGuestWriterUser = (user: User | null | undefined): boolean =>
+  user?.tenants?.some((t) => t.roles?.includes(Roles.guestWriter)) ?? false
 
-const assignGuestWriterAuthor: CollectionBeforeChangeHook = ({ req, data }) => {
-  const { user } = req
+const assignGuestWriterAuthor: CollectionBeforeChangeHook<Post> = ({ req, data }) => {
+  const user = req.user
   if (!user) return data
   if (!isGuestWriterUser(user)) return data
 
-  const nextData = typeof data === 'object' && data ? data : {}
+  const nextData: Partial<Post> = data ?? {}
+
   return {
     ...nextData,
     authors: [user.id],
   }
 }
 
-const logGuestWriterCreate: CollectionAfterChangeHook = async ({ req, operation }) => {
-  if (operation !== 'create') return
-  const { user } = req
-  if (!user) return
-  if (!isGuestWriterUser(user)) return
-
-  const userDoc = await req.payload.findByID({
-    collection: 'users',
-    id: user.id,
-    depth: 0,
-    overrideAccess: true,
-  })
-  const limit = typeof userDoc?.guestWriterPostLimit === 'number' ? userDoc.guestWriterPostLimit : 1
-
-  const where: Where = {
-    and: [
-      { authors: { contains: user.id } },
-      {
-        or: [{ _status: { equals: 'published' } }, { publishedAt: { exists: true } }],
-      },
-    ],
-  }
-
-  const { totalDocs } = await req.payload.count({
-    collection: 'posts',
-    overrideAccess: true,
-    req: undefined,
-    where,
-  })
-
-  req.payload.logger.info({
-    msg: 'guestWriterPostLimit after create',
-    userId: user.id,
-    limit,
-    publishedCount: totalDocs,
-  })
+const canUpdateAuthors: FieldAccess = ({ req }) => {
+  const user = req.user
+  if (!user) return false
+  return !isGuestWriterUser(user)
 }
 
 export const Posts: CollectionConfig<'posts'> = {
@@ -273,7 +239,9 @@ export const Posts: CollectionConfig<'posts'> = {
       type: 'relationship',
       admin: {
         position: 'sidebar',
-        readOnly: true,
+      },
+      access: {
+        update: canUpdateAuthors,
       },
       defaultValue: ({ req }) => {
         if (isGuestWriterUser(req.user)) return [req.user?.id].filter(Boolean)
@@ -312,7 +280,7 @@ export const Posts: CollectionConfig<'posts'> = {
   ],
   hooks: {
     beforeChange: [assignGuestWriterAuthor],
-    afterChange: [logGuestWriterCreate, revalidatePost],
+    afterChange: [revalidatePost],
     afterRead: [populateAuthors],
     afterDelete: [revalidateDelete],
   },

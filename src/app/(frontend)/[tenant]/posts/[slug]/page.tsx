@@ -15,7 +15,7 @@ import { PostHero } from '@/heros/PostHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import PageClient from './page.client'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
-import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { fetchTenantByDomain } from '@/utilities/fetchTenant'
 import { createTenantRequest } from '@/utilities/createTenantRequest'
 
 // treats this route as dynamic SSR to prevent accidental SSG behavior

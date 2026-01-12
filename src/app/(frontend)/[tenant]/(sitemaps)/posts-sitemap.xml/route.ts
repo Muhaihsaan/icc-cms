@@ -3,7 +3,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { unstable_cache } from 'next/cache'
 
-import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { fetchTenantByDomain } from '@/utilities/fetchTenant'
 import { createTenantRequest } from '@/utilities/createTenantRequest'
 
 const getPostsSitemap = (tenantDomain: string) =>

@@ -16,7 +16,7 @@ import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import PageClient from './page.client'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
-import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { fetchTenantByDomain } from '@/utilities/fetchTenant'
 import type { Tenant } from '@/payload-types'
 
 // treats this route as dynamic SSR to prevent accidental SSG behavior

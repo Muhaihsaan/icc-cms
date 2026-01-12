@@ -8,7 +8,7 @@ import { getPayload } from 'payload'
 import React from 'react'
 import PageClient from './page.client'
 import { notFound } from 'next/navigation'
-import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { fetchTenantByDomain } from '@/utilities/fetchTenant'
 import { createTenantRequest } from '@/utilities/createTenantRequest'
 
 // treats this route as dynamic SSR to prevent accidental SSG behavior

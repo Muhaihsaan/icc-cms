@@ -7,7 +7,7 @@ import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import React from 'react'
 import PageClient from './page.client'
-import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { fetchTenantByDomain } from '@/utilities/fetchTenant'
 import { createTenantRequest } from '@/utilities/createTenantRequest'
 import { notFound } from 'next/navigation'
 

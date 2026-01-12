@@ -7,7 +7,7 @@ import React from 'react'
 import { Search } from '@/search/Component'
 import PageClient from '../../search/page.client'
 import { CardPostData } from '@/components/Card'
-import { fetchTenantByDomain } from '@/utilities/fetchTenantByDomain'
+import { fetchTenantByDomain } from '@/utilities/fetchTenant'
 import { createTenantRequest } from '@/utilities/createTenantRequest'
 import { notFound } from 'next/navigation'
 
