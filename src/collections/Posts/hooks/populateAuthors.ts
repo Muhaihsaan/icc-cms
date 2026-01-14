@@ -1,12 +1,19 @@
 import type { CollectionAfterReadHook } from 'payload'
 import type { Post, User } from 'src/payload-types'
+import { z } from 'zod'
 
 type UserId = User['id']
+
+const authorIdSchema = z.union([z.number(), z.object({ id: z.number() }).transform((obj) => obj.id)])
 
 export const populateAuthors: CollectionAfterReadHook<Post> = async ({ doc, req }) => {
   if (!doc.authors || doc.authors.length === 0) return doc
 
-  const authorIds = doc.authors.map((a) => (typeof a === 'number' ? a : a.id))
+  const authorIds: UserId[] = []
+  for (const a of doc.authors) {
+    const result = authorIdSchema.safeParse(a)
+    if (result.success) authorIds.push(result.data)
+  }
 
   try {
     const result = await req.payload.find({
@@ -25,7 +32,7 @@ export const populateAuthors: CollectionAfterReadHook<Post> = async ({ doc, req 
 
     doc.populatedAuthors = authorIds.map((id) => byId.get(id)).filter((x) => x !== undefined)
   } catch (err) {
-    req.payload.logger?.error?.({
+    req.payload.logger.error({
       msg: 'populateAuthors failed',
       postId: doc.id,
       err,

@@ -26,7 +26,8 @@ export const setCookieBasedOnDomain: CollectionAfterLoginHook = async ({ req, us
     },
   })
 
-  if (tenant.docs.length > 0) {
+  const firstTenant = tenant.docs[0]
+  if (firstTenant) {
     const secure = process.env.NODE_ENV === 'production'
     const tenantCookie = generateCookie({
       name: 'payload-tenant',
@@ -34,7 +35,7 @@ export const setCookieBasedOnDomain: CollectionAfterLoginHook = async ({ req, us
       path: '/',
       secure,
       returnCookieAsObject: false,
-      value: String(tenant.docs[0].id),
+      value: `${firstTenant.id}`,
     })
 
     const newHeaders = new Headers()

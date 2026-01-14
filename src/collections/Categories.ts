@@ -1,24 +1,22 @@
 import type { CollectionConfig } from 'payload'
 
 import {
-  authenticated,
-  isSuperAdmin,
   tenantPublicReadAccess,
-  tenantReadAccess,
+  tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
-  usersCreateAccess,
   withTenantCollectionAccess,
-} from '../access/accessPermission'
+} from '@/access/accessPermission'
 import { slugField } from '@/fields/slug'
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
+  trash: true,
   access: {
     admin: tenantCollectionAdminAccess('categories'),
-    create: withTenantCollectionAccess('categories', usersCreateAccess),
-    delete: withTenantCollectionAccess('categories', authenticated),
-    read: withTenantCollectionAccess('categories', tenantPublicReadAccess()),
-    update: withTenantCollectionAccess('categories', tenantReadAccess),
+    create: withTenantCollectionAccess('categories', tenantAdminUpdateAccess),
+    delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
+    read: withTenantCollectionAccess('categories', tenantPublicReadAccess('categories')),
+    update: withTenantCollectionAccess('categories', tenantAdminUpdateAccess),
   },
   admin: {
     useAsTitle: 'title',
@@ -28,15 +26,6 @@ export const Categories: CollectionConfig = {
       name: 'title',
       type: 'text',
       required: true,
-    },
-    {
-      name: 'deletedAt',
-      type: 'date',
-      admin: {
-        position: 'sidebar',
-        readOnly: true,
-        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
-      },
     },
     ...slugField(),
   ],

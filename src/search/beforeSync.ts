@@ -1,4 +1,10 @@
 import { BeforeSync, DocToSync } from '@payloadcms/plugin-search/types'
+import { z } from 'zod'
+
+const categorySchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  title: z.string(),
+})
 
 export const beforeSyncWithSearch: BeforeSync = async ({ req, originalDoc, searchDoc }) => {
   const {
@@ -26,8 +32,9 @@ export const beforeSyncWithSearch: BeforeSync = async ({ req, originalDoc, searc
         continue
       }
 
-      if (typeof category === 'object') {
-        populatedCategories.push(category)
+      const categoryResult = categorySchema.safeParse(category)
+      if (categoryResult.success) {
+        populatedCategories.push(categoryResult.data)
         continue
       }
 
@@ -43,8 +50,8 @@ export const beforeSyncWithSearch: BeforeSync = async ({ req, originalDoc, searc
       if (doc !== null) {
         populatedCategories.push(doc)
       } else {
-        console.error(
-          `Failed. Category not found when syncing collection '${collection}' with id: '${id}' to search.`,
+        req.payload.logger.error(
+          `Category not found when syncing collection '${collection}' with id: '${id}' to search.`,
         )
       }
     }

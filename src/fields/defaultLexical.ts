@@ -6,8 +6,19 @@ import {
   ParagraphFeature,
   lexicalEditor,
   UnderlineFeature,
-  type LinkFields,
 } from '@payloadcms/richtext-lexical'
+import { z } from 'zod'
+
+const namedFieldSchema = z.object({ name: z.string() })
+const linkFieldsSchema = z.object({ linkType: z.string().optional() })
+
+const validateUrl: TextFieldSingleValidation = (value, options) => {
+  const siblingResult = linkFieldsSchema.safeParse(options?.siblingData)
+  if (siblingResult.success && siblingResult.data.linkType === 'internal') {
+    return true // no validation needed, url should not exist for internal links
+  }
+  return value ? true : 'URL is required'
+}
 
 export const defaultLexical = lexicalEditor({
   features: [
@@ -19,7 +30,8 @@ export const defaultLexical = lexicalEditor({
       enabledCollections: ['pages', 'posts'],
       fields: ({ defaultFields }) => {
         const defaultFieldsWithoutUrl = defaultFields.filter((field) => {
-          if ('name' in field && field.name === 'url') return false
+          const result = namedFieldSchema.safeParse(field)
+          if (result.success && result.data.name === 'url') return false
           return true
         })
 
@@ -33,12 +45,7 @@ export const defaultLexical = lexicalEditor({
             },
             label: ({ t }) => t('fields:enterURL'),
             required: true,
-            validate: ((value, options) => {
-              if ((options?.siblingData as LinkFields)?.linkType === 'internal') {
-                return true // no validation needed, as no url should exist for internal links
-              }
-              return value ? true : 'URL is required'
-            }) as TextFieldSingleValidation,
+            validate: validateUrl,
           },
         ]
       },

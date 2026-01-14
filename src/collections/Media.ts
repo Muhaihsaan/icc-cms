@@ -9,26 +9,24 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 import {
-  authenticated,
-  isSuperAdmin,
   tenantPublicReadAccess,
-  tenantReadAccess,
+  tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
-  usersCreateAccess,
   withTenantCollectionAccess,
-} from '../access/accessPermission'
+} from '@/access/accessPermission'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  trash: true,
   access: {
     admin: tenantCollectionAdminAccess('media'),
-    create: withTenantCollectionAccess('media', usersCreateAccess),
-    delete: withTenantCollectionAccess('media', authenticated),
-    read: withTenantCollectionAccess('media', tenantPublicReadAccess()),
-    update: withTenantCollectionAccess('media', tenantReadAccess),
+    create: withTenantCollectionAccess('media', tenantAdminUpdateAccess),
+    delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
+    read: withTenantCollectionAccess('media', tenantPublicReadAccess('media')),
+    update: withTenantCollectionAccess('media', tenantAdminUpdateAccess),
   },
   fields: [
     {
@@ -44,15 +42,6 @@ export const Media: CollectionConfig = {
           return [...rootFeatures, FixedToolbarFeature(), InlineToolbarFeature()]
         },
       }),
-    },
-    {
-      name: 'deletedAt',
-      type: 'date',
-      admin: {
-        position: 'sidebar',
-        readOnly: true,
-        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
-      },
     },
   ],
   upload: {

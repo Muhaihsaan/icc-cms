@@ -1,22 +1,42 @@
 import type { Metadata } from 'next'
+import { z } from 'zod'
 
-import type { Media, Page, Post, Config } from '../payload-types'
+import type { Media, Page, Post, Config } from '@/payload-types'
 
 import { mergeOpenGraph } from './mergeOpenGraph'
 import { getServerSideURL } from './getURL'
 
+const slugArraySchema = z.array(z.string())
+
+const getSlugUrl = (slug: unknown): string => {
+  const parsed = slugArraySchema.safeParse(slug)
+  if (!parsed.success) return '/'
+  return parsed.data.join('/')
+}
+
+const mediaSchema = z.object({
+  url: z.string().nullable().optional(),
+  sizes: z
+    .object({
+      og: z.object({ url: z.string().nullable().optional() }).nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+})
+
 const getImageURL = (image?: Media | Config['db']['defaultIDType'] | null) => {
   const serverUrl = getServerSideURL()
+  const defaultUrl = `${serverUrl}/website-template-OG.webp`
 
-  let url = serverUrl + '/website-template-OG.webp'
+  const parsed = mediaSchema.safeParse(image)
+  if (!parsed.success) return defaultUrl
 
-  if (image && typeof image === 'object' && 'url' in image) {
-    const ogUrl = image.sizes?.og?.url
+  const { url, sizes } = parsed.data
+  const ogUrl = sizes?.og?.url
+  if (ogUrl) return `${serverUrl}${ogUrl}`
+  if (url) return `${serverUrl}${url}`
 
-    url = ogUrl ? serverUrl + ogUrl : serverUrl + image.url
-  }
-
-  return url
+  return defaultUrl
 }
 
 export const generateMeta = async (args: {
@@ -42,7 +62,7 @@ export const generateMeta = async (args: {
           ]
         : undefined,
       title,
-      url: Array.isArray(doc?.slug) ? doc?.slug.join('/') : '/',
+      url: getSlugUrl(doc?.slug),
     }),
     title,
   }

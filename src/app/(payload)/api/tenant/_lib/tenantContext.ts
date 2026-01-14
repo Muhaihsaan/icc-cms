@@ -1,14 +1,27 @@
 import configPromise from '@payload-config'
-import { createLocalReq, getPayload, type PayloadRequest } from 'payload'
+import { createLocalReq, getPayload } from 'payload'
 import type { Tenant } from '@/payload-types'
+import type { TenantRequest } from '@/utilities/createTenantRequest'
 
-export type TenantRequest = PayloadRequest & { tenant?: Tenant | null }
+type PayloadInstance = Awaited<ReturnType<typeof getPayload>>
 
-export async function getTenantContext(slug: string): Promise<{
-  payload: Awaited<ReturnType<typeof getPayload>>
-  tenant: Tenant | null
-  req: TenantRequest | null
-}> {
+type TenantContextSuccess = {
+  success: true
+  payload: PayloadInstance
+  tenant: Tenant
+  req: TenantRequest
+}
+
+type TenantContextFailure = {
+  success: false
+  payload: PayloadInstance
+  errorMessage: string
+  errorCode: number
+}
+
+type TenantContextResult = TenantContextSuccess | TenantContextFailure
+
+export async function getTenantContext(slug: string): Promise<TenantContextResult> {
   const payload = await getPayload({ config: configPromise })
 
   const { docs } = await payload.find({
@@ -19,11 +32,13 @@ export async function getTenantContext(slug: string): Promise<{
     overrideAccess: true,
   })
 
-  const tenant = docs[0] ?? null
-  if (!tenant) return { payload, tenant: null, req: null }
+  const tenant = docs[0]
+  if (!tenant) {
+    return { success: false, payload, errorMessage: 'Tenant not found', errorCode: 404 }
+  }
 
   const req: TenantRequest = await createLocalReq({ user: undefined }, payload)
   req.tenant = tenant
 
-  return { payload, tenant, req }
+  return { success: true, payload, tenant, req }
 }

@@ -5,10 +5,9 @@ import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import React from 'react'
 import { Search } from '@/search/Component'
-import PageClient from '../../search/page.client'
+import PageClient from '@/components/PageClient'
 import { CardPostData } from '@/components/Card'
-import { fetchTenantByDomain } from '@/utilities/fetchTenant'
-import { createTenantRequest } from '@/utilities/createTenantRequest'
+import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
 import { notFound } from 'next/navigation'
 
 // treats this route as dynamic SSR to prevent accidental SSG behavior

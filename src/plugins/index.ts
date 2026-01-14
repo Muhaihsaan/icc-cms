@@ -5,6 +5,7 @@ import { redirectsPlugin } from '@payloadcms/plugin-redirects'
 import { seoPlugin } from '@payloadcms/plugin-seo'
 import { searchPlugin } from '@payloadcms/plugin-search'
 import { Plugin } from 'payload'
+import { z } from 'zod'
 import { revalidateRedirects } from '@/hooks/revalidateRedirects'
 import { GenerateTitle, GenerateURL } from '@payloadcms/plugin-seo/types'
 import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
@@ -15,6 +16,8 @@ import type { Config, Page, Post } from '@/payload-types'
 import { isSuperAdmin } from '@/access/accessPermission'
 
 import { getServerSideURL } from '@/utilities/getURL'
+
+const namedFieldSchema = z.object({ name: z.string() })
 
 const generateTitle: GenerateTitle<Post | Page> = async ({ doc, req }) => {
   const tenant = await req.payload.find({
@@ -42,7 +45,8 @@ export const plugins: Plugin[] = [
       // @ts-expect-error - This is a valid override, mapped fields don't resolve to the same type
       fields: ({ defaultFields }) => {
         return defaultFields.map((field) => {
-          if ('name' in field && field.name === 'from') {
+          const result = namedFieldSchema.safeParse(field)
+          if (result.success && result.data.name === 'from') {
             return {
               ...field,
               admin: {
@@ -76,7 +80,8 @@ export const plugins: Plugin[] = [
       },
       fields: ({ defaultFields }) => {
         return defaultFields.map((field) => {
-          if ('name' in field && field.name === 'confirmationMessage') {
+          const result = namedFieldSchema.safeParse(field)
+          if (result.success && result.data.name === 'confirmationMessage') {
             return {
               ...field,
               editor: lexicalEditor({

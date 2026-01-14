@@ -13,7 +13,7 @@ import { InitTheme } from '@/providers/Theme/InitTheme'
 import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
 import { draftMode } from 'next/headers'
 import { headers } from 'next/headers'
-import { fetchTenantByDomain } from '@/utilities/fetchTenant'
+import { fetchTenantByDomain } from '@/utilities/createTenantRequest'
 import { notFound } from 'next/navigation'
 
 import './globals.css'
@@ -26,13 +26,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const { isEnabled } = await draftMode()
   const headersList = await headers()
   const host = headersList.get('host') || ''
-  console.log('Host:', host)
   const tenant = await fetchTenantByDomain(host)
 
-  if (tenant?.allowPublicRead === false) {
+  // Handle backward compatibility: boolean (legacy) or array (new)
+  const allowPublicRead = tenant?.allowPublicRead as unknown
+  const hasPublicAccess = Array.isArray(allowPublicRead)
+    ? allowPublicRead.length > 0
+    : allowPublicRead === true
+
+  if (!hasPublicAccess) {
     return notFound()
   }
-  console.log('RENDERING ROOT LAYOUT')
+
   return (
     <html className={cn(GeistSans.variable, GeistMono.variable)} lang="en" suppressHydrationWarning>
       <head>

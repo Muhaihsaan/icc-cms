@@ -3,15 +3,15 @@
 import React from 'react'
 import type { User } from '@/payload-types'
 import { useAuth, usePayloadAPI } from '@payloadcms/ui'
+import { Roles } from '@/access/accessPermission'
+import { z } from 'zod'
 
-type TenantEntry = NonNullable<NonNullable<User['tenants']>[number]>
+const postsListResponseSchema = z.object({
+  totalDocs: z.number(),
+})
 
-type PostsListResponse = {
-  totalDocs: number
-}
-
-type PayloadAPIState<TData> = {
-  data?: TData
+type PayloadAPIState = {
+  data?: unknown
   isLoading?: boolean
   error?: unknown
 }
@@ -24,8 +24,6 @@ type QueryKV = ReadonlyArray<readonly [key: string, value: Primitive]>
 const encodeQuery = (pairs: QueryKV): string => {
   const params = new URLSearchParams()
   for (const [key, value] of pairs) {
-    // URLSearchParams accepts string only; we convert *explicitly* via template literal.
-    // (If you want, we can enforce value is already string and remove this too.)
     params.set(key, `${value}`)
   }
   return params.toString()
@@ -41,18 +39,32 @@ const buildQuery = (userId: UserId): string =>
     ['where[and][1][or][1][publishedAt][exists]', true],
   ])
 
+const tenantEntrySchema = z.object({
+  roles: z.array(z.string()),
+})
+
+const checkIsGuestWriter = (tenants: User['tenants']): boolean => {
+  if (!tenants) return false
+  for (const entry of tenants) {
+    const parsed = tenantEntrySchema.safeParse(entry)
+    if (!parsed.success) continue
+    if (parsed.data.roles.includes(Roles.guestWriter)) return true
+  }
+  return false
+}
+
 // checks if the signed-in user is a guest-writer, then fetches how many published posts they already have
 export const GuestWriterLimitDescription: React.FC = () => {
   const { user } = useAuth<User>()
 
-  const isGuestWriter = Boolean(
-    user?.tenants?.some((tenantEntry: TenantEntry) => tenantEntry.roles.includes('guest-writer')),
-  )
+  const isGuestWriter = checkIsGuestWriter(user?.tenants)
 
-  const shouldFetch = Boolean(user?.id && isGuestWriter)
-  const url = shouldFetch ? `/api/posts?${buildQuery(user!.id)}` : '/api/users?limit=0'
-  const [{ data }]: [PayloadAPIState<PostsListResponse>, unknown?] = usePayloadAPI(url)
-  const publishedCount = data?.totalDocs ?? null
+  const userId = user?.id
+  const shouldFetch = Boolean(userId && isGuestWriter)
+  const url = shouldFetch && userId ? `/api/posts?${buildQuery(userId)}` : '/api/users?limit=0'
+  const [{ data }]: [PayloadAPIState, unknown?] = usePayloadAPI(url)
+  const parsedData = postsListResponseSchema.safeParse(data)
+  const publishedCount = parsedData.success ? parsedData.data.totalDocs : null
 
   if (!isGuestWriter) return null
 

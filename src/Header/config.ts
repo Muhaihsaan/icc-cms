@@ -1,11 +1,9 @@
 import type { CollectionConfig } from 'payload'
 
 import {
-  isSuperAdmin,
   tenantPublicReadAccess,
-  tenantReadAccess,
+  tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
-  usersCreateAccess,
   withTenantCollectionAccess,
 } from '@/access/accessPermission'
 import { link } from '@/fields/link'
@@ -13,11 +11,13 @@ import { revalidateHeader } from './hooks/revalidateHeader'
 
 export const Header: CollectionConfig = {
   slug: 'header',
+  trash: true,
   access: {
     admin: tenantCollectionAdminAccess('header'),
-    create: withTenantCollectionAccess('header', usersCreateAccess),
-    read: withTenantCollectionAccess('header', tenantPublicReadAccess()),
-    update: withTenantCollectionAccess('header', tenantReadAccess),
+    create: withTenantCollectionAccess('header', tenantAdminUpdateAccess),
+    delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
+    read: withTenantCollectionAccess('header', tenantPublicReadAccess('header')),
+    update: withTenantCollectionAccess('header', tenantAdminUpdateAccess),
   },
   fields: [
     {
@@ -32,17 +32,8 @@ export const Header: CollectionConfig = {
       admin: {
         initCollapsed: true,
         components: {
-          RowLabel: '@/Header/RowLabel#RowLabel',
+          RowLabel: '@/components/RowLabel#RowLabel',
         },
-      },
-    },
-    {
-      name: 'deletedAt',
-      type: 'date',
-      admin: {
-        position: 'sidebar',
-        readOnly: true,
-        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
       },
     },
   ],

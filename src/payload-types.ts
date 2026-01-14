@@ -203,11 +203,11 @@ export interface Page {
   };
   tenantDomain?: string | null;
   publishedAt?: string | null;
-  deletedAt?: string | null;
   slug?: string | null;
   slugLock?: boolean | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
 }
 /**
@@ -227,16 +227,16 @@ export interface Tenant {
   slug: string;
   logo?: (number | null) | Media;
   /**
-   * If checked, logging in is not required to read. Useful for building public pages.
+   * First select allowedCollections, then choose which are publicly readable.
    */
-  allowPublicRead?: boolean | null;
+  allowPublicRead?: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[] | null;
   /**
    * If empty, all collections are available to this tenant.
    */
   allowedCollections?: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[] | null;
-  deletedAt?: string | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -261,9 +261,9 @@ export interface Media {
     };
     [k: string]: unknown;
   } | null;
-  deletedAt?: string | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
   url?: string | null;
   thumbnailURL?: string | null;
   filename?: string | null;
@@ -367,7 +367,7 @@ export interface Post {
     description?: string | null;
   };
   publishedAt?: string | null;
-  deletedAt?: string | null;
+  tenantDomain?: string | null;
   authors: (number | User)[];
   populatedAuthors?:
     | {
@@ -379,6 +379,7 @@ export interface Post {
   slugLock?: boolean | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
 }
 /**
@@ -389,7 +390,6 @@ export interface Category {
   id: number;
   tenant?: (number | null) | Tenant;
   title: string;
-  deletedAt?: string | null;
   slug?: string | null;
   slugLock?: boolean | null;
   parent?: (number | null) | Category;
@@ -403,6 +403,7 @@ export interface Category {
     | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -545,7 +546,7 @@ export interface ContentBlock {
  * via the `definition` "MediaBlock".
  */
 export interface MediaBlock {
-  media: number | Media;
+  media?: (number | null) | Media;
   id?: string | null;
   blockName?: string | null;
   blockType: 'mediaBlock';
@@ -811,9 +812,9 @@ export interface Header {
         id?: string | null;
       }[]
     | null;
-  deletedAt?: string | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -842,9 +843,9 @@ export interface Footer {
         id?: string | null;
       }[]
     | null;
-  deletedAt?: string | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1160,11 +1161,11 @@ export interface PagesSelect<T extends boolean = true> {
       };
   tenantDomain?: T;
   publishedAt?: T;
-  deletedAt?: T;
   slug?: T;
   slugLock?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
   _status?: T;
 }
 /**
@@ -1270,7 +1271,7 @@ export interface PostsSelect<T extends boolean = true> {
         description?: T;
       };
   publishedAt?: T;
-  deletedAt?: T;
+  tenantDomain?: T;
   authors?: T;
   populatedAuthors?:
     | T
@@ -1282,6 +1283,7 @@ export interface PostsSelect<T extends boolean = true> {
   slugLock?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
   _status?: T;
 }
 /**
@@ -1292,9 +1294,9 @@ export interface MediaSelect<T extends boolean = true> {
   tenant?: T;
   alt?: T;
   caption?: T;
-  deletedAt?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
   url?: T;
   thumbnailURL?: T;
   filename?: T;
@@ -1386,7 +1388,6 @@ export interface MediaSelect<T extends boolean = true> {
 export interface CategoriesSelect<T extends boolean = true> {
   tenant?: T;
   title?: T;
-  deletedAt?: T;
   slug?: T;
   slugLock?: T;
   parent?: T;
@@ -1400,6 +1401,7 @@ export interface CategoriesSelect<T extends boolean = true> {
       };
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1445,9 +1447,9 @@ export interface TenantsSelect<T extends boolean = true> {
   logo?: T;
   allowPublicRead?: T;
   allowedCollections?: T;
-  deletedAt?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1469,9 +1471,9 @@ export interface HeaderSelect<T extends boolean = true> {
             };
         id?: T;
       };
-  deletedAt?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1493,9 +1495,9 @@ export interface FooterSelect<T extends boolean = true> {
             };
         id?: T;
       };
-  deletedAt?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

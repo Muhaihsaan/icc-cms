@@ -1,6 +1,6 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 
-import sharp from 'sharp' // sharp-import
+import sharp from 'sharp'
 import path from 'path'
 import { buildConfig, PayloadRequest } from 'payload'
 import { fileURLToPath } from 'url'
@@ -21,7 +21,19 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export default buildConfig({
+  i18n: {
+    translations: {
+      en: {
+        version: {
+          trashedDocument: 'This page is trashed',
+        },
+      },
+    },
+  },
   admin: {
+    components: {
+      providers: ['@/components/HideTrashProvider#HideTrashProvider'],
+    },
     importMap: {
       baseDir: path.resolve(dirname),
     },

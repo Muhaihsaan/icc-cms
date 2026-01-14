@@ -10,6 +10,7 @@ import {
   LinkJSXConverter,
   RichText as ConvertRichText,
 } from '@payloadcms/richtext-lexical/react'
+import { z } from 'zod'
 
 import { CodeBlock, CodeBlockProps } from '@/blocks/Code/Component'
 
@@ -26,11 +27,16 @@ type NodeTypes =
   | DefaultNodeTypes
   | SerializedBlockNode<CTABlockProps | MediaBlockProps | BannerBlockProps | CodeBlockProps>
 
+const docSchema = z.object({
+  value: z.object({ slug: z.string().nullable().optional() }),
+  relationTo: z.string(),
+})
+
 const internalDocToHref = ({ linkNode }: { linkNode: SerializedLinkNode }) => {
-  const { value, relationTo } = linkNode.fields.doc!
-  if (typeof value !== 'object') {
-    throw new Error('Expected value to be an object')
-  }
+  const parsed = docSchema.safeParse(linkNode.fields.doc)
+  if (!parsed.success) return '/'
+
+  const { value, relationTo } = parsed.data
   const slug = value.slug
   return relationTo === 'posts' ? `/posts/${slug}` : `/${slug}`
 }

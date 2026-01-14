@@ -5,24 +5,24 @@ import {
   isSuperAdmin,
   isSuperAdminAccess,
   isSuperAdminFieldAccess,
+  isSuperAdminOrEditor,
   isSuperAdminOrEditorFieldAccess,
-  isSuperAdminOrTenantMember,
   Roles,
   usersBootstrapCreateAccess,
   usersReadAccess,
 } from '../../access/accessPermission'
-import assignUsersToOneTenant from './hooks/assignUsersToOneTenant'
+import { assignUsersToOneTenant } from './hooks/assignUsersToOneTenant'
 import { setCookieBasedOnDomain } from './hooks/setCookieBasedOnDomain'
 
 const isGuestWriterAssignment = (data?: {
   tenants?: { roles?: string[] | null }[] | null
 }): boolean => {
-  return Boolean(
-    data?.tenants?.some(
-      (tenantEntry) =>
-        Array.isArray(tenantEntry?.roles) && tenantEntry.roles.includes(Roles.guestWriter),
-    ),
-  )
+  if (!data?.tenants) return false
+  for (const tenantEntry of data.tenants) {
+    if (!Array.isArray(tenantEntry?.roles)) continue
+    if (tenantEntry.roles.includes(Roles.guestWriter)) return true
+  }
+  return false
 }
 
 const defaultTenantArrayField = tenantsArrayField({
@@ -49,7 +49,7 @@ const defaultTenantArrayField = tenantsArrayField({
 export const Users: CollectionConfig = {
   slug: 'users',
   access: {
-    admin: isSuperAdminOrTenantMember,
+    admin: isSuperAdminOrEditor,
     create: usersBootstrapCreateAccess,
     delete: isSuperAdminAccess,
     update: usersReadAccess,

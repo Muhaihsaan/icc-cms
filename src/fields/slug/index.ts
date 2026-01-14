@@ -1,17 +1,8 @@
-import type { CheckboxField, TextField } from 'payload'
+import type { CheckboxField, Field, TextField } from 'payload'
 
 import { formatSlugHook } from './formatSlug'
 
-type Overrides = {
-  slugOverrides?: Partial<TextField>
-  checkboxOverrides?: Partial<CheckboxField>
-}
-
-type Slug = (fieldToUse?: string, overrides?: Overrides) => [TextField, CheckboxField]
-
-export const slugField: Slug = (fieldToUse = 'title', overrides = {}) => {
-  const { slugOverrides, checkboxOverrides } = overrides
-
+export const slugField = (fieldToUse = 'title'): [Field, Field] => {
   const checkBoxField: CheckboxField = {
     name: 'slugLock',
     type: 'checkbox',
@@ -20,23 +11,18 @@ export const slugField: Slug = (fieldToUse = 'title', overrides = {}) => {
       hidden: true,
       position: 'sidebar',
     },
-    ...checkboxOverrides,
   }
 
-  // @ts-expect-error - ts mismatch Partial<TextField> with TextField
-  const slugField: TextField = {
+  const slugFieldConfig: TextField = {
     name: 'slug',
     type: 'text',
     index: true,
     label: 'Slug',
-    ...(slugOverrides || {}),
     hooks: {
-      // Kept this in for hook or API based updates
       beforeValidate: [formatSlugHook(fieldToUse)],
     },
     admin: {
       position: 'sidebar',
-      ...(slugOverrides?.admin || {}),
       components: {
         Field: {
           path: '@/fields/slug/SlugComponent#SlugComponent',
@@ -49,5 +35,5 @@ export const slugField: Slug = (fieldToUse = 'title', overrides = {}) => {
     },
   }
 
-  return [slugField, checkBoxField]
+  return [slugFieldConfig, checkBoxField]
 }

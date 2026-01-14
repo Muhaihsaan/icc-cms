@@ -1,5 +1,6 @@
 import type { Access, FieldAccess, Where } from 'payload'
 import type { AccessArgs } from 'payload'
+import { z } from 'zod'
 
 import type { User } from '@/payload-types'
 import {
@@ -8,6 +9,10 @@ import {
   getTenantIds,
   normalizeTenantId,
 } from '@/access/helpers'
+
+const guestWriterLimitSchema = z.object({
+  guestWriterPostLimit: z.number(),
+})
 
 type isAuthenticated = (args: AccessArgs<User>) => boolean
 
@@ -70,20 +75,22 @@ type TenantRole = typeof Roles.tenantAdmin | typeof Roles.tenantViewer | typeof 
 
 // Check whether a user has a specific tenant role.
 const hasTenantRole = (user: User | null, role: TenantRole): boolean => {
-  return Boolean(
-    user?.tenants?.some(
-      (tenantEntry) => Array.isArray(tenantEntry?.roles) && tenantEntry.roles.includes(role),
-    ),
-  )
+  if (!user?.tenants) return false
+  for (const entry of user.tenants) {
+    if (!Array.isArray(entry?.roles)) continue
+    if (entry.roles.includes(role)) return true
+  }
+  return false
 }
 
 // Check whether a user has any tenant role.
 const hasAnyTenantRole = (user: User | null): boolean => {
-  return Boolean(
-    user?.tenants?.some(
-      (tenantEntry) => Array.isArray(tenantEntry?.roles) && tenantEntry.roles.length > 0,
-    ),
-  )
+  if (!user?.tenants) return false
+  for (const entry of user.tenants) {
+    if (!Array.isArray(entry?.roles)) continue
+    if (entry.roles.length > 0) return true
+  }
+  return false
 }
 
 // Check whether a user can read tenant content.
@@ -148,8 +155,8 @@ const getTenantAllowedCollections = async (
   }
 
   if (!tenant) return undefined
-
-  return Array.isArray(tenant.allowedCollections) ? tenant.allowedCollections : null
+  if (!Array.isArray(tenant.allowedCollections)) return null
+  return tenant.allowedCollections
 }
 
 // Check whether the current tenant can access a given collection.
@@ -167,7 +174,8 @@ const isTenantCollectionAllowed = async ({
     const tenantIds = getTenantIds(req.user)
     if (tenantIds.length === 1) tenantId = tenantIds[0]
   }
-  if (!tenantId) return true
+  // Only allow if user is authenticated and has tenant assignments
+  if (!tenantId) return Boolean(req.user && getTenantIds(req.user).length > 0)
 
   const allowedCollections = await getTenantAllowedCollections(req, tenantId)
   if (allowedCollections === undefined) return false
@@ -176,6 +184,9 @@ const isTenantCollectionAllowed = async ({
   return allowedCollections.includes(collection)
 }
 
+// Where clause that matches nothing (returns empty results gracefully).
+const whereNoAccess: Where = { id: { in: [] } }
+
 // Wrap an access function with tenant collection checks.
 export const withTenantCollectionAccess = (
   collection: TenantManagedCollection,
@@ -183,7 +194,8 @@ export const withTenantCollectionAccess = (
 ): Access => {
   return async (args) => {
     const allowed = await isTenantCollectionAllowed({ req: args.req, collection })
-    if (!allowed) return false
+    // Return empty results instead of hard error when collection not allowed
+    if (!allowed) return whereNoAccess
     return access(args)
   }
 }
@@ -222,14 +234,14 @@ export const tenantsUpdateAccess: Access = ({ req }) => {
   }
 }
 
-// Fetch whether a tenant allows public read.
+// Fetch which collections allow public read for a tenant.
 const getTenantAllowPublicRead = async ({
   req,
   tenantId,
 }: {
   req: AccessArgs['req']
   tenantId: string | number
-}): Promise<boolean> => {
+}): Promise<string[] | null> => {
   let tenant
   try {
     tenant = await req.payload.findByID({
@@ -239,10 +251,12 @@ const getTenantAllowPublicRead = async ({
       overrideAccess: true,
     })
   } catch {
-    return false
+    return null
   }
 
-  return Boolean(tenant?.allowPublicRead)
+  if (!tenant) return null
+  if (!Array.isArray(tenant.allowPublicRead)) return null
+  return tenant.allowPublicRead
 }
 
 const whereTenantScoped = (tenantIds: Array<string | number>): Where => {
@@ -252,6 +266,8 @@ const whereTenantScoped = (tenantIds: Array<string | number>): Where => {
 }
 
 // Allow read access to tenant-scoped documents for tenant members.
+// Soft-deleted items are hidden from non-super-admins.
+// Super-admin can see all items (use admin filter to hide/show deleted).
 export const tenantMemberReadAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
@@ -263,8 +279,8 @@ export const tenantMemberReadAccess: Access = ({ req }) => {
   return false
 }
 
-// Allow update access to tenant-scoped documents for tenant admins and super-admins.
-export const tenantReadAccess: Access = ({ req }) => {
+// Allow update access to tenant-scoped documents for tenant admins and super-admins only.
+export const tenantAdminUpdateAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
   if (isSuperAdmin(user)) return true
@@ -275,9 +291,9 @@ export const tenantReadAccess: Access = ({ req }) => {
   return false
 }
 
-// Allow public read for tenant content when the tenant allows it.
+// Allow public read for tenant content when the tenant allows it for the specific collection.
 export const tenantPublicReadAccess =
-  ({ publishedOnly = false }: { publishedOnly?: boolean } = {}): Access =>
+  (collection: TenantManagedCollection, { publishedOnly = false }: { publishedOnly?: boolean } = {}): Access =>
   async ({ req }) => {
     if (req.user) {
       return tenantMemberReadAccess({ req })
@@ -286,8 +302,9 @@ export const tenantPublicReadAccess =
     const tenantId = normalizeTenantId(getTenantFromReq(req))
     if (!tenantId) return false
 
-    const allowPublicRead = await getTenantAllowPublicRead({ req, tenantId })
-    if (!allowPublicRead) return false
+    const allowedPublicCollections = await getTenantAllowPublicRead({ req, tenantId })
+    // Empty or null = no public read allowed
+    if (!allowedPublicCollections || !allowedPublicCollections.includes(collection)) return false
 
     const where: Where = {
       and: [
@@ -307,14 +324,15 @@ export const usersCreateAccess: Access = ({ req }) => {
   if (isSuperAdmin(user)) return true
   if (!hasTenantRole(user, Roles.tenantAdmin)) return false
 
-  const adminTenantIds = getTenantIds(user).filter((tenantId) =>
-    user.tenants?.some(
-      (tenantEntry) =>
-        normalizeTenantId(tenantEntry.tenant) === tenantId &&
-        Array.isArray(tenantEntry.roles) &&
-        tenantEntry.roles.includes(Roles.tenantAdmin),
-    ),
-  )
+  const adminTenantIds: Array<string | number> = []
+  if (user.tenants) {
+    for (const entry of user.tenants) {
+      if (!Array.isArray(entry.roles)) continue
+      if (!entry.roles.includes(Roles.tenantAdmin)) continue
+      const id = normalizeTenantId(entry.tenant)
+      if (id !== undefined) adminTenantIds.push(id)
+    }
+  }
 
   if (adminTenantIds.length === 0) return false
 
@@ -343,7 +361,8 @@ export const postsCreateAccess: Access = async ({ req }) => {
     depth: 0,
     overrideAccess: true,
   })
-  const limit = typeof userDoc?.guestWriterPostLimit === 'number' ? userDoc.guestWriterPostLimit : 1
+  const parsed = guestWriterLimitSchema.safeParse(userDoc)
+  const limit = parsed.success ? parsed.data.guestWriterPostLimit : 1
   if (limit <= 0) return false
 
   const where: Where = {

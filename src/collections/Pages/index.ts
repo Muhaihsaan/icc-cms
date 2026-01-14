@@ -1,12 +1,10 @@
 import type { CollectionConfig } from 'payload'
+import { z } from 'zod'
 
 import {
-  authenticated,
-  isSuperAdmin,
+  tenantAdminUpdateAccess,
   tenantPublicReadAccess,
-  tenantReadAccess,
   tenantCollectionAdminAccess,
-  usersCreateAccess,
   withTenantCollectionAccess,
 } from '../../access/accessPermission'
 import { Archive } from '../../blocks/ArchiveBlock/config'
@@ -26,15 +24,25 @@ import {
   OverviewField,
   PreviewField,
 } from '@payloadcms/plugin-seo/fields'
+import { populateTenantDomain } from '@/hooks/populate-tenant-domain'
+
+const slugSchema = z.object({ slug: z.string() })
+
+const getSlug = (data: unknown): string => {
+  const result = slugSchema.safeParse(data)
+  if (!result.success) return ''
+  return result.data.slug
+}
 
 export const Pages: CollectionConfig<'pages'> = {
   slug: 'pages',
+  trash: true,
   access: {
     admin: tenantCollectionAdminAccess('pages'),
-    create: withTenantCollectionAccess('pages', usersCreateAccess),
-    delete: withTenantCollectionAccess('pages', authenticated),
-    read: withTenantCollectionAccess('pages', tenantPublicReadAccess({ publishedOnly: true })),
-    update: withTenantCollectionAccess('pages', tenantReadAccess),
+    create: withTenantCollectionAccess('pages', tenantAdminUpdateAccess),
+    delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
+    read: tenantPublicReadAccess('pages', { publishedOnly: true }),
+    update: tenantAdminUpdateAccess,
   },
   // This config controls what's populated by default when a page is referenced
   // https://payloadcms.com/docs/queries/select#defaultpopulate-collection-config-property
@@ -46,19 +54,16 @@ export const Pages: CollectionConfig<'pages'> = {
   admin: {
     defaultColumns: ['title', 'slug', 'updatedAt'],
     livePreview: {
-      url: ({ data, req }) => {
-        const path = generatePreviewPath({
-          slug: typeof data?.slug === 'string' ? data.slug : '',
+      url: ({ data, req }) =>
+        generatePreviewPath({
+          slug: getSlug(data),
           collection: 'pages',
           req,
-        })
-
-        return path
-      },
+        }),
     },
     preview: (data, { req }) =>
       generatePreviewPath({
-        slug: typeof data?.slug === 'string' ? data.slug : '',
+        slug: getSlug(data),
         collection: 'pages',
         req,
       }),
@@ -135,18 +140,10 @@ export const Pages: CollectionConfig<'pages'> = {
         position: 'sidebar',
       },
     },
-    {
-      name: 'deletedAt',
-      type: 'date',
-      admin: {
-        position: 'sidebar',
-        readOnly: true,
-        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
-      },
-    },
     ...slugField(),
   ],
   hooks: {
+    beforeChange: [populateTenantDomain],
     afterChange: [revalidatePage],
     afterDelete: [revalidateDelete],
   },

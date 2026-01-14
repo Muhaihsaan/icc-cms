@@ -6,10 +6,9 @@ import { Pagination } from '@/components/Pagination'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import React from 'react'
-import PageClient from './page.client'
+import PageClient from '@/components/PageClient'
 import { notFound } from 'next/navigation'
-import { fetchTenantByDomain } from '@/utilities/fetchTenant'
-import { createTenantRequest } from '@/utilities/createTenantRequest'
+import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
 
 // treats this route as dynamic SSR to prevent accidental SSG behavior
 export const dynamic = 'force-dynamic'

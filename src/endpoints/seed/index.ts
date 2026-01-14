@@ -79,7 +79,7 @@ export const seed = async ({
         name: 'Default Tenant',
         slug: 'default',
         domain: 'localhost',
-        allowPublicRead: true,
+        allowPublicRead: ['pages', 'posts', 'media', 'categories', 'header', 'footer'],
       },
     }))
 

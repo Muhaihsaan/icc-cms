@@ -1,6 +1,5 @@
 import type { Field, GroupField } from 'payload'
-
-import deepMerge from '@/utilities/deepMerge'
+import { normalizeTenantId } from '@/access/helpers'
 
 export type LinkAppearances = 'default' | 'outline'
 
@@ -74,6 +73,18 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
       admin: {
         condition: (_, siblingData) => siblingData?.type === 'reference',
       },
+      filterOptions: ({ user }) => {
+        // Scope to current tenant to prevent cross-tenant linking
+        if (!user) return true
+        if (!user.tenants) return true
+        const firstTenant = user.tenants[0]
+        if (!firstTenant) return true
+
+        const tenantId = normalizeTenantId(firstTenant.tenant)
+        if (!tenantId) return true
+
+        return { tenant: { equals: tenantId } }
+      },
       label: 'Document to link to',
       relationTo: ['pages', 'posts'],
       required: true,
@@ -90,14 +101,6 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
   ]
 
   if (!disableLabel) {
-    linkTypes.map((linkType) => ({
-      ...linkType,
-      admin: {
-        ...linkType.admin,
-        width: '50%',
-      },
-    }))
-
     linkResult.fields.push({
       type: 'row',
       fields: [
@@ -135,5 +138,12 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
     })
   }
 
-  return deepMerge(linkResult, overrides)
+  return {
+    ...linkResult,
+    ...overrides,
+    admin: {
+      ...linkResult.admin,
+      ...overrides?.admin,
+    },
+  }
 }

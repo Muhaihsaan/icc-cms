@@ -1,9 +1,4 @@
-import type {
-  CollectionAfterChangeHook,
-  CollectionBeforeChangeHook,
-  CollectionConfig,
-  Where,
-} from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
 
 import {
   BlocksFeature,
@@ -15,19 +10,17 @@ import {
 } from '@payloadcms/richtext-lexical'
 
 import {
-  authenticated,
-  isSuperAdmin,
   Roles,
   tenantPublicReadAccess,
   tenantCollectionAdminAccess,
   postsCreateAccess,
   postsUpdateAccess,
   withTenantCollectionAccess,
-} from '../../access/accessPermission'
-import { Banner } from '../../blocks/Banner/config'
-import { Code } from '../../blocks/Code/config'
-import { MediaBlock } from '../../blocks/MediaBlock/config'
-import { generatePreviewPath } from '../../utilities/generatePreviewPath'
+} from '@/access/accessPermission'
+import { Banner } from '@/blocks/Banner/config'
+import { Code } from '@/blocks/Code/config'
+import { MediaBlock } from '@/blocks/MediaBlock/config'
+import { generatePreviewPath } from '@/utilities/generatePreviewPath'
 import { populateAuthors } from './hooks/populateAuthors'
 import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
 import type { FieldAccess } from 'payload'
@@ -41,9 +34,16 @@ import {
   PreviewField,
 } from '@payloadcms/plugin-seo/fields'
 import { slugField } from '@/fields/slug'
+import { populateTenantDomain } from '@/hooks/populate-tenant-domain'
 
-const isGuestWriterUser = (user: User | null | undefined): boolean =>
-  user?.tenants?.some((t) => t.roles?.includes(Roles.guestWriter)) ?? false
+const isGuestWriterUser = (user: User | null | undefined): boolean => {
+  if (!user?.tenants) return false
+  for (const t of user.tenants) {
+    if (!t.roles) continue
+    if (t.roles.includes(Roles.guestWriter)) return true
+  }
+  return false
+}
 
 const assignGuestWriterAuthor: CollectionBeforeChangeHook<Post> = ({ req, data }) => {
   const user = req.user
@@ -66,12 +66,13 @@ const canUpdateAuthors: FieldAccess = ({ req }) => {
 
 export const Posts: CollectionConfig<'posts'> = {
   slug: 'posts',
+  trash: true,
   access: {
     admin: tenantCollectionAdminAccess('posts'),
     create: withTenantCollectionAccess('posts', postsCreateAccess),
-    delete: withTenantCollectionAccess('posts', authenticated),
-    read: withTenantCollectionAccess('posts', tenantPublicReadAccess({ publishedOnly: true })),
-    update: withTenantCollectionAccess('posts', postsUpdateAccess),
+    delete: postsUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
+    read: tenantPublicReadAccess('posts', { publishedOnly: true }),
+    update: postsUpdateAccess,
   },
   // This config controls what's populated by default when a post is referenced
   // https://payloadcms.com/docs/queries/select#defaultpopulate-collection-config-property
@@ -226,12 +227,11 @@ export const Posts: CollectionConfig<'posts'> = {
       },
     },
     {
-      name: 'deletedAt',
-      type: 'date',
+      name: 'tenantDomain',
+      type: 'text',
       admin: {
-        position: 'sidebar',
+        hidden: true,
         readOnly: true,
-        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
       },
     },
     {
@@ -279,7 +279,7 @@ export const Posts: CollectionConfig<'posts'> = {
     ...slugField(),
   ],
   hooks: {
-    beforeChange: [assignGuestWriterAuthor],
+    beforeChange: [assignGuestWriterAuthor, populateTenantDomain],
     afterChange: [revalidatePost],
     afterRead: [populateAuthors],
     afterDelete: [revalidateDelete],

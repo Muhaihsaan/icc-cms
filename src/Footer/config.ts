@@ -1,11 +1,9 @@
 import type { CollectionConfig } from 'payload'
 
 import {
-  isSuperAdmin,
   tenantPublicReadAccess,
-  tenantReadAccess,
+  tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
-  usersCreateAccess,
   withTenantCollectionAccess,
 } from '@/access/accessPermission'
 import { link } from '@/fields/link'
@@ -13,11 +11,13 @@ import { revalidateFooter } from './hooks/revalidateFooter'
 
 export const Footer: CollectionConfig = {
   slug: 'footer',
+  trash: true,
   access: {
     admin: tenantCollectionAdminAccess('footer'),
-    create: withTenantCollectionAccess('footer', usersCreateAccess),
-    read: withTenantCollectionAccess('footer', tenantPublicReadAccess()),
-    update: withTenantCollectionAccess('footer', tenantReadAccess),
+    create: withTenantCollectionAccess('footer', tenantAdminUpdateAccess),
+    delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
+    read: withTenantCollectionAccess('footer', tenantPublicReadAccess('footer')),
+    update: withTenantCollectionAccess('footer', tenantAdminUpdateAccess),
   },
   fields: [
     {
@@ -32,17 +32,8 @@ export const Footer: CollectionConfig = {
       admin: {
         initCollapsed: true,
         components: {
-          RowLabel: '@/Footer/RowLabel#RowLabel',
+          RowLabel: '@/components/RowLabel#RowLabel',
         },
-      },
-    },
-    {
-      name: 'deletedAt',
-      type: 'date',
-      admin: {
-        position: 'sidebar',
-        readOnly: true,
-        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
       },
     },
   ],

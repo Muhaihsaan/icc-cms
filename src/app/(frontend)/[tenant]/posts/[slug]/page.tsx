@@ -13,10 +13,9 @@ import type { Post } from '@/payload-types'
 
 import { PostHero } from '@/heros/PostHero'
 import { generateMeta } from '@/utilities/generateMeta'
-import PageClient from './page.client'
+import PageClient from '@/components/PageClient'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
-import { fetchTenantByDomain } from '@/utilities/fetchTenant'
-import { createTenantRequest } from '@/utilities/createTenantRequest'
+import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
 
 // treats this route as dynamic SSR to prevent accidental SSG behavior
 export const dynamic = 'force-dynamic'
@@ -86,7 +85,7 @@ export default async function Post({ params }: Args) {
 
   return (
     <article className="pt-16 pb-16">
-      <PageClient />
+      <PageClient theme="dark" />
 
       <PayloadRedirects disableNotFound tenantDomain={tenant} url={url} />
 

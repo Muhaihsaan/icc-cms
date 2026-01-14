@@ -1,7 +1,7 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
+import { z } from 'zod'
 
 import {
-  isSuperAdmin,
   isSuperAdminAccess,
   isSuperAdminFieldAccess,
   tenantManagedCollections,
@@ -9,8 +9,29 @@ import {
   tenantsUpdateAccess,
 } from '@/access/accessPermission'
 
+const siblingDataSchema = z.object({
+  allowedCollections: z.array(z.string()).optional(),
+})
+
+// Auto-clean allowPublicRead when allowedCollections changes
+const cleanAllowPublicRead: CollectionBeforeChangeHook = ({ data }) => {
+  if (!data) return data
+  const allowed = data.allowedCollections
+  const publicRead = data.allowPublicRead
+  // If allowedCollections is empty, clear allowPublicRead
+  if (!Array.isArray(allowed) || allowed.length === 0) {
+    return { ...data, allowPublicRead: [] }
+  }
+  // Filter allowPublicRead to only valid options
+  if (Array.isArray(publicRead)) {
+    return { ...data, allowPublicRead: publicRead.filter((v) => allowed.includes(v)) }
+  }
+  return data
+}
+
 export const Tenants: CollectionConfig = {
   slug: 'tenants',
+  trash: true,
   access: {
     create: isSuperAdminAccess,
     delete: isSuperAdminAccess,
@@ -49,14 +70,38 @@ export const Tenants: CollectionConfig = {
     },
     {
       name: 'allowPublicRead',
-      type: 'checkbox',
+      type: 'select',
+      hasMany: true,
       admin: {
-        description:
-          'If checked, logging in is not required to read. Useful for building public pages.',
+        description: 'First select allowedCollections, then choose which are publicly readable.',
         position: 'sidebar',
+        // Only show when allowedCollections has selections
+        condition: (data) => Array.isArray(data?.allowedCollections) && data.allowedCollections.length > 0,
+        components: {
+          Field: '@/components/AllowPublicReadField#AllowPublicReadField',
+        },
       },
-      defaultValue: true,
-      index: true,
+      defaultValue: [],
+      options: tenantManagedCollections.map((collection) => ({
+        label: collection,
+        value: collection,
+      })),
+      // Validate: only allow values that are in allowedCollections
+      validate: (value, { siblingData }) => {
+        if (!Array.isArray(value) || value.length === 0) return true
+        const parsed = siblingDataSchema.safeParse(siblingData)
+        if (!parsed.success) return true
+        const allowed = parsed.data.allowedCollections
+        if (!allowed || allowed.length === 0) return true
+        const invalid: string[] = []
+        for (const v of value) {
+          if (!allowed.includes(v)) invalid.push(v)
+        }
+        if (invalid.length > 0) {
+          return `Remove: ${invalid.join(', ')} (not in allowedCollections)`
+        }
+        return true
+      },
     },
     {
       name: 'allowedCollections',
@@ -76,14 +121,8 @@ export const Tenants: CollectionConfig = {
         value: collection,
       })),
     },
-    {
-      name: 'deletedAt',
-      type: 'date',
-      admin: {
-        position: 'sidebar',
-        readOnly: true,
-        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
-      },
-    },
   ],
+  hooks: {
+    beforeChange: [cleanAllowPublicRead],
+  },
 }

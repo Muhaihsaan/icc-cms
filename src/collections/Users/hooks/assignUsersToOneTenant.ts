@@ -7,17 +7,17 @@ type AssignUsersToOneTenantArgs = {
   value?: unknown
 }
 
-const assignUsersToOneTenant = ({ req, value }: AssignUsersToOneTenantArgs) => {
+export const assignUsersToOneTenant = ({ req, value }: AssignUsersToOneTenantArgs) => {
   const { user, tenant } = req
   if (!user) return value
-  if (user?.roles?.includes(Roles.superAdmin)) return value
+  if (user.roles?.includes(Roles.superAdmin)) return value
 
   let currentTenant = normalizeTenantId(tenant)
 
-  if (!currentTenant) {
-    const userTenants = user?.tenants || []
-    if (userTenants.length === 1) {
-      currentTenant = normalizeTenantId(userTenants[0]?.tenant)
+  if (!currentTenant && user.tenants && user.tenants.length === 1) {
+    const firstTenant = user.tenants[0]
+    if (firstTenant) {
+      currentTenant = normalizeTenantId(firstTenant.tenant)
     }
   }
 
@@ -25,5 +25,3 @@ const assignUsersToOneTenant = ({ req, value }: AssignUsersToOneTenantArgs) => {
 
   return [{ tenant: currentTenant, roles: [Roles.tenantViewer] }]
 }
-
-export default assignUsersToOneTenant

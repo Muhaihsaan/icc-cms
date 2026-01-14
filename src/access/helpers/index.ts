@@ -1,35 +1,49 @@
 import type { AccessArgs } from 'payload'
+import { z } from 'zod'
 
 import type { User } from '@/payload-types'
 
-export const getTenantFromReq = (req: AccessArgs['req']): unknown =>
-  (req as { tenant?: unknown }).tenant
+const tenantIdSchema = z.union([z.string(), z.number()])
+const tenantIdObjectSchema = z.object({ id: tenantIdSchema })
 
-// Normalize tenant value to string or Id.
-// In admin UI, req.tenant is usually populated (object). In API calls, it might be just an ID (string/number).
+// Schema that normalizes tenant value to just the ID using transform
+export const tenantValueSchema = z.union([
+  tenantIdSchema,
+  tenantIdObjectSchema.transform((obj) => obj.id),
+])
+
+const reqWithTenantSchema = z.object({ tenant: z.unknown() })
+
+export const getTenantFromReq = (req: AccessArgs['req']): unknown => {
+  const result = reqWithTenantSchema.safeParse(req)
+  if (!result.success) return undefined
+  return result.data.tenant
+}
+
+// Normalize tenant value to string or number ID using Zod schema validation
 export const normalizeTenantId = (value: unknown): string | number | undefined => {
-  if (typeof value === 'string' || typeof value === 'number') return value
-  if (value && typeof value === 'object' && 'id' in value) {
-    const id = value.id
-    if (typeof id === 'string' || typeof id === 'number') return id
-  }
-  return undefined
+  const result = tenantValueSchema.safeParse(value)
+  if (!result.success) return undefined
+  return result.data
 }
 
 export const getTenantIds = (user: User | null): Array<string | number> => {
-  return (user?.tenants || []).reduce<Array<string | number>>((acc, tenantEntry) => {
-    const value = normalizeTenantId(tenantEntry.tenant)
-    if (value !== undefined) acc.push(value)
-    return acc
-  }, [])
+  if (!user?.tenants) return []
+  const ids: Array<string | number> = []
+  for (const entry of user.tenants) {
+    const id = normalizeTenantId(entry.tenant)
+    if (id !== undefined) ids.push(id)
+  }
+  return ids
 }
 
 export const getTenantAdminIds = (user: User | null): Array<string | number> => {
-  return (user?.tenants || []).reduce<Array<string | number>>((acc, tenantEntry) => {
-    if (tenantEntry.roles?.includes('tenant-admin')) {
-      const value = normalizeTenantId(tenantEntry.tenant)
-      if (value !== undefined) acc.push(value)
-    }
-    return acc
-  }, [])
+  if (!user?.tenants) return []
+  const ids: Array<string | number> = []
+  for (const entry of user.tenants) {
+    if (!entry.roles?.includes('tenant-admin')) continue
+    const id = normalizeTenantId(entry.tenant)
+    if (id !== undefined) ids.push(id)
+  }
+  return ids
 }
