@@ -1,4 +1,5 @@
 import { createLocalReq, getPayload, type Payload, type PayloadRequest, type Where } from 'payload'
+import { unstable_cache } from 'next/cache'
 import configPromise from '@payload-config'
 
 import type { Tenant } from '@/payload-types'
@@ -41,12 +42,28 @@ const fetchTenantByField = async (
 }
 
 /**
- * Fetch a tenant by domain (strips port if present)
- * Standalone function that creates its own payload instance
+ * Internal uncached fetch for tenant by domain
  */
-export async function fetchTenantByDomain(domain: string): Promise<Tenant | null> {
+async function fetchTenantByDomainUncached(domain: string): Promise<Tenant | null> {
   const payload = await getPayload({ config: configPromise })
-  return fetchTenantByField(payload, { domain: { equals: cleanDomain(domain) } })
+  const cleanedDomain = cleanDomain(domain)
+  return fetchTenantByField(payload, { domain: { equals: cleanedDomain } })
+}
+
+/**
+ * Fetch a tenant by domain (strips port if present)
+ * Cached for performance - revalidates when tenant is updated
+ */
+export const fetchTenantByDomain = (domain: string): Promise<Tenant | null> => {
+  const cleanedDomain = cleanDomain(domain)
+  return unstable_cache(
+    () => fetchTenantByDomainUncached(cleanedDomain),
+    ['tenant', cleanedDomain],
+    {
+      tags: [`tenant:${cleanedDomain}`],
+      revalidate: 60, // Revalidate every 60 seconds as fallback
+    },
+  )()
 }
 
 /**

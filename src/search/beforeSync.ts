@@ -27,10 +27,11 @@ export const beforeSyncWithSearch: BeforeSync = async ({ req, originalDoc, searc
 
   if (categories && Array.isArray(categories) && categories.length > 0) {
     const populatedCategories: { id: string | number; title: string }[] = []
+    const idsToFetch: (string | number)[] = []
+
+    // First pass: collect already populated categories and IDs to fetch
     for (const category of categories) {
-      if (!category) {
-        continue
-      }
+      if (!category) continue
 
       const categoryResult = categorySchema.safeParse(category)
       if (categoryResult.success) {
@@ -38,21 +39,39 @@ export const beforeSyncWithSearch: BeforeSync = async ({ req, originalDoc, searc
         continue
       }
 
-      const doc = await req.payload.findByID({
+      // Category is just an ID, need to fetch
+      const idSchema = z.union([z.string(), z.number()])
+      const idResult = idSchema.safeParse(category)
+      if (idResult.success) {
+        idsToFetch.push(idResult.data)
+      }
+    }
+
+    // Batch fetch all unpopulated categories in a single query
+    if (idsToFetch.length > 0) {
+      const fetchedDocs = await req.payload.find({
         collection: 'categories',
-        id: category,
-        disableErrors: true,
+        where: { id: { in: idsToFetch } },
         depth: 0,
+        limit: idsToFetch.length,
         select: { title: true },
         req,
       })
 
-      if (doc !== null) {
-        populatedCategories.push(doc)
-      } else {
-        req.payload.logger.error(
-          `Category not found when syncing collection '${collection}' with id: '${id}' to search.`,
-        )
+      for (const doc of fetchedDocs.docs) {
+        populatedCategories.push({ id: doc.id, title: doc.title })
+      }
+
+      // Log any categories that weren't found
+      if (fetchedDocs.docs.length < idsToFetch.length) {
+        const foundIds = new Set(fetchedDocs.docs.map((d) => `${d.id}`))
+        for (const missingId of idsToFetch) {
+          if (!foundIds.has(`${missingId}`)) {
+            req.payload.logger.error(
+              `Category not found when syncing collection '${collection}' with id: '${id}' to search.`,
+            )
+          }
+        }
       }
     }
 

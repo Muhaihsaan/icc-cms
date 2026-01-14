@@ -3,12 +3,7 @@ import type { AccessArgs } from 'payload'
 import { z } from 'zod'
 
 import type { User } from '@/payload-types'
-import {
-  getTenantAdminIds,
-  getTenantFromReq,
-  getTenantIds,
-  normalizeTenantId,
-} from '@/access/helpers'
+import { getTenantFromReq, normalizeTenantId } from '@/access/helpers'
 
 const guestWriterLimitSchema = z.object({
   guestWriterPostLimit: z.number(),
@@ -22,6 +17,74 @@ export const Roles = {
   tenantViewer: 'tenant-viewer',
   guestWriter: 'guest-writer',
 } as const
+
+// Per-request cache for user tenant role data
+const USER_TENANT_CACHE_KEY = Symbol('userTenantRoleCache')
+
+type UserTenantData = {
+  allTenantIds: Array<string | number>
+  adminTenantIds: Array<string | number>
+  hasAdminRole: boolean
+  hasViewerRole: boolean
+  hasGuestWriterRole: boolean
+  hasAnyRole: boolean
+}
+
+type ReqWithUserTenantCache = AccessArgs['req'] & {
+  [USER_TENANT_CACHE_KEY]?: UserTenantData
+}
+
+// Compute all user tenant data in a single loop and cache it per-request
+const getUserTenantData = (req: ReqWithUserTenantCache): UserTenantData => {
+  // Return cached result if available
+  if (req[USER_TENANT_CACHE_KEY]) {
+    return req[USER_TENANT_CACHE_KEY]
+  }
+
+  const result: UserTenantData = {
+    allTenantIds: [],
+    adminTenantIds: [],
+    hasAdminRole: false,
+    hasViewerRole: false,
+    hasGuestWriterRole: false,
+    hasAnyRole: false,
+  }
+
+  const user = req.user
+  if (!user?.tenants) {
+    req[USER_TENANT_CACHE_KEY] = result
+    return result
+  }
+
+  for (const entry of user.tenants) {
+    if (!entry) continue
+
+    // Extract tenant ID
+    const tenantId = normalizeTenantId(entry.tenant)
+    if (tenantId !== undefined) {
+      result.allTenantIds.push(tenantId)
+    }
+
+    // Check roles
+    if (!Array.isArray(entry.roles)) continue
+    if (entry.roles.length > 0) result.hasAnyRole = true
+
+    if (entry.roles.includes(Roles.tenantAdmin)) {
+      result.hasAdminRole = true
+      if (tenantId !== undefined) result.adminTenantIds.push(tenantId)
+    }
+    if (entry.roles.includes(Roles.tenantViewer)) {
+      result.hasViewerRole = true
+    }
+    if (entry.roles.includes(Roles.guestWriter)) {
+      result.hasGuestWriterRole = true
+    }
+  }
+
+  // Cache the result
+  req[USER_TENANT_CACHE_KEY] = result
+  return result
+}
 
 // Collections that can be toggled per tenant.
 export const tenantManagedCollections = [
@@ -71,55 +134,25 @@ export const isSuperAdmin = (user: User | null): boolean => {
   return Boolean(user?.roles?.includes(Roles.superAdmin))
 }
 
-type TenantRole = typeof Roles.tenantAdmin | typeof Roles.tenantViewer | typeof Roles.guestWriter
-
-// Check whether a user has a specific tenant role.
-const hasTenantRole = (user: User | null, role: TenantRole): boolean => {
-  if (!user?.tenants) return false
-  for (const entry of user.tenants) {
-    if (!Array.isArray(entry?.roles)) continue
-    if (entry.roles.includes(role)) return true
-  }
-  return false
-}
-
-// Check whether a user has any tenant role.
-const hasAnyTenantRole = (user: User | null): boolean => {
-  if (!user?.tenants) return false
-  for (const entry of user.tenants) {
-    if (!Array.isArray(entry?.roles)) continue
-    if (entry.roles.length > 0) return true
-  }
-  return false
-}
-
-// Check whether a user can read tenant content.
-const hasTenantReadRole = (user: User | null): boolean => {
-  return (
-    hasTenantRole(user, Roles.tenantAdmin) ||
-    hasTenantRole(user, Roles.tenantViewer) ||
-    hasTenantRole(user, Roles.guestWriter)
-  )
-}
-
-// Check whether a user is a guest writer for any tenant.
-const isGuestWriter = (user: User | null): boolean => hasTenantRole(user, Roles.guestWriter)
-
-// True if the user is a super-admin or a tenant admin.
-const isSuperAdminOrTenantAdmin = (user: User | null): boolean =>
-  isSuperAdmin(user) || hasTenantRole(user, Roles.tenantAdmin)
-
 // True if the user is a super-admin or has any tenant role.
-export const isSuperAdminOrTenantMember = ({ req: { user } }: AccessArgs): boolean =>
-  isSuperAdmin(user) || hasAnyTenantRole(user)
+export const isSuperAdminOrTenantMember = ({ req }: AccessArgs): boolean => {
+  if (isSuperAdmin(req.user)) return true
+  const tenantData = getUserTenantData(req)
+  return tenantData.hasAnyRole
+}
 
 // Allow access for super-admins or tenant admins.
-export const isSuperAdminOrEditor = ({ req: { user } }: AccessArgs): boolean =>
-  isSuperAdminOrTenantAdmin(user)
+export const isSuperAdminOrEditor = ({ req }: AccessArgs): boolean => {
+  if (isSuperAdmin(req.user)) return true
+  const tenantData = getUserTenantData(req)
+  return tenantData.hasAdminRole
+}
 
 // Allow field access for super-admins or tenant admins.
 export const isSuperAdminOrEditorFieldAccess: FieldAccess = ({ req }): boolean => {
-  return isSuperAdminOrTenantAdmin(req.user)
+  if (isSuperAdmin(req.user)) return true
+  const tenantData = getUserTenantData(req)
+  return tenantData.hasAdminRole
 }
 
 // Allow reading users scoped to their tenant, with full access for super-admins.
@@ -127,36 +160,63 @@ export const usersReadAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
   if (isSuperAdmin(user)) return true
-  if (hasTenantRole(user, Roles.tenantAdmin)) {
-    const tenantIds = getTenantIds(user)
+
+  const tenantData = getUserTenantData(req)
+  if (tenantData.hasAdminRole) {
     const where: Where = {
-      and: [{ 'tenants.tenant': { in: tenantIds } }, { deletedAt: { exists: false } }],
+      and: [{ 'tenants.tenant': { in: tenantData.allTenantIds } }, { deletedAt: { exists: false } }],
     }
     return where
   }
   return false
 }
 
+// Per-request cache key for tenant allowed collections
+const TENANT_CACHE_KEY = Symbol('tenantAllowedCollectionsCache')
+
+type ReqWithCache = AccessArgs['req'] & {
+  [TENANT_CACHE_KEY]?: Map<string | number, TenantManagedCollection[] | null | undefined>
+}
+
 // Read the allowed collections for a tenant. Returns null when not set.
+// Uses per-request caching to avoid repeated DB calls within the same request.
 const getTenantAllowedCollections = async (
-  req: AccessArgs['req'],
+  req: ReqWithCache,
   tenantId: string | number,
 ): Promise<TenantManagedCollection[] | null | undefined> => {
-  let tenant
+  // Initialize cache on first call
+  if (!req[TENANT_CACHE_KEY]) {
+    req[TENANT_CACHE_KEY] = new Map()
+  }
+
+  // Return cached result if available
+  if (req[TENANT_CACHE_KEY].has(tenantId)) {
+    return req[TENANT_CACHE_KEY].get(tenantId)
+  }
+
+  let result: TenantManagedCollection[] | null | undefined
   try {
-    tenant = await req.payload.findByID({
+    const tenant = await req.payload.findByID({
       collection: 'tenants',
       id: tenantId,
       depth: 0,
       overrideAccess: true,
     })
+
+    if (!tenant) {
+      result = undefined
+    } else if (!Array.isArray(tenant.allowedCollections)) {
+      result = null
+    } else {
+      result = tenant.allowedCollections
+    }
   } catch {
-    return undefined
+    result = undefined
   }
 
-  if (!tenant) return undefined
-  if (!Array.isArray(tenant.allowedCollections)) return null
-  return tenant.allowedCollections
+  // Cache the result
+  req[TENANT_CACHE_KEY].set(tenantId, result)
+  return result
 }
 
 // Check whether the current tenant can access a given collection.
@@ -168,14 +228,17 @@ const isTenantCollectionAllowed = async ({
   collection: TenantManagedCollection
 }): Promise<boolean> => {
   if (isSuperAdmin(req.user)) return true
-  if (isGuestWriter(req.user)) return collection === 'posts'
+
+  const tenantData = getUserTenantData(req)
+  if (tenantData.hasGuestWriterRole) return collection === 'posts'
+
   let tenantId = normalizeTenantId(getTenantFromReq(req))
-  if (!tenantId && req.user) {
-    const tenantIds = getTenantIds(req.user)
-    if (tenantIds.length === 1) tenantId = tenantIds[0]
+  if (!tenantId && tenantData.allTenantIds.length === 1) {
+    tenantId = tenantData.allTenantIds[0]
   }
+
   // Only allow if user is authenticated and has tenant assignments
-  if (!tenantId) return Boolean(req.user && getTenantIds(req.user).length > 0)
+  if (!tenantId) return Boolean(req.user && tenantData.allTenantIds.length > 0)
 
   const allowedCollections = await getTenantAllowedCollections(req, tenantId)
   if (allowedCollections === undefined) return false
@@ -212,11 +275,11 @@ export const tenantsReadAccess: Access = ({ req }) => {
   if (!user) return false
   if (isSuperAdmin(user)) return true
 
-  const tenantIds = getTenantIds(user)
-  if (tenantIds.length === 0) return false
+  const tenantData = getUserTenantData(req)
+  if (tenantData.allTenantIds.length === 0) return false
 
   return {
-    id: { in: tenantIds },
+    id: { in: tenantData.allTenantIds },
   }
 }
 
@@ -226,37 +289,59 @@ export const tenantsUpdateAccess: Access = ({ req }) => {
   if (!user) return false
   if (isSuperAdmin(user)) return true
 
-  const tenantIds = getTenantAdminIds(user)
-  if (tenantIds.length === 0) return false
+  const tenantData = getUserTenantData(req)
+  if (tenantData.adminTenantIds.length === 0) return false
 
   return {
-    id: { in: tenantIds },
+    id: { in: tenantData.adminTenantIds },
   }
 }
 
+// Per-request cache key for tenant public read settings
+const TENANT_PUBLIC_READ_CACHE_KEY = Symbol('tenantPublicReadCache')
+
+type ReqWithPublicReadCache = AccessArgs['req'] & {
+  [TENANT_PUBLIC_READ_CACHE_KEY]?: Map<string | number, string[] | null>
+}
+
 // Fetch which collections allow public read for a tenant.
+// Uses per-request caching to avoid repeated DB calls within the same request.
 const getTenantAllowPublicRead = async ({
   req,
   tenantId,
 }: {
-  req: AccessArgs['req']
+  req: ReqWithPublicReadCache
   tenantId: string | number
 }): Promise<string[] | null> => {
-  let tenant
+  // Initialize cache on first call
+  if (!req[TENANT_PUBLIC_READ_CACHE_KEY]) {
+    req[TENANT_PUBLIC_READ_CACHE_KEY] = new Map()
+  }
+
+  // Return cached result if available
+  if (req[TENANT_PUBLIC_READ_CACHE_KEY].has(tenantId)) {
+    return req[TENANT_PUBLIC_READ_CACHE_KEY].get(tenantId) ?? null
+  }
+
+  let result: string[] | null = null
   try {
-    tenant = await req.payload.findByID({
+    const tenant = await req.payload.findByID({
       collection: 'tenants',
       id: tenantId,
       depth: 0,
       overrideAccess: true,
     })
+
+    if (tenant && Array.isArray(tenant.allowPublicRead)) {
+      result = tenant.allowPublicRead
+    }
   } catch {
-    return null
+    result = null
   }
 
-  if (!tenant) return null
-  if (!Array.isArray(tenant.allowPublicRead)) return null
-  return tenant.allowPublicRead
+  // Cache the result
+  req[TENANT_PUBLIC_READ_CACHE_KEY].set(tenantId, result)
+  return result
 }
 
 const whereTenantScoped = (tenantIds: Array<string | number>): Where => {
@@ -272,9 +357,10 @@ export const tenantMemberReadAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
   if (isSuperAdmin(user)) return true
-  if (hasTenantReadRole(user)) {
-    const tenantIds = getTenantIds(user)
-    return whereTenantScoped(tenantIds)
+
+  const tenantData = getUserTenantData(req)
+  if (tenantData.hasAdminRole || tenantData.hasViewerRole || tenantData.hasGuestWriterRole) {
+    return whereTenantScoped(tenantData.allTenantIds)
   }
   return false
 }
@@ -284,9 +370,10 @@ export const tenantAdminUpdateAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
   if (isSuperAdmin(user)) return true
-  if (hasTenantRole(user, Roles.tenantAdmin)) {
-    const tenantIds = getTenantIds(user)
-    return whereTenantScoped(tenantIds)
+
+  const tenantData = getUserTenantData(req)
+  if (tenantData.hasAdminRole) {
+    return whereTenantScoped(tenantData.allTenantIds)
   }
   return false
 }
@@ -322,22 +409,13 @@ export const usersCreateAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
   if (isSuperAdmin(user)) return true
-  if (!hasTenantRole(user, Roles.tenantAdmin)) return false
 
-  const adminTenantIds: Array<string | number> = []
-  if (user.tenants) {
-    for (const entry of user.tenants) {
-      if (!Array.isArray(entry.roles)) continue
-      if (!entry.roles.includes(Roles.tenantAdmin)) continue
-      const id = normalizeTenantId(entry.tenant)
-      if (id !== undefined) adminTenantIds.push(id)
-    }
-  }
-
-  if (adminTenantIds.length === 0) return false
+  const tenantData = getUserTenantData(req)
+  if (!tenantData.hasAdminRole) return false
+  if (tenantData.adminTenantIds.length === 0) return false
 
   const tenantId = normalizeTenantId(getTenantFromReq(req))
-  if (tenantId) return adminTenantIds.includes(tenantId)
+  if (tenantId) return tenantData.adminTenantIds.includes(tenantId)
 
   return false
 }
@@ -347,21 +425,17 @@ export const postsCreateAccess: Access = async ({ req }) => {
   const { user } = req
   if (!user) return false
   if (isSuperAdmin(user)) return true
-  if (hasTenantRole(user, Roles.tenantAdmin)) return true
-  if (!hasTenantRole(user, Roles.guestWriter)) return false
+
+  const tenantData = getUserTenantData(req)
+  if (tenantData.hasAdminRole) return true
+  if (!tenantData.hasGuestWriterRole) return false
 
   const tenantId = normalizeTenantId(getTenantFromReq(req))
   if (!tenantId) return false
-  const tenantIds = getTenantIds(user)
-  if (!tenantIds.includes(tenantId)) return false
+  if (!tenantData.allTenantIds.includes(tenantId)) return false
 
-  const userDoc = await req.payload.findByID({
-    collection: 'users',
-    id: user.id,
-    depth: 0,
-    overrideAccess: true,
-  })
-  const parsed = guestWriterLimitSchema.safeParse(userDoc)
+  // Use guestWriterPostLimit from req.user directly instead of DB fetch
+  const parsed = guestWriterLimitSchema.safeParse(user)
   const limit = parsed.success ? parsed.data.guestWriterPostLimit : 1
   if (limit <= 0) return false
 
@@ -389,12 +463,13 @@ export const postsUpdateAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
   if (isSuperAdmin(user)) return true
-  if (hasTenantRole(user, Roles.tenantAdmin)) {
-    const tenantIds = getTenantIds(user)
-    return whereTenantScoped(tenantIds)
+
+  const tenantData = getUserTenantData(req)
+  if (tenantData.hasAdminRole) {
+    return whereTenantScoped(tenantData.allTenantIds)
   }
 
-  if (!hasTenantRole(user, Roles.guestWriter)) return false
+  if (!tenantData.hasGuestWriterRole) return false
 
   const where: Where = {
     and: [{ authors: { contains: user.id } }, { deletedAt: { exists: false } }],

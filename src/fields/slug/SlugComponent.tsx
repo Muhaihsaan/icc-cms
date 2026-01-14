@@ -1,11 +1,15 @@
 'use client'
 import React, { useCallback } from 'react'
 import { TextFieldClientProps } from 'payload'
+import { z } from 'zod'
 
 import { useField, Button, TextInput, FieldLabel, useFormFields, useForm } from '@payloadcms/ui'
 
 import { formatSlug } from './formatSlug'
 import './index.scss'
+
+const booleanSchema = z.boolean()
+const stringSchema = z.string()
 
 type SlugComponentProps = {
   fieldToUse: string
@@ -30,14 +34,17 @@ export const SlugComponent: React.FC<SlugComponentProps> = ({
   const { dispatchFields, getDataByPath } = useForm()
 
   const isLocked = useFormFields(([fields]) => {
-    return fields[checkboxFieldPath]?.value as string
+    const parsed = booleanSchema.safeParse(fields[checkboxFieldPath]?.value)
+    return parsed.success ? parsed.data : false
   })
 
   const handleGenerate = useCallback(
     (e: React.MouseEvent<Element>) => {
       e.preventDefault()
 
-      const targetFieldValue = getDataByPath(fieldToUse) as string
+      const rawValue = getDataByPath(fieldToUse)
+      const parsed = stringSchema.safeParse(rawValue)
+      const targetFieldValue = parsed.success ? parsed.data : ''
 
       if (targetFieldValue) {
         const formattedSlug = formatSlug(targetFieldValue)

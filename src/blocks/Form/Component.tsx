@@ -7,9 +7,15 @@ import { useForm, FormProvider } from 'react-hook-form'
 import RichText from '@/components/RichText'
 import { Button } from '@/components/ui/button'
 import type { DefaultTypedEditorState } from '@payloadcms/richtext-lexical'
+import { z } from 'zod'
 
 import { fields } from './fields'
 import { getClientSideURL } from '@/utilities/getURL'
+
+const fieldKeySchema = z.object({
+  id: z.string().optional(),
+  name: z.string().optional(),
+})
 
 export type FormBlockType = {
   blockName?: string
@@ -133,9 +139,14 @@ export const FormBlock: React.FC<
                   formFromProps.fields?.map((field, index) => {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const Field: React.FC<any> = fields?.[field.blockType as keyof typeof fields]
+                    // Use Payload's auto-generated id if available, otherwise use field properties or index
+                    const parsed = fieldKeySchema.safeParse(field)
+                    const key = parsed.success
+                      ? parsed.data.id || parsed.data.name || `${field.blockType}-${index}`
+                      : `${field.blockType}-${index}`
                     if (Field) {
                       return (
-                        <div className="mb-6 last:mb-0" key={index}>
+                        <div className="mb-6 last:mb-0" key={key}>
                           <Field
                             form={formFromProps}
                             {...field}

@@ -4,6 +4,7 @@ import { cn } from '@/utilities/ui'
 import { GeistMono } from 'geist/font/mono'
 import { GeistSans } from 'geist/font/sans'
 import React from 'react'
+import { z } from 'zod'
 
 import { AdminBar } from '@/components/AdminBar'
 import { Footer } from '@/Footer/Component'
@@ -22,6 +23,9 @@ import { getServerSideURL } from '@/utilities/getURL'
 // treats this route as dynamic SSR to prevent accidental SSG behavior
 export const dynamic = 'force-dynamic'
 
+// Schema for allowPublicRead: handles both legacy boolean and new array format
+const allowPublicReadSchema = z.union([z.boolean(), z.array(z.string())])
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { isEnabled } = await draftMode()
   const headersList = await headers()
@@ -29,7 +33,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const tenant = await fetchTenantByDomain(host)
 
   // Handle backward compatibility: boolean (legacy) or array (new)
-  const allowPublicRead = tenant?.allowPublicRead as unknown
+  const parsed = allowPublicReadSchema.safeParse(tenant?.allowPublicRead)
+  const allowPublicRead = parsed.success ? parsed.data : false
   const hasPublicAccess = Array.isArray(allowPublicRead)
     ? allowPublicRead.length > 0
     : allowPublicRead === true

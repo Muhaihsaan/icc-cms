@@ -34,9 +34,11 @@ export default async function Page({
   if (!tenantDoc) notFound()
   const payloadReq = await createTenantRequest(payload, tenantDoc)
 
+  const tenantFilter = { 'doc.value.tenant': { equals: tenantDoc.id } }
+
   const posts = await payload.find({
     collection: 'search',
-    depth: 1,
+    depth: 0,
     limit: 12,
     req: payloadReq,
     select: {
@@ -45,51 +47,22 @@ export default async function Page({
       categories: true,
       meta: true,
     },
-    // pagination: false reduces overhead if you don't need totalDocs
     pagination: false,
-    ...(query
+    where: query
       ? {
-          where: {
-            and: [
-              {
-                'doc.value.tenant': {
-                  equals: tenantDoc.id,
-                },
-              },
-              {
-                or: [
-                  {
-                    title: {
-                      like: query,
-                    },
-                  },
-                  {
-                    'meta.description': {
-                      like: query,
-                    },
-                  },
-                  {
-                    'meta.title': {
-                      like: query,
-                    },
-                  },
-                  {
-                    slug: {
-                      like: query,
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-        }
-      : {
-          where: {
-            'doc.value.tenant': {
-              equals: tenantDoc.id,
+          and: [
+            tenantFilter,
+            {
+              or: [
+                { title: { like: query } },
+                { 'meta.description': { like: query } },
+                { 'meta.title': { like: query } },
+                { slug: { like: query } },
+              ],
             },
-          },
-        }),
+          ],
+        }
+      : tenantFilter,
   })
 
   return (

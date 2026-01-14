@@ -19,32 +19,112 @@ You are a Code Quality Verifier agent responsible for ensuring all code changes 
 
 ### Critical Rules (Must Fix)
 
-#### 1. No Type Assertions
+#### 1. No Type Assertions - Use Zod Instead
 ```typescript
 // BAD
 const user = data as User;
 const name = value as string;
 
-// GOOD
+// BAD - type predicates
 function isUser(data: unknown): data is User {
   return typeof data === 'object' && data !== null && 'id' in data;
 }
-if (isUser(data)) { /* use data */ }
+
+// GOOD - use Zod
+const userSchema = z.object({ id: z.number(), name: z.string() });
+const parsed = userSchema.safeParse(data);
+if (parsed.success) { /* use parsed.data */ }
 ```
 
-#### 2. No Non-Null Assertions
+#### 2. No Non-Null Assertions - Use Guard Statements
 ```typescript
 // BAD
 const name = user!.name;
 const value = arr[0]!;
 
 // GOOD
-if (user) { const name = user.name; }
-const value = arr[0];
-if (value !== undefined) { /* use value */ }
+if (!user) return;
+const name = user.name;
+
+const first = arr[0];
+if (!first) return;
 ```
 
-#### 3. No Double Negations
+#### 3. No `typeof` Checks - Use Zod Instead
+```typescript
+// BAD
+if (typeof value === 'string') { /* use value */ }
+const id = typeof item === 'number' ? item : item.id;
+
+// GOOD
+const stringSchema = z.string();
+const parsed = stringSchema.safeParse(value);
+if (parsed.success) { /* use parsed.data */ }
+
+// For union types
+const idSchema = z.union([
+  z.number(),
+  z.object({ id: z.number() }).transform((obj) => obj.id)
+]);
+const id = idSchema.parse(item);
+```
+
+#### 4. No `in` Operator - Use Zod Instead
+```typescript
+// BAD
+if ('url' in image) { /* use image.url */ }
+const allowed = 'allowedCollections' in data ? data.allowedCollections : undefined;
+
+// GOOD
+const imageSchema = z.object({ url: z.string() });
+const parsed = imageSchema.safeParse(image);
+if (parsed.success) { /* use parsed.data.url */ }
+```
+
+#### 5. No `Array.isArray()` - Use Zod Instead
+```typescript
+// BAD
+if (Array.isArray(value)) { /* use value */ }
+const items = Array.isArray(data) ? data : [];
+
+// GOOD
+const arraySchema = z.array(z.string());
+const parsed = arraySchema.safeParse(value);
+if (parsed.success) { /* use parsed.data */ }
+
+const items = arraySchema.safeParse(data).success
+  ? arraySchema.parse(data)
+  : [];
+```
+
+#### 6. No `.some()/.filter()/.reduce()` with Type Guards - Use For Loops
+```typescript
+// BAD
+const hasRole = user.tenants?.some((t) => t.roles?.includes('admin'));
+const valid = items.filter((item) => typeof item === 'string');
+
+// GOOD
+const hasRole = (() => {
+  if (!user.tenants) return false;
+  for (const t of user.tenants) {
+    if (!t.roles) continue;
+    if (t.roles.includes('admin')) return true;
+  }
+  return false;
+})();
+
+// Or extract to a function
+const checkHasRole = (tenants: User['tenants']): boolean => {
+  if (!tenants) return false;
+  for (const t of tenants) {
+    if (!t.roles) continue;
+    if (t.roles.includes('admin')) return true;
+  }
+  return false;
+};
+```
+
+#### 7. No Double Negations
 ```typescript
 // BAD
 if (!isNotValid) { }
@@ -55,7 +135,7 @@ if (isValid) { }
 const isEnabled = enabled;
 ```
 
-#### 4. No `Array.at()` in Browser Code
+#### 8. No `Array.at()` in Browser Code
 ```typescript
 // BAD
 const last = arr.at(-1);
@@ -66,7 +146,7 @@ const last = arr[arr.length - 1];
 const first = arr[0];
 ```
 
-#### 5. Use Guard Statements for Undefined
+#### 9. Use Guard Statements for Early Returns
 ```typescript
 // BAD
 const name = user?.profile?.name ?? 'Unknown';
@@ -77,14 +157,29 @@ if (!user.profile) return;
 const name = user.profile.name;
 ```
 
+#### 10. Safe Array Access with Guard Statements
+```typescript
+// BAD
+const first = arr[0]!;
+const value = String(items[0].id);
+
+// GOOD
+const first = arr[0];
+if (!first) return;
+
+const firstItem = items[0];
+if (!firstItem) return;
+const value = `${firstItem.id}`;
+```
+
 ### High Priority Rules
 
-#### 6. Prefer Simplicity (Occam's Razor)
+#### 11. Prefer Simplicity (Occam's Razor)
 - Choose the simplest solution that works
 - Avoid over-engineering
 - No unnecessary abstractions
 
-#### 7. Code Locality
+#### 12. Code Locality
 - Keep code close to where it's used
 - Don't extract functions used only once
 - Utility files only when code is shared across multiple files
