@@ -13,6 +13,7 @@ type isAuthenticated = (args: AccessArgs<User>) => boolean
 
 export const Roles = {
   superAdmin: 'super-admin',
+  superEditor: 'super-editor',
   tenantAdmin: 'tenant-admin',
   tenantViewer: 'tenant-viewer',
   guestWriter: 'guest-writer',
@@ -129,9 +130,31 @@ export const isSuperAdminFieldAccess: FieldAccess = ({ req }): boolean => {
   return isSuperAdmin(req.user)
 }
 
+// Allow field access for super-admin or during first user creation (bootstrap).
+export const isSuperAdminOrBootstrapFieldAccess: FieldAccess = async ({ req }): Promise<boolean> => {
+  if (isSuperAdmin(req.user)) return true
+
+  // Allow during first user creation (no users exist)
+  if (!req.user) {
+    const existingUsers = await req.payload.find({
+      collection: 'users',
+      depth: 0,
+      limit: 1,
+    })
+    return existingUsers.totalDocs === 0
+  }
+
+  return false
+}
+
 // Check whether a user has the super-admin role.
 export const isSuperAdmin = (user: User | null): boolean => {
-  return Boolean(user?.roles?.includes(Roles.superAdmin))
+  return user?.roles === Roles.superAdmin
+}
+
+// Check whether a user has the super-editor role.
+export const isSuperEditor = (user: User | null): boolean => {
+  return user?.roles === Roles.superEditor
 }
 
 // True if the user is a super-admin or has any tenant role.
@@ -141,33 +164,39 @@ export const isSuperAdminOrTenantMember = ({ req }: AccessArgs): boolean => {
   return tenantData.hasAnyRole
 }
 
-// Allow access for super-admins or tenant admins.
+// Allow access for super-admins, super-editors, or tenant admins.
 export const isSuperAdminOrEditor = ({ req }: AccessArgs): boolean => {
   if (isSuperAdmin(req.user)) return true
+  if (isSuperEditor(req.user)) return true
   const tenantData = getUserTenantData(req)
   return tenantData.hasAdminRole
 }
 
-// Allow field access for super-admins or tenant admins.
+// Allow field access for super-admins, super-editors, or tenant admins.
 export const isSuperAdminOrEditorFieldAccess: FieldAccess = ({ req }): boolean => {
   if (isSuperAdmin(req.user)) return true
+  if (isSuperEditor(req.user)) return true
   const tenantData = getUserTenantData(req)
   return tenantData.hasAdminRole
 }
 
-// Allow reading users scoped to their tenant, with full access for super-admins.
+// Allow reading users.
+// Top-level users (super-admin/super-editor) see ALL users.
+// Tenant-admins see only users within their tenant(s).
 export const usersReadAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
-  if (isSuperAdmin(user)) return true
+
+  // Top-level users see all users
+  if (isTopLevelUser(user)) return true
 
   const tenantData = getUserTenantData(req)
   if (tenantData.hasAdminRole) {
-    const where: Where = {
+    return {
       and: [{ 'tenants.tenant': { in: tenantData.allTenantIds } }, { deletedAt: { exists: false } }],
     }
-    return where
   }
+
   return false
 }
 
@@ -219,6 +248,11 @@ const getTenantAllowedCollections = async (
   return result
 }
 
+// Check if user is a top-level user (super-admin or super-editor)
+const isTopLevelUser = (user: User | null): boolean => {
+  return isSuperAdmin(user) || isSuperEditor(user)
+}
+
 // Check whether the current tenant can access a given collection.
 const isTenantCollectionAllowed = async ({
   req,
@@ -227,22 +261,31 @@ const isTenantCollectionAllowed = async ({
   req: AccessArgs['req']
   collection: TenantManagedCollection
 }): Promise<boolean> => {
-  if (isSuperAdmin(req.user)) return true
+  const tenantId = normalizeTenantId(getTenantFromReq(req))
+
+  // Top-level users must select a tenant first
+  if (isTopLevelUser(req.user)) {
+    if (!tenantId) return false
+    const allowedCollections = await getTenantAllowedCollections(req, tenantId)
+    // Tenant not found or no allowed collections configured
+    if (!allowedCollections || allowedCollections.length === 0) return false
+    return allowedCollections.includes(collection)
+  }
 
   const tenantData = getUserTenantData(req)
   if (tenantData.hasGuestWriterRole) return collection === 'posts'
 
-  let tenantId = normalizeTenantId(getTenantFromReq(req))
-  if (!tenantId && tenantData.allTenantIds.length === 1) {
-    tenantId = tenantData.allTenantIds[0]
+  let resolvedTenantId = tenantId
+  if (!resolvedTenantId && tenantData.allTenantIds.length === 1) {
+    resolvedTenantId = tenantData.allTenantIds[0]
   }
 
   // Only allow if user is authenticated and has tenant assignments
-  if (!tenantId) return Boolean(req.user && tenantData.allTenantIds.length > 0)
+  if (!resolvedTenantId) return Boolean(req.user && tenantData.allTenantIds.length > 0)
 
-  const allowedCollections = await getTenantAllowedCollections(req, tenantId)
-  if (allowedCollections === undefined) return false
-  if (!allowedCollections || allowedCollections.length === 0) return true
+  const allowedCollections = await getTenantAllowedCollections(req, resolvedTenantId)
+  // Tenant not found or no allowed collections configured
+  if (!allowedCollections || allowedCollections.length === 0) return false
 
   return allowedCollections.includes(collection)
 }
@@ -264,16 +307,21 @@ export const withTenantCollectionAccess = (
 }
 
 // Allow admin UI access based on allowed collections.
+// Top-level users always see all collections (tenant requirement enforced on actual operations).
 export const tenantCollectionAdminAccess =
   (collection: TenantManagedCollection) =>
-  async ({ req }: { req: AccessArgs['req'] }) =>
-    isTenantCollectionAllowed({ req, collection })
+  async ({ req }: { req: AccessArgs['req'] }) => {
+    // Top-level users can always see collections in admin UI
+    if (isTopLevelUser(req.user)) return true
+    return isTenantCollectionAllowed({ req, collection })
+  }
 
-// Allow reading tenants scoped to tenant assignments, with full access for super-admins.
+// Allow reading tenants scoped to tenant assignments, with full access for super-admins and super-editors.
 export const tenantsReadAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
   if (isSuperAdmin(user)) return true
+  if (isSuperEditor(user)) return true
 
   const tenantData = getUserTenantData(req)
   if (tenantData.allTenantIds.length === 0) return false
@@ -283,11 +331,12 @@ export const tenantsReadAccess: Access = ({ req }) => {
   }
 }
 
-// Allow updating tenants only for tenant admins and super-admins.
+// Allow updating tenants for tenant admins, super-admins, and super-editors.
 export const tenantsUpdateAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
   if (isSuperAdmin(user)) return true
+  if (isSuperEditor(user)) return true
 
   const tenantData = getUserTenantData(req)
   if (tenantData.adminTenantIds.length === 0) return false
@@ -351,12 +400,17 @@ const whereTenantScoped = (tenantIds: Array<string | number>): Where => {
 }
 
 // Allow read access to tenant-scoped documents for tenant members.
-// Soft-deleted items are hidden from non-super-admins.
-// Super-admin can see all items (use admin filter to hide/show deleted).
+// Top-level users can see all documents, scoped to selected tenant if one is chosen.
 export const tenantMemberReadAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
-  if (isSuperAdmin(user)) return true
+
+  // Top-level users can always read - scoped to tenant if selected
+  if (isTopLevelUser(user)) {
+    const tenantId = normalizeTenantId(getTenantFromReq(req))
+    if (!tenantId) return true // No tenant selected = see all (collection visible in nav)
+    return { and: [{ tenant: { equals: tenantId } }, { deletedAt: { exists: false } }] }
+  }
 
   const tenantData = getUserTenantData(req)
   if (tenantData.hasAdminRole || tenantData.hasViewerRole || tenantData.hasGuestWriterRole) {
@@ -365,11 +419,18 @@ export const tenantMemberReadAccess: Access = ({ req }) => {
   return false
 }
 
-// Allow update access to tenant-scoped documents for tenant admins and super-admins only.
+// Allow update access to tenant-scoped documents for tenant admins, super-admins, and super-editors.
+// Top-level users must select a tenant first.
 export const tenantAdminUpdateAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
-  if (isSuperAdmin(user)) return true
+
+  // Top-level users must select a tenant first
+  if (isTopLevelUser(user)) {
+    const tenantId = normalizeTenantId(getTenantFromReq(req))
+    if (!tenantId) return false
+    return { and: [{ tenant: { equals: tenantId } }, { deletedAt: { exists: false } }] }
+  }
 
   const tenantData = getUserTenantData(req)
   if (tenantData.hasAdminRole) {
@@ -405,32 +466,43 @@ export const tenantPublicReadAccess =
   }
 
 // Allow tenant-admins to create users only within their own tenant.
+// Top-level users can create users without tenant selection.
 export const usersCreateAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
-  if (isSuperAdmin(user)) return true
+
+  // Top-level users can always create users
+  if (isTopLevelUser(user)) return true
 
   const tenantData = getUserTenantData(req)
   if (!tenantData.hasAdminRole) return false
   if (tenantData.adminTenantIds.length === 0) return false
 
+  // Tenant-admin can create users for their tenant(s)
   const tenantId = normalizeTenantId(getTenantFromReq(req))
   if (tenantId) return tenantData.adminTenantIds.includes(tenantId)
 
-  return false
+  // If no tenant selected, allow if they have exactly one admin tenant
+  return tenantData.adminTenantIds.length === 1
 }
 
 // Allow tenant admins and guest writers to create posts with limits.
+// Top-level users must select a tenant first.
 export const postsCreateAccess: Access = async ({ req }) => {
   const { user } = req
   if (!user) return false
-  if (isSuperAdmin(user)) return true
+
+  const tenantId = normalizeTenantId(getTenantFromReq(req))
+
+  // Top-level users must select a tenant first
+  if (isTopLevelUser(user)) {
+    return Boolean(tenantId)
+  }
 
   const tenantData = getUserTenantData(req)
   if (tenantData.hasAdminRole) return true
   if (!tenantData.hasGuestWriterRole) return false
 
-  const tenantId = normalizeTenantId(getTenantFromReq(req))
   if (!tenantId) return false
   if (!tenantData.allTenantIds.includes(tenantId)) return false
 
@@ -459,10 +531,17 @@ export const postsCreateAccess: Access = async ({ req }) => {
 }
 
 // Allow tenant admins and guest writers to update posts they authored.
+// Top-level users must select a tenant first.
 export const postsUpdateAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
-  if (isSuperAdmin(user)) return true
+
+  // Top-level users must select a tenant first
+  if (isTopLevelUser(user)) {
+    const tenantId = normalizeTenantId(getTenantFromReq(req))
+    if (!tenantId) return false
+    return { and: [{ tenant: { equals: tenantId } }, { deletedAt: { exists: false } }] }
+  }
 
   const tenantData = getUserTenantData(req)
   if (tenantData.hasAdminRole) {
@@ -491,4 +570,14 @@ export const usersBootstrapCreateAccess: Access = async ({ req }) => {
   })
 
   return existingUsers.totalDocs === 0
+}
+
+// Allow super-admins to delete users, but prevent deleting own account.
+export const usersDeleteAccess: Access = ({ req }) => {
+  const { user } = req
+  if (!user) return false
+  if (!isSuperAdmin(user)) return false
+
+  // Prevent deleting own account
+  return { id: { not_equals: user.id } }
 }

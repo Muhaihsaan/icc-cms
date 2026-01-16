@@ -1,5 +1,5 @@
-import type { CollectionSlug, PayloadRequest } from 'payload'
-import { getPayload } from 'payload'
+import type { CollectionSlug } from 'payload'
+import { createLocalReq, getPayload } from 'payload'
 import { z } from 'zod'
 
 import { draftMode } from 'next/headers'
@@ -9,12 +9,6 @@ import { NextRequest } from 'next/server'
 import configPromise from '@payload-config'
 
 const collectionSlugSchema = z.enum(['pages', 'posts', 'media', 'categories', 'users'])
-
-// Adapter to convert NextRequest to PayloadRequest-compatible shape
-// This is necessary at the Next.js/Payload framework boundary
-function toPayloadRequest(req: NextRequest): PayloadRequest {
-  return req as unknown as PayloadRequest
-}
 
 export async function GET(req: NextRequest): Promise<Response> {
   const payload = await getPayload({ config: configPromise })
@@ -48,8 +42,9 @@ export async function GET(req: NextRequest): Promise<Response> {
   let user
 
   try {
+    const payloadReq = await createLocalReq({ user: undefined }, payload)
     user = await payload.auth({
-      req: toPayloadRequest(req),
+      req: payloadReq,
       headers: req.headers,
     })
   } catch (error) {

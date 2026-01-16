@@ -61,7 +61,7 @@ export const fetchTenantByDomain = (domain: string): Promise<Tenant | null> => {
     ['tenant', cleanedDomain],
     {
       tags: [`tenant:${cleanedDomain}`],
-      revalidate: 60, // Revalidate every 60 seconds as fallback
+      revalidate: 3600, // Revalidate every hour as fallback
     },
   )()
 }

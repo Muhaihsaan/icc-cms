@@ -4,6 +4,7 @@ import { PayloadRedirects } from '@/components/PayloadRedirects'
 import configPromise from '@payload-config'
 import { getPayload, type RequiredDataFromCollectionSlug } from 'payload'
 import { draftMode } from 'next/headers'
+import { cache } from 'react'
 import { unstable_cache } from 'next/cache'
 
 import { RenderBlocks } from '@/blocks/RenderBlocks'
@@ -13,14 +14,11 @@ import PageClient from '@/components/PageClient'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
 
-// treats this route as dynamic SSR to prevent accidental SSG behavior
-export const dynamic = 'force-dynamic'
-
 type Args = {
   params: Promise<{ tenant: string; slug: string }>
 }
 
-async function queryPageBySlugUncached(args: {
+async function queryPageBySlugUncachedImpl(args: {
   tenantDomain: string
   slug: string
   draft: boolean
@@ -47,10 +45,14 @@ async function queryPageBySlugUncached(args: {
   return result.docs?.[0] || null
 }
 
+// Deduplicate draft queries within the same request using React cache
+const queryPageBySlugUncached = cache(queryPageBySlugUncachedImpl)
+
 // Cached only for published mode (draft=false) so Payload hooks can revalidateTag(...) later.
-const queryPageBySlugCached = (tenantDomain: string, slug: string) =>
+// Also deduplicated within request using React cache
+const queryPageBySlugCached = cache((tenantDomain: string, slug: string) =>
   unstable_cache(
-    async () => queryPageBySlugUncached({ tenantDomain, slug, draft: false }),
+    async () => queryPageBySlugUncachedImpl({ tenantDomain, slug, draft: false }),
     ['page-by-slug', tenantDomain, slug],
     {
       tags: [
@@ -59,6 +61,7 @@ const queryPageBySlugCached = (tenantDomain: string, slug: string) =>
       ],
     },
   )()
+)
 
 export default async function Page({ params }: Args) {
   const { isEnabled: draft } = await draftMode()

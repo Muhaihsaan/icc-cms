@@ -1,14 +1,20 @@
 import React, { Fragment } from 'react'
+import { z } from 'zod'
 
 import type { Props } from './types'
 
 import { ImageMedia } from './ImageMedia'
 import { VideoMedia } from './VideoMedia'
 
+const videoResourceSchema = z.object({
+  mimeType: z.string(),
+})
+
 export const Media: React.FC<Props> = (props) => {
   const { className, htmlElement = 'div', resource } = props
 
-  const isVideo = typeof resource === 'object' && resource?.mimeType?.includes('video')
+  const resourceParsed = videoResourceSchema.safeParse(resource)
+  const isVideo = resourceParsed.success && resourceParsed.data.mimeType.includes('video')
   const Tag = htmlElement || Fragment
 
   return (

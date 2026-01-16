@@ -12,8 +12,12 @@ export async function getRedirects(tenantDomain: string, depth = 1) {
     collection: 'redirects',
     req: payloadReq,
     depth,
-    limit: 0,
+    limit: 1000, // Reasonable upper bound to prevent memory issues
     pagination: false,
+    select: {
+      from: true,
+      to: true,
+    },
   })
 
   return redirects

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next/types'
+import { z } from 'zod'
 
 import { CollectionArchive } from '@/components/CollectionArchive'
 import configPromise from '@payload-config'
@@ -6,9 +7,16 @@ import { getPayload } from 'payload'
 import React from 'react'
 import { Search } from '@/search/Component'
 import PageClient from '@/components/PageClient'
-import { CardPostData } from '@/components/Card'
+import type { CardPostData } from '@/components/Card'
 import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
 import { notFound } from 'next/navigation'
+
+const cardPostValidationSchema = z.object({
+  slug: z.string().nullable().optional(),
+  title: z.string().nullable().optional(),
+})
+
+const cardPostSchema = z.custom<CardPostData>((val) => cardPostValidationSchema.safeParse(val).success)
 
 // treats this route as dynamic SSR to prevent accidental SSG behavior
 export const dynamic = 'force-dynamic'
@@ -65,6 +73,13 @@ export default async function Page({
       : tenantFilter,
   })
 
+  const validPosts: CardPostData[] = []
+  for (const doc of posts.docs) {
+    const parsed = cardPostSchema.safeParse(doc)
+    if (!parsed.success) continue
+    validPosts.push(parsed.data)
+  }
+
   return (
     <div className="pt-24 pb-24">
       <PageClient />
@@ -78,8 +93,8 @@ export default async function Page({
         </div>
       </div>
 
-      {posts.docs.length > 0 ? (
-        <CollectionArchive posts={posts.docs as CardPostData[]} />
+      {validPosts.length > 0 ? (
+        <CollectionArchive posts={validPosts} />
       ) : (
         <div className="container">No results found.</div>
       )}

@@ -5,6 +5,7 @@ import type { StaticImageData } from 'next/image'
 import { cn } from '@/utilities/ui'
 import NextImage from 'next/image'
 import React from 'react'
+import { z } from 'zod'
 
 import type { Props as MediaProps } from '../types'
 
@@ -12,6 +13,14 @@ import { cssVariables } from '@/cssVariables'
 import { getMediaUrl } from '@/utilities/getMediaUrl'
 
 const { breakpoints } = cssVariables
+
+const imageResourceSchema = z.object({
+  alt: z.string().nullable().optional(),
+  height: z.number().nullable().optional(),
+  width: z.number().nullable().optional(),
+  url: z.string().nullable().optional(),
+  updatedAt: z.string().optional(),
+})
 
 // A base64 encoded image to use as a placeholder while the image is loading
 const placeholderBlur =
@@ -35,16 +44,17 @@ export const ImageMedia: React.FC<MediaProps> = (props) => {
   let alt = altFromProps
   let src: StaticImageData | string = srcFromProps || ''
 
-  if (!src && resource && typeof resource === 'object') {
-    const { alt: altFromResource, height: fullHeight, url, width: fullWidth } = resource
+  if (!src) {
+    const resourceParsed = imageResourceSchema.safeParse(resource)
+    if (resourceParsed.success) {
+      const { alt: altFromResource, height: fullHeight, url, width: fullWidth, updatedAt } = resourceParsed.data
 
-    width = fullWidth!
-    height = fullHeight!
-    alt = altFromResource || ''
+      if (fullWidth) width = fullWidth
+      if (fullHeight) height = fullHeight
+      alt = altFromResource || ''
 
-    const cacheTag = resource.updatedAt
-
-    src = getMediaUrl(url, cacheTag)
+      src = getMediaUrl(url, updatedAt)
+    }
   }
 
   const loading = loadingFromProps || (!priority ? 'lazy' : undefined)
@@ -66,7 +76,7 @@ export const ImageMedia: React.FC<MediaProps> = (props) => {
         placeholder="blur"
         blurDataURL={placeholderBlur}
         priority={priority}
-        quality={100}
+        quality={80}
         loading={loading}
         sizes={sizes}
         src={src}

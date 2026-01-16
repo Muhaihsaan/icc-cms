@@ -231,9 +231,9 @@ export interface Tenant {
    */
   allowPublicRead?: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[] | null;
   /**
-   * If empty, all collections are available to this tenant.
+   * Select which collections this tenant can access.
    */
-  allowedCollections?: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[] | null;
+  allowedCollections: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[];
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -411,13 +411,13 @@ export interface Category {
  */
 export interface User {
   id: number;
-  roles?: 'super-admin' | null;
+  tenant?: (number | null) | Tenant;
+  roles?: ('super-admin' | 'super-editor') | null;
   name?: string | null;
   /**
    * Maximum number of published posts a guest-writer can create.
    */
   guestWriterPostLimit?: number | null;
-  deletedAt?: string | null;
   tenants?:
     | {
         tenant: number | Tenant;
@@ -427,6 +427,7 @@ export interface User {
     | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
   email: string;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
@@ -1408,10 +1409,10 @@ export interface CategoriesSelect<T extends boolean = true> {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  tenant?: T;
   roles?: T;
   name?: T;
   guestWriterPostLimit?: T;
-  deletedAt?: T;
   tenants?:
     | T
     | {
@@ -1421,6 +1422,7 @@ export interface UsersSelect<T extends boolean = true> {
       };
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
   email?: T;
   resetPasswordToken?: T;
   resetPasswordExpiration?: T;

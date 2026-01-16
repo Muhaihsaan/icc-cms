@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import React from 'react'
+import { z } from 'zod'
 
 import { ThemeSelector } from '@/providers/Theme/ThemeSelector'
 import { CMSLink } from '@/components/Link'
@@ -7,15 +8,24 @@ import { Logo } from '@/components/Logo/Logo'
 import { getTenantCachedGlobal } from '@/utilities/getTenantGlobals'
 
 import type { Tenant, Footer } from '@/payload-types'
-interface HeaderProps {
+
+const footerValidationSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+})
+
+const footerSchema = z.custom<Footer>((val) => footerValidationSchema.safeParse(val).success)
+
+interface FooterProps {
   tenant: Tenant | null
 }
 
-export async function Footer({ tenant }: HeaderProps) {
-  if (!tenant) return
-  const footerData = (await getTenantCachedGlobal('footer', 1, tenant)()) as Footer
+export async function Footer({ tenant }: FooterProps) {
+  if (!tenant) return null
+  const footerResult = await getTenantCachedGlobal('footer', 1, tenant)()
+  const parsed = footerSchema.safeParse(footerResult)
+  if (!parsed.success) return null
 
-  const navItems = footerData?.navItems || []
+  const navItems = parsed.data.navItems || []
 
   return (
     <footer className="mt-auto border-t border-border bg-black dark:bg-card text-white">

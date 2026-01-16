@@ -1,9 +1,21 @@
 import type React from 'react'
 import type { Page, Post } from '@/payload-types'
+import { z } from 'zod'
 
 import { getCachedDocument } from '@/utilities/getDocument'
 import { getCachedRedirects } from '@/utilities/getRedirects'
 import { notFound, redirect } from 'next/navigation'
+
+const stringIdSchema = z.string()
+const collectionSchema = z.enum(['pages', 'posts'])
+const documentObjectSchema = z.object({
+  slug: z.string().nullable().optional(),
+})
+const documentValidationSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  slug: z.string().nullable().optional(),
+})
+const documentSchema = z.custom<Page | Post>((val) => documentValidationSchema.safeParse(val).success)
 
 interface Props {
   disableNotFound?: boolean
@@ -17,7 +29,7 @@ export const PayloadRedirects: React.FC<Props> = async ({ disableNotFound, tenan
   const withTenantPrefix = (path: string) =>
     path.startsWith('/') ? `/${tenantDomain}${path}` : path
 
-  const redirectItem = redirects.find((redirect) => redirect.from === url)
+  const redirectItem = redirects.find((r) => r.from === url)
 
   if (redirectItem) {
     if (redirectItem.to?.url) {
@@ -26,20 +38,28 @@ export const PayloadRedirects: React.FC<Props> = async ({ disableNotFound, tenan
 
     let redirectUrl: string
 
-    if (typeof redirectItem.to?.reference?.value === 'string') {
-      const collection = redirectItem.to?.reference?.relationTo
-      const id = redirectItem.to?.reference?.value
+    const referenceValue = redirectItem.to?.reference?.value
+    const stringIdParsed = stringIdSchema.safeParse(referenceValue)
 
-      const document = (await getCachedDocument(collection, id, tenantDomain)()) as Page | Post
-      redirectUrl = `${redirectItem.to?.reference?.relationTo !== 'pages' ? `/${redirectItem.to?.reference?.relationTo}` : ''}/${
-        document?.slug
-      }`
+    if (stringIdParsed.success) {
+      const collectionParsed = collectionSchema.safeParse(redirectItem.to?.reference?.relationTo)
+      const id = stringIdParsed.data
+
+      if (collectionParsed.success) {
+        const docResult = await getCachedDocument(collectionParsed.data, id, tenantDomain)()
+        const docParsed = documentSchema.safeParse(docResult)
+        const slug = docParsed.success ? docParsed.data.slug : ''
+        redirectUrl = `${collectionParsed.data !== 'pages' ? `/${collectionParsed.data}` : ''}/${slug}`
+      } else {
+        redirectUrl = ''
+      }
     } else {
-      redirectUrl = `${redirectItem.to?.reference?.relationTo !== 'pages' ? `/${redirectItem.to?.reference?.relationTo}` : ''}/${
-        typeof redirectItem.to?.reference?.value === 'object'
-          ? redirectItem.to?.reference?.value?.slug
-          : ''
-      }`
+      const objectParsed = documentObjectSchema.safeParse(referenceValue)
+      const slug = objectParsed.success ? objectParsed.data.slug : ''
+      const relationTo = redirectItem.to?.reference?.relationTo
+      const collectionParsed = collectionSchema.safeParse(relationTo)
+      const pathPrefix = collectionParsed.success && collectionParsed.data !== 'pages' ? `/${collectionParsed.data}` : ''
+      redirectUrl = `${pathPrefix}/${slug}`
     }
 
     if (redirectUrl) redirect(withTenantPrefix(redirectUrl))

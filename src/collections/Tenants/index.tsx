@@ -18,12 +18,8 @@ const cleanAllowPublicRead: CollectionBeforeChangeHook = ({ data }) => {
   if (!data) return data
   const allowed = data.allowedCollections
   const publicRead = data.allowPublicRead
-  // If allowedCollections is empty, clear allowPublicRead
-  if (!Array.isArray(allowed) || allowed.length === 0) {
-    return { ...data, allowPublicRead: [] }
-  }
-  // Filter allowPublicRead to only valid options
-  if (Array.isArray(publicRead)) {
+  // Filter allowPublicRead to only valid options from allowedCollections
+  if (Array.isArray(publicRead) && Array.isArray(allowed)) {
     return { ...data, allowPublicRead: publicRead.filter((v) => allowed.includes(v)) }
   }
   return data
@@ -40,6 +36,9 @@ export const Tenants: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
+    components: {
+      beforeList: ['@/components/TenantsListRedirect#TenantsListRedirect'],
+    },
   },
   fields: [
     {
@@ -106,13 +105,14 @@ export const Tenants: CollectionConfig = {
     {
       name: 'allowedCollections',
       type: 'select',
+      required: true,
       access: {
         create: isSuperAdminFieldAccess,
         update: isSuperAdminFieldAccess,
         read: isSuperAdminFieldAccess,
       },
       admin: {
-        description: 'If empty, all collections are available to this tenant.',
+        description: 'Select which collections this tenant can access.',
         position: 'sidebar',
       },
       hasMany: true,
@@ -120,6 +120,12 @@ export const Tenants: CollectionConfig = {
         label: collection,
         value: collection,
       })),
+      validate: (value) => {
+        if (!Array.isArray(value) || value.length === 0) {
+          return 'At least one collection must be selected.'
+        }
+        return true
+      },
     },
   ],
   hooks: {

@@ -13,7 +13,7 @@ import { searchFields } from '@/search/fieldOverrides'
 import { beforeSyncWithSearch } from '@/search/beforeSync'
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
 import type { Config, Page, Post } from '@/payload-types'
-import { isSuperAdmin } from '@/access/accessPermission'
+import { isSuperAdmin, isSuperEditor } from '@/access/accessPermission'
 
 import { getServerSideURL } from '@/utilities/getURL'
 
@@ -127,8 +127,14 @@ export const plugins: Plugin[] = [
       footer: {},
       media: {},
       categories: {},
+      users: {
+        // Disable tenant-based filtering for users collection
+        // Super-admins/editors should see all users via userHasAccessToAllTenants
+        useBaseListFilter: false,
+        useTenantAccess: false,
+      },
     },
-    userHasAccessToAllTenants: (user) => isSuperAdmin(user),
+    userHasAccessToAllTenants: (user) => isSuperAdmin(user) || isSuperEditor(user),
     tenantsArrayField: {
       includeDefaultField: false,
     },

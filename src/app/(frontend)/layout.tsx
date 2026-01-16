@@ -20,9 +20,6 @@ import { notFound } from 'next/navigation'
 import './globals.css'
 import { getServerSideURL } from '@/utilities/getURL'
 
-// treats this route as dynamic SSR to prevent accidental SSG behavior
-export const dynamic = 'force-dynamic'
-
 // Schema for allowPublicRead: handles both legacy boolean and new array format
 const allowPublicReadSchema = z.union([z.boolean(), z.array(z.string())])
 

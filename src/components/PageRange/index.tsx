@@ -1,4 +1,7 @@
 import React from 'react'
+import { z } from 'zod'
+
+const totalDocsSchema = z.number()
 
 const defaultLabels = {
   plural: 'Docs',
@@ -44,13 +47,15 @@ export const PageRange: React.FC<{
     defaultLabels ||
     {}
 
+  const totalDocsParsed = totalDocsSchema.safeParse(totalDocs)
+  const validTotalDocs = totalDocsParsed.success ? totalDocsParsed.data : 0
+
   return (
     <div className={[className, 'font-semibold'].filter(Boolean).join(' ')}>
-      {(typeof totalDocs === 'undefined' || totalDocs === 0) && 'Search produced no results.'}
-      {typeof totalDocs !== 'undefined' &&
-        totalDocs > 0 &&
-        `Showing ${indexStart}${indexStart > 0 ? ` - ${indexEnd}` : ''} of ${totalDocs} ${
-          totalDocs > 1 ? plural : singular
+      {validTotalDocs === 0 && 'Search produced no results.'}
+      {validTotalDocs > 0 &&
+        `Showing ${indexStart}${indexStart > 0 ? ` - ${indexEnd}` : ''} of ${validTotalDocs} ${
+          validTotalDocs > 1 ? plural : singular
         }`}
     </div>
   )

@@ -1,4 +1,7 @@
 import type { FieldHook } from 'payload'
+import { z } from 'zod'
+
+const stringSchema = z.string()
 
 export const formatSlug = (val: string): string | undefined =>
   val
@@ -9,15 +12,17 @@ export const formatSlug = (val: string): string | undefined =>
 export const formatSlugHook =
   (fallback: string): FieldHook =>
   ({ data, operation, value }) => {
-    if (typeof value === 'string') {
-      return formatSlug(value)
+    const valueParsed = stringSchema.safeParse(value)
+    if (valueParsed.success) {
+      return formatSlug(valueParsed.data)
     }
 
     if (operation === 'create' || data?.slug === undefined) {
       const fallbackData = data?.[fallback]
 
-      if (typeof fallbackData === 'string') {
-        return formatSlug(fallbackData)
+      const fallbackParsed = stringSchema.safeParse(fallbackData)
+      if (fallbackParsed.success) {
+        return formatSlug(fallbackParsed.data)
       }
     }
 

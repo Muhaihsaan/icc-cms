@@ -33,6 +33,7 @@ export default buildConfig({
   admin: {
     components: {
       providers: ['@/components/HideTrashProvider#HideTrashProvider'],
+      beforeDashboard: ['@/components/TenantSelector#TenantSelector'],
     },
     importMap: {
       baseDir: path.resolve(dirname),
@@ -66,6 +67,9 @@ export default buildConfig({
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URL || process.env.DATABASE_URI || '',
+      max: 20, // Maximum connections in pool
+      min: 2, // Minimum connections to keep open
+      idleTimeoutMillis: 30000, // Close idle connections after 30s
     },
   }),
   collections: [Pages, Posts, Media, Categories, Users, Tenants, Header, Footer],

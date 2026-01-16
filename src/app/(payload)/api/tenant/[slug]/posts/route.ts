@@ -44,6 +44,13 @@ export async function GET(request: Request, { params }: { params: Promise<RouteP
         ],
       },
       sort: '-publishedAt',
+      select: {
+        title: true,
+        slug: true,
+        categories: true,
+        meta: true,
+        publishedAt: true,
+      },
     })
 
     // Posts change frequently - use shorter cache (2 min fresh, 10 min stale)

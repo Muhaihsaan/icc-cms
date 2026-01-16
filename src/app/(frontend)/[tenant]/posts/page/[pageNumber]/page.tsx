@@ -10,9 +10,6 @@ import PageClient from '@/components/PageClient'
 import { notFound } from 'next/navigation'
 import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
 
-// treats this route as dynamic SSR to prevent accidental SSG behavior
-export const dynamic = 'force-dynamic'
-
 type Args = {
   params: Promise<{
     tenant: string
@@ -40,6 +37,12 @@ export default async function Page({ params: paramsPromise }: Args) {
     page,
     overrideAccess: false,
     req: payloadReq,
+    select: {
+      title: true,
+      slug: true,
+      categories: true,
+      meta: true,
+    },
   })
 
   return (

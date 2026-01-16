@@ -1,6 +1,7 @@
 'use client'
 
 import type { PayloadAdminBarProps, PayloadMeUser } from '@payloadcms/admin-bar'
+import { z } from 'zod'
 
 import { cn } from '@/utilities/ui'
 import { useSelectedLayoutSegments } from 'next/navigation'
@@ -14,7 +15,11 @@ import { getClientSideURL } from '@/utilities/getURL'
 
 const baseClass = 'admin-bar'
 
-const collectionLabels = {
+const collectionKeySchema = z.enum(['pages', 'posts', 'projects'])
+
+type CollectionKey = z.infer<typeof collectionKeySchema>
+
+const collectionLabels: Record<CollectionKey, { plural: string; singular: string }> = {
   pages: {
     plural: 'Pages',
     singular: 'Page',
@@ -37,9 +42,8 @@ export const AdminBar: React.FC<{
   const { adminBarProps } = props || {}
   const segments = useSelectedLayoutSegments()
   const [show, setShow] = useState(false)
-  const collection = (
-    collectionLabels[segments?.[1] as keyof typeof collectionLabels] ? segments[1] : 'pages'
-  ) as keyof typeof collectionLabels
+  const segmentParsed = collectionKeySchema.safeParse(segments?.[1])
+  const collection: CollectionKey = segmentParsed.success ? segmentParsed.data : 'pages'
   const router = useRouter()
 
   const onAuthChange = React.useCallback((user: PayloadMeUser) => {

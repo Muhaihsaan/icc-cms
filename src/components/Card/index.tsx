@@ -2,11 +2,24 @@
 import { cn } from '@/utilities/ui'
 import useClickableCard from '@/utilities/useClickableCard'
 import Link from 'next/link'
-import React, { Fragment } from 'react'
+import React, { Fragment, memo, useMemo } from 'react'
+import { z } from 'zod'
 
 import type { Post } from '@/payload-types'
 
 import { Media } from '@/components/Media'
+
+const categoriesArraySchema = z.array(z.unknown())
+
+const categoryObjectSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  title: z.string().optional(),
+})
+
+const mediaObjectSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  url: z.string().nullable().optional(),
+})
 
 export type CardPostData = Pick<Post, 'slug' | 'categories' | 'meta' | 'title'>
 
@@ -17,14 +30,22 @@ export const Card: React.FC<{
   relationTo?: 'posts'
   showCategories?: boolean
   title?: string
-}> = (props) => {
+}> = memo(function Card(props) {
   const { card, link } = useClickableCard({})
   const { className, doc, relationTo, showCategories, title: titleFromProps } = props
 
   const { slug, categories, meta, title } = doc || {}
   const { description, image: metaImage } = meta || {}
 
-  const hasCategories = categories && Array.isArray(categories) && categories.length > 0
+  const categoriesParsed = useMemo(
+    () => categoriesArraySchema.safeParse(categories),
+    [categories]
+  )
+  const hasCategories = categoriesParsed.success && categoriesParsed.data.length > 0
+  const isValidMediaImage = useMemo(
+    () => mediaObjectSchema.safeParse(metaImage).success,
+    [metaImage]
+  )
   const titleToUse = titleFromProps || title
   const sanitizedDescription = description?.replace(/\s/g, ' ') // replace non-breaking space with white space
   const href = `/${relationTo}/${slug}`
@@ -39,28 +60,33 @@ export const Card: React.FC<{
     >
       <div className="relative w-full ">
         {!metaImage && <div className="">No image</div>}
-        {metaImage && typeof metaImage !== 'string' && <Media resource={metaImage} size="33vw" />}
+        {isValidMediaImage && <Media resource={metaImage} size="33vw" />}
       </div>
       <div className="p-4">
         {showCategories && hasCategories && (
           <div className="uppercase text-sm mb-4">
-            {showCategories && hasCategories && (
-              <div>
-                {categories?.map((category, index) => {
-                  if (!category || typeof category !== 'object') return null
-                  const { id, title: titleFromCategory } = category
-                  const categoryTitle = titleFromCategory || 'Untitled category'
-                  const isLast = index === categories.length - 1
+            <div>
+              {(() => {
+                if (!categoriesParsed.success) return null
+                const elements: React.ReactNode[] = []
+                for (let i = 0; i < categoriesParsed.data.length; i++) {
+                  const category = categoriesParsed.data[i]
+                  const parsed = categoryObjectSchema.safeParse(category)
+                  if (!parsed.success) continue
 
-                  return (
-                    <Fragment key={id}>
+                  const categoryTitle = parsed.data.title || 'Untitled category'
+                  const isLast = i === categoriesParsed.data.length - 1
+
+                  elements.push(
+                    <Fragment key={parsed.data.id}>
                       {categoryTitle}
                       {!isLast && <Fragment>, &nbsp;</Fragment>}
                     </Fragment>
                   )
-                })}
-              </div>
-            )}
+                }
+                return elements
+              })()}
+            </div>
           </div>
         )}
         {titleToUse && (
@@ -76,4 +102,4 @@ export const Card: React.FC<{
       </div>
     </article>
   )
-}
+})

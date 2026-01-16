@@ -1,10 +1,21 @@
 import { formatDateTime } from 'src/utilities/formatDateTime'
 import React from 'react'
+import { z } from 'zod'
 
 import type { Post } from '@/payload-types'
 
 import { Media } from '@/components/Media'
 import { formatAuthors } from '@/utilities/formatAuthors'
+
+const categoryObjectSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  title: z.string().optional(),
+})
+
+const mediaObjectSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  url: z.string().nullable().optional(),
+})
 
 export const PostHero: React.FC<{
   post: Post
@@ -19,23 +30,26 @@ export const PostHero: React.FC<{
       <div className="container z-10 relative lg:grid lg:grid-cols-[1fr_48rem_1fr] text-white pb-8">
         <div className="col-start-1 col-span-1 md:col-start-2 md:col-span-2">
           <div className="uppercase text-sm mb-6">
-            {categories?.map((category, index) => {
-              if (typeof category === 'object' && category !== null) {
-                const { title: categoryTitle } = category
+            {(() => {
+              if (!categories) return null
+              const elements: React.ReactNode[] = []
+              for (let i = 0; i < categories.length; i++) {
+                const category = categories[i]
+                const parsed = categoryObjectSchema.safeParse(category)
+                if (!parsed.success) continue
 
-                const titleToUse = categoryTitle || 'Untitled category'
+                const titleToUse = parsed.data.title || 'Untitled category'
+                const isLast = i === categories.length - 1
 
-                const isLast = index === categories.length - 1
-
-                return (
-                  <React.Fragment key={index}>
+                elements.push(
+                  <React.Fragment key={i}>
                     {titleToUse}
                     {!isLast && <React.Fragment>, &nbsp;</React.Fragment>}
                   </React.Fragment>
                 )
               }
-              return null
-            })}
+              return elements
+            })()}
           </div>
 
           <div className="">
@@ -63,7 +77,7 @@ export const PostHero: React.FC<{
         </div>
       </div>
       <div className="min-h-[80vh] select-none">
-        {heroImage && typeof heroImage !== 'string' && (
+        {mediaObjectSchema.safeParse(heroImage).success && (
           <Media fill priority imgClassName="-z-10 object-cover" resource={heroImage} />
         )}
         <div className="absolute pointer-events-none left-0 bottom-0 w-full h-1/2 bg-gradient-to-t from-black to-transparent" />

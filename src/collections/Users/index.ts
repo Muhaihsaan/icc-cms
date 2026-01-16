@@ -3,12 +3,13 @@ import type { AccessArgs, CollectionConfig } from 'payload'
 import { tenantsArrayField } from '@payloadcms/plugin-multi-tenant/fields'
 import {
   isSuperAdmin,
-  isSuperAdminAccess,
   isSuperAdminFieldAccess,
+  isSuperAdminOrBootstrapFieldAccess,
   isSuperAdminOrEditor,
   isSuperAdminOrEditorFieldAccess,
   Roles,
   usersBootstrapCreateAccess,
+  usersDeleteAccess,
   usersReadAccess,
 } from '../../access/accessPermission'
 import { assignUsersToOneTenant } from './hooks/assignUsersToOneTenant'
@@ -48,30 +49,45 @@ const defaultTenantArrayField = tenantsArrayField({
 
 export const Users: CollectionConfig = {
   slug: 'users',
+  trash: true,
   access: {
     admin: isSuperAdminOrEditor,
     create: usersBootstrapCreateAccess,
-    delete: isSuperAdminAccess,
+    delete: usersDeleteAccess,
     update: usersReadAccess,
     read: usersReadAccess,
   },
   admin: {
-    defaultColumns: ['name', 'email'],
+    defaultColumns: ['name', 'email', 'roles'],
     useAsTitle: 'name',
   },
   auth: true,
   fields: [
     {
+      name: 'roleLevel',
+      type: 'ui',
       admin: {
         position: 'sidebar',
+        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
+        components: {
+          Field: '@/components/RoleLevelSelector',
+        },
+      },
+    },
+    {
+      admin: {
+        position: 'sidebar',
+        hidden: true, // Hidden because RoleLevelSelector handles the UI
       },
       name: 'roles',
       type: 'select',
-      options: [Roles.superAdmin],
+      options: [Roles.superAdmin, Roles.superEditor],
+      defaultValue: Roles.superAdmin, // First user becomes super-admin by default
       access: {
-        create: isSuperAdminFieldAccess,
+        create: isSuperAdminOrBootstrapFieldAccess,
         update: isSuperAdminFieldAccess,
-        read: isSuperAdminFieldAccess,
+        // Read allowed for all authenticated users so filtering works
+        read: ({ req }) => Boolean(req.user),
       },
     },
     {
@@ -95,15 +111,6 @@ export const Users: CollectionConfig = {
       defaultValue: 1,
     },
     {
-      name: 'deletedAt',
-      type: 'date',
-      admin: {
-        position: 'sidebar',
-        readOnly: true,
-        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
-      },
-    },
-    {
       ...defaultTenantArrayField,
       access: {
         update: isSuperAdminOrEditorFieldAccess,
@@ -113,9 +120,11 @@ export const Users: CollectionConfig = {
         beforeChange: [assignUsersToOneTenant],
       },
       maxRows: 1, // Ensure only one tenant assignment per user
-      validate: (value: unknown, { req }: { req: AccessArgs['req'] }) => {
+      validate: (value: unknown, { req, data }: { req: AccessArgs['req']; data: Partial<{ roles?: string | null }> }) => {
         if (!req.user) return true
         if (isSuperAdmin(req.user)) return true
+        // Top-level users (super-admin/super-editor) don't need tenant
+        if (data?.roles) return true
         if (!Array.isArray(value) || value.length < 1) {
           return 'Tenant is required for non super-admin users.'
         }
@@ -125,13 +134,37 @@ export const Users: CollectionConfig = {
       admin: {
         ...(defaultTenantArrayField?.admin || {}),
         position: 'sidebar',
-        // only super-admins can assign tenants manually
-        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
+        // Show tenants field when "Tenant Level" is selected (roles is empty)
+        condition: (data, _siblingData, { user }) => {
+          if (!isSuperAdmin(user)) return false
+          // Show when roles is empty (tenant level)
+          return !data?.roles
+        },
       },
     },
   ],
   timestamps: true,
   hooks: {
+    beforeChange: [
+      // Ensure first user is always super-admin
+      async ({ data, operation, req }) => {
+        if (operation !== 'create') return data
+        if (req.user) return data // Already has a logged-in user
+
+        const existingUsers = await req.payload.find({
+          collection: 'users',
+          depth: 0,
+          limit: 1,
+        })
+
+        // First user must be super-admin
+        if (existingUsers.totalDocs === 0) {
+          return { ...data, roles: Roles.superAdmin }
+        }
+
+        return data
+      },
+    ],
     beforeDelete: [
       // Ensure at least there is one super-admin account
       async ({ id, req }) => {

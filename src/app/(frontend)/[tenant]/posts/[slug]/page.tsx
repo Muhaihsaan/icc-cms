@@ -5,20 +5,40 @@ import { PayloadRedirects } from '@/components/PayloadRedirects'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { draftMode } from 'next/headers'
-import React from 'react'
+import React, { cache } from 'react'
 import { unstable_cache } from 'next/cache'
 import RichText from '@/components/RichText'
+import { z } from 'zod'
 
 import type { Post } from '@/payload-types'
+
+const postValidationSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  slug: z.string(),
+})
+
+const postSchema = z.custom<Post>((val) => postValidationSchema.safeParse(val).success)
+
+const relatedPostsSchema = z.array(z.unknown())
+
+const getValidRelatedPosts = (relatedPosts: unknown): Post[] => {
+  const arrayParsed = relatedPostsSchema.safeParse(relatedPosts)
+  if (!arrayParsed.success) return []
+
+  const validPosts: Post[] = []
+  for (const p of arrayParsed.data) {
+    const parsed = postSchema.safeParse(p)
+    if (!parsed.success) continue
+    validPosts.push(parsed.data)
+  }
+  return validPosts
+}
 
 import { PostHero } from '@/heros/PostHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import PageClient from '@/components/PageClient'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
-
-// treats this route as dynamic SSR to prevent accidental SSG behavior
-export const dynamic = 'force-dynamic'
 
 type Args = {
   params: Promise<{
@@ -27,11 +47,7 @@ type Args = {
   }>
 }
 
-/* ----------------------------- */
-/* Fetch helpers                 */
-/* ----------------------------- */
-
-async function queryPostBySlugUncached(args: {
+async function queryPostBySlugUncachedImpl(args: {
   tenantDomain: string
   slug: string
   draft: boolean
@@ -58,19 +74,19 @@ async function queryPostBySlugUncached(args: {
   return result.docs?.[0] ?? null
 }
 
-// cached only for published content
-const queryPostBySlugCached = (tenantDomain: string, slug: string) =>
+// Deduplicate draft queries within the same request using React cache
+const queryPostBySlugUncached = cache(queryPostBySlugUncachedImpl)
+
+// cached only for published content + deduplicated within request
+const queryPostBySlugCached = cache((tenantDomain: string, slug: string) =>
   unstable_cache(
-    () => queryPostBySlugUncached({ tenantDomain, slug, draft: false }),
+    () => queryPostBySlugUncachedImpl({ tenantDomain, slug, draft: false }),
     ['post-by-slug', tenantDomain, slug],
     {
       tags: ['posts-sitemap', `post:${tenantDomain}:${slug}`],
     },
   )()
-
-/* ----------------------------- */
-/* Page                          */
-/* ----------------------------- */
+)
 
 export default async function Post({ params }: Args) {
   const { isEnabled: draft } = await draftMode()
@@ -97,21 +113,16 @@ export default async function Post({ params }: Args) {
         <div className="container">
           <RichText className="max-w-[48rem] mx-auto" data={post.content} enableGutter={false} />
 
-          {Array.isArray(post.relatedPosts) && post.relatedPosts.length > 0 && (
-            <RelatedPosts
-              className="mt-12 max-w-[52rem]"
-              docs={post.relatedPosts.filter((p) => typeof p === 'object')}
-            />
-          )}
+          {(() => {
+            const validRelatedPosts = getValidRelatedPosts(post.relatedPosts)
+            if (validRelatedPosts.length === 0) return null
+            return <RelatedPosts className="mt-12 max-w-[52rem]" docs={validRelatedPosts} />
+          })()}
         </div>
       </div>
     </article>
   )
 }
-
-/* ----------------------------- */
-/* Metadata                      */
-/* ----------------------------- */
 
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { isEnabled: draft } = await draftMode()

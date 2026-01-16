@@ -3,10 +3,17 @@ import type { StaticImageData } from 'next/image'
 import { cn } from '@/utilities/ui'
 import React from 'react'
 import RichText from '@/components/RichText'
+import { z } from 'zod'
 
 import type { MediaBlock as MediaBlockProps } from '@/payload-types'
 
 import { Media } from '../../components/Media'
+
+const mediaObjectSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  url: z.string().nullable().optional(),
+  caption: z.any().optional(),
+})
 
 type Props = MediaBlockProps & {
   breakout?: boolean
@@ -30,7 +37,8 @@ export const MediaBlock: React.FC<Props> = (props) => {
   } = props
 
   let caption
-  if (media && typeof media === 'object') caption = media.caption
+  const mediaParsed = mediaObjectSchema.safeParse(media)
+  if (mediaParsed.success) caption = mediaParsed.data.caption
 
   return (
     <div

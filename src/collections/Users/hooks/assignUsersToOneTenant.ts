@@ -1,6 +1,9 @@
 import type { AccessArgs } from 'payload'
+import { z } from 'zod'
 import { Roles } from '@/access/accessPermission'
 import { normalizeTenantId } from '@/access/helpers'
+
+const rolesArraySchema = z.array(z.string())
 
 type AssignUsersToOneTenantArgs = {
   req: AccessArgs['req'] & { tenant?: { id?: string } }
@@ -10,7 +13,9 @@ type AssignUsersToOneTenantArgs = {
 export const assignUsersToOneTenant = ({ req, value }: AssignUsersToOneTenantArgs) => {
   const { user, tenant } = req
   if (!user) return value
-  if (user.roles?.includes(Roles.superAdmin)) return value
+
+  const rolesParsed = rolesArraySchema.safeParse(user.roles)
+  if (rolesParsed.success && rolesParsed.data.includes(Roles.superAdmin)) return value
 
   let currentTenant = normalizeTenantId(tenant)
 

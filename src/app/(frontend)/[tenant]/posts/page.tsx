@@ -10,9 +10,6 @@ import PageClient from '@/components/PageClient'
 import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
 import { notFound } from 'next/navigation'
 
-// treats this route as dynamic SSR to prevent accidental SSG behavior
-export const dynamic = 'force-dynamic'
-
 type Args = {
   params: Promise<{
     tenant: string

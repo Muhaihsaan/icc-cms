@@ -1,6 +1,7 @@
 'use client'
 import { useHeaderTheme } from '@/providers/HeaderTheme'
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
+import { z } from 'zod'
 
 import type { Page } from '@/payload-types'
 
@@ -8,12 +9,22 @@ import { CMSLink } from '@/components/Link'
 import { Media } from '@/components/Media'
 import RichText from '@/components/RichText'
 
+const mediaObjectSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  url: z.string().nullable().optional(),
+})
+
 export const HighImpactHero: React.FC<Page['hero']> = ({ links, media, richText }) => {
   const { setHeaderTheme } = useHeaderTheme()
 
   useEffect(() => {
     setHeaderTheme('dark')
-  })
+  }, [setHeaderTheme])
+
+  const isValidMedia = useMemo(
+    () => mediaObjectSchema.safeParse(media).success,
+    [media]
+  )
 
   return (
     <div
@@ -25,9 +36,9 @@ export const HighImpactHero: React.FC<Page['hero']> = ({ links, media, richText 
           {richText && <RichText className="mb-6" data={richText} enableGutter={false} />}
           {Array.isArray(links) && links.length > 0 && (
             <ul className="flex md:justify-center gap-4">
-              {links.map(({ link }, i) => {
+              {links.map(({ link, id }) => {
                 return (
-                  <li key={i}>
+                  <li key={id}>
                     <CMSLink {...link} />
                   </li>
                 )
@@ -37,7 +48,7 @@ export const HighImpactHero: React.FC<Page['hero']> = ({ links, media, richText 
         </div>
       </div>
       <div className="min-h-[80vh] select-none">
-        {media && typeof media === 'object' && (
+        {isValidMedia && (
           <Media fill imgClassName="-z-10 object-cover" priority resource={media} />
         )}
       </div>
