@@ -10,6 +10,7 @@ import PageClient from '@/components/PageClient'
 import type { CardPostData } from '@/components/Card'
 import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
 import { notFound } from 'next/navigation'
+import { Collections } from '@/config/collections'
 
 const cardPostValidationSchema = z.object({
   slug: z.string().nullable().optional(),
@@ -45,17 +46,17 @@ export default async function Page({
   const tenantFilter = { 'doc.value.tenant': { equals: tenantDoc.id } }
 
   const posts = await payload.find({
-    collection: 'search',
+    collection: Collections.SEARCH,
     depth: 0,
     limit: 12,
     req: payloadReq,
+    sort: '-priority',
     select: {
       title: true,
       slug: true,
       categories: true,
       meta: true,
     },
-    pagination: false,
     where: query
       ? {
           and: [

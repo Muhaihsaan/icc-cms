@@ -3,6 +3,7 @@ import type { CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'paylo
 import { revalidatePath, revalidateTag } from 'next/cache'
 
 import type { Post } from '@/payload-types'
+import { DocStatus } from '@/config/doc-status'
 
 export const revalidatePost: CollectionAfterChangeHook<Post> = ({
   doc,
@@ -11,7 +12,7 @@ export const revalidatePost: CollectionAfterChangeHook<Post> = ({
 }) => {
   if (context?.disableRevalidate) return doc
 
-  if (doc._status === 'published') {
+  if (doc._status === DocStatus.PUBLISHED) {
     const path = `/posts/${doc.slug}`
 
     payload.logger.info(`Revalidating post: ${path}`)
@@ -21,7 +22,7 @@ export const revalidatePost: CollectionAfterChangeHook<Post> = ({
   }
 
   // If the post was previously published, we need to revalidate the old path
-  if (previousDoc._status === 'published' && doc._status !== 'published') {
+  if (previousDoc._status === DocStatus.PUBLISHED && doc._status !== DocStatus.PUBLISHED) {
     const oldPath = `/posts/${previousDoc.slug}`
 
     payload.logger.info(`Revalidating old post: ${oldPath}`)

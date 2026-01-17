@@ -1,4 +1,3 @@
-import type { CollectionSlug } from 'payload'
 import { createLocalReq, getPayload } from 'payload'
 import { z } from 'zod'
 
@@ -7,8 +6,9 @@ import { redirect } from 'next/navigation'
 import { NextRequest } from 'next/server'
 
 import configPromise from '@payload-config'
+import { Collections } from '@/config/collections'
 
-const collectionSlugSchema = z.enum(['pages', 'posts', 'media', 'categories', 'users'])
+const collectionSlugSchema = z.enum([Collections.PAGES, Collections.POSTS, Collections.MEDIA, Collections.CATEGORIES, Collections.USERS])
 
 export async function GET(req: NextRequest): Promise<Response> {
   const payload = await getPayload({ config: configPromise })
@@ -18,11 +18,6 @@ export async function GET(req: NextRequest): Promise<Response> {
   const path = searchParams.get('path')
   const collectionParam = searchParams.get('collection')
   const slug = searchParams.get('slug')
-  const previewSecret = searchParams.get('previewSecret')
-
-  if (previewSecret !== process.env.PREVIEW_SECRET) {
-    return new Response('You are not allowed to preview this page', { status: 403 })
-  }
 
   if (!path || !collectionParam || !slug) {
     return new Response('Insufficient search params', { status: 404 })
@@ -32,8 +27,6 @@ export async function GET(req: NextRequest): Promise<Response> {
   if (!collectionParsed.success) {
     return new Response('Invalid collection', { status: 400 })
   }
-  // Validated but unused - ensures only valid collections can be previewed
-  const _collection: CollectionSlug = collectionParsed.data
 
   if (!path.startsWith('/')) {
     return new Response('This endpoint can only be used for relative previews', { status: 500 })

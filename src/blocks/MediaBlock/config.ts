@@ -1,4 +1,5 @@
 import type { Block } from 'payload'
+import { Collections } from '@/config/collections'
 
 export const MediaBlock: Block = {
   slug: 'mediaBlock',
@@ -7,7 +8,7 @@ export const MediaBlock: Block = {
     {
       name: 'media',
       type: 'upload',
-      relationTo: 'media',
+      relationTo: Collections.MEDIA,
     },
   ],
 }

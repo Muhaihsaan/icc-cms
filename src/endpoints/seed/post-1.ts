@@ -1,5 +1,6 @@
 import type { Media, User } from '@/payload-types'
 import { RequiredDataFromCollectionSlug } from 'payload'
+import { DocStatus } from '@/config/doc-status'
 
 export type PostArgs = {
   heroImage: Media
@@ -14,7 +15,7 @@ export const post1: (args: PostArgs) => RequiredDataFromCollectionSlug<'posts'> 
 }) => {
   return {
     slug: 'digital-horizons',
-    _status: 'published',
+    _status: DocStatus.PUBLISHED,
     authors: [author],
     content: {
       root: {

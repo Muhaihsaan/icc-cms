@@ -1,5 +1,6 @@
 import type { Form } from '@/payload-types'
 import { RequiredDataFromCollectionSlug } from 'payload'
+import { DocStatus } from '@/config/doc-status'
 
 type ContactArgs = {
   contactForm: Form
@@ -10,7 +11,7 @@ export const contact: (args: ContactArgs) => RequiredDataFromCollectionSlug<'pag
 }) => {
   return {
     slug: 'contact',
-    _status: 'published',
+    _status: DocStatus.PUBLISHED,
     hero: {
       type: 'none',
     },

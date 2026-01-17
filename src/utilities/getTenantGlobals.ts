@@ -32,6 +32,9 @@ export const getTenantCachedGlobal = (collection: Global, depth = 0, tenant: Ten
     async () => getGlobal(collection, depth, tenant),
     [collection, `${tenant?.id ?? ''}`],
     {
-      tags: [`global_${collection}`],
+      tags: [
+        `global_${collection}`,
+        `global_${collection}:${tenant?.id ?? 'no-tenant'}`,
+      ],
     },
   )

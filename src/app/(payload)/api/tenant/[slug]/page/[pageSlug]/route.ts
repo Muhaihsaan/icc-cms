@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server'
+import { getPayload } from 'payload'
+import configPromise from '@payload-config'
 import { getTenantContext } from '@/app/(payload)/api/tenant/_lib/tenantContext'
+import { Collections } from '@/config/collections'
+import { DocStatus } from '@/config/doc-status'
 
 type RouteParams = {
   slug: string
@@ -17,7 +21,7 @@ export async function GET(_request: Request, { params }: { params: Promise<Route
 
     const { payload, tenant, req } = context
     const result = await payload.find({
-      collection: 'pages',
+      collection: Collections.PAGES,
       limit: 1,
       pagination: false,
       overrideAccess: false,
@@ -26,7 +30,7 @@ export async function GET(_request: Request, { params }: { params: Promise<Route
         and: [
           { tenant: { equals: tenant.id } },
           { slug: { equals: pageSlug || 'home' } },
-          { _status: { equals: 'published' } },
+          { _status: { equals: DocStatus.PUBLISHED } },
           { deletedAt: { exists: false } },
         ],
       },
@@ -44,7 +48,13 @@ export async function GET(_request: Request, { params }: { params: Promise<Route
       },
     })
   } catch (error) {
-    console.error('Error fetching page:', error)
+    // Use Payload logger for structured logging
+    try {
+      const payload = await getPayload({ config: configPromise })
+      payload.logger.error({ err: error, route: 'GET /api/tenant/[slug]/page/[pageSlug]' }, 'Error fetching page')
+    } catch {
+      console.error('Error fetching page:', error)
+    }
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
   }
 }

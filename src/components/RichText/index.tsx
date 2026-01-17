@@ -11,6 +11,7 @@ import {
   RichText as ConvertRichText,
 } from '@payloadcms/richtext-lexical/react'
 import { z } from 'zod'
+import { Collections } from '@/config/collections'
 
 import { CodeBlock, CodeBlockProps } from '@/blocks/Code/Component'
 
@@ -38,7 +39,7 @@ const internalDocToHref = ({ linkNode }: { linkNode: SerializedLinkNode }) => {
 
   const { value, relationTo } = parsed.data
   const slug = value.slug
-  return relationTo === 'posts' ? `/posts/${slug}` : `/${slug}`
+  return relationTo === Collections.POSTS ? `/posts/${slug}` : `/${slug}`
 }
 
 const jsxConverters: JSXConvertersFunction<NodeTypes> = ({ defaultConverters }) => ({

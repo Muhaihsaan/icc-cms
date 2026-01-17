@@ -4,7 +4,7 @@ import { CheckboxField, useField } from '@payloadcms/ui'
 import type { CheckboxFieldClientProps } from 'payload'
 import { z } from 'zod'
 
-import { Roles } from '@/access/accessPermission'
+import { Roles } from '@/access'
 
 const rolesArraySchema = z.array(z.string())
 const rolesStringSchema = z.string()

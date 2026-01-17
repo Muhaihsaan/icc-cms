@@ -1,9 +1,10 @@
 import type { RequiredDataFromCollectionSlug } from 'payload'
+import { DocStatus } from '@/config/doc-status'
 
 // Used for pre-seeded content so that the homepage is not empty
 export const homeStatic: RequiredDataFromCollectionSlug<'pages'> = {
   slug: 'home',
-  _status: 'published',
+  _status: DocStatus.PUBLISHED,
   hero: {
     type: 'lowImpact',
     richText: {

@@ -1,6 +1,7 @@
 import { createLocalReq, getPayload, type Payload, type PayloadRequest, type Where } from 'payload'
 import { unstable_cache } from 'next/cache'
 import configPromise from '@payload-config'
+import { Collections } from '@/config/collections'
 
 import type { Tenant } from '@/payload-types'
 
@@ -28,17 +29,21 @@ const cleanDomain = (domain: string): string => domain.split(':')[0]
 /**
  * Internal helper to fetch tenant by any field
  */
-const fetchTenantByField = async (
+export const fetchTenantByField = async (
   payload: Payload,
   where: Where,
+  options?: { depth?: number; overrideAccess?: boolean },
 ): Promise<Tenant | null> => {
   const { docs } = await payload.find({
-    collection: 'tenants',
+    collection: Collections.TENANTS,
     where,
-    depth: 1,
+    depth: options?.depth ?? 1,
     limit: 1,
+    overrideAccess: options?.overrideAccess,
   })
-  return docs[0] || null
+  const first = docs[0]
+  if (!first) return null
+  return first
 }
 
 /**

@@ -1,5 +1,7 @@
 import type { Field, GroupField } from 'payload'
-import { normalizeTenantId } from '@/access/helpers'
+
+import { getUserFirstTenantId } from '@/access/helpers'
+import { Collections } from '@/config/collections'
 
 export type LinkAppearances = 'default' | 'outline'
 
@@ -75,18 +77,13 @@ export const link: LinkType = ({ appearances, disableLabel = false, overrides = 
       },
       filterOptions: ({ user }) => {
         // Scope to current tenant to prevent cross-tenant linking
-        if (!user) return true
-        if (!user.tenants) return true
-        const firstTenant = user.tenants[0]
-        if (!firstTenant) return true
-
-        const tenantId = normalizeTenantId(firstTenant.tenant)
+        const tenantId = getUserFirstTenantId(user)
         if (!tenantId) return true
 
         return { tenant: { equals: tenantId } }
       },
       label: 'Document to link to',
-      relationTo: ['pages', 'posts'],
+      relationTo: [Collections.PAGES, Collections.POSTS],
       required: true,
     },
     {

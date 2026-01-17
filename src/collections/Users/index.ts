@@ -1,51 +1,49 @@
-import type { AccessArgs, CollectionConfig } from 'payload'
+import type { AccessArgs, ArrayField, CollectionConfig, Where } from 'payload'
+import { z } from 'zod'
 
-import { tenantsArrayField } from '@payloadcms/plugin-multi-tenant/fields'
 import {
+  getEffectiveTenant,
   isSuperAdmin,
   isSuperAdminFieldAccess,
   isSuperAdminOrBootstrapFieldAccess,
   isSuperAdminOrEditor,
   isSuperAdminOrEditorFieldAccess,
+  isTopLevelUser,
   Roles,
   usersBootstrapCreateAccess,
   usersDeleteAccess,
   usersReadAccess,
-} from '../../access/accessPermission'
+  usersUpdateAccess,
+} from '@/access'
+import { Collections } from '@/config/collections'
 import { assignUsersToOneTenant } from './hooks/assignUsersToOneTenant'
 import { setCookieBasedOnDomain } from './hooks/setCookieBasedOnDomain'
 
-const isGuestWriterAssignment = (data?: {
-  tenants?: { roles?: string[] | null }[] | null
-}): boolean => {
-  if (!data?.tenants) return false
-  for (const tenantEntry of data.tenants) {
-    if (!Array.isArray(tenantEntry?.roles)) continue
-    if (tenantEntry.roles.includes(Roles.guestWriter)) return true
-  }
-  return false
-}
-
-const defaultTenantArrayField = tenantsArrayField({
-  tenantsArrayFieldName: 'tenants',
-  tenantsArrayTenantFieldName: 'tenant',
-  tenantsCollectionSlug: 'tenants',
-  arrayFieldAccess: {},
-  tenantFieldAccess: {},
-  rowFields: [
+// Define tenants field manually to control validation during bootstrap
+const tenantsField: ArrayField = {
+  name: 'tenants',
+  type: 'array',
+  label: 'Assigned Tenants',
+  fields: [
+    {
+      name: 'tenant',
+      type: 'relationship',
+      relationTo: Collections.TENANTS,
+      required: false,
+    },
     {
       name: 'roles',
       type: 'select',
       defaultValue: [Roles.tenantViewer],
       hasMany: true,
-      required: true,
+      required: false,
       options: [Roles.tenantAdmin, Roles.tenantViewer, Roles.guestWriter],
       access: {
         update: isSuperAdminFieldAccess,
       },
     },
   ],
-})
+}
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -54,35 +52,52 @@ export const Users: CollectionConfig = {
     admin: isSuperAdminOrEditor,
     create: usersBootstrapCreateAccess,
     delete: usersDeleteAccess,
-    update: usersReadAccess,
+    update: usersUpdateAccess,
     read: usersReadAccess,
   },
   admin: {
     defaultColumns: ['name', 'email', 'roles'],
     useAsTitle: 'name',
+    baseListFilter: ({ req }): Where => {
+      const tenantId = getEffectiveTenant(req)
+
+      // Tenant scope: show only users belonging to this tenant
+      if (tenantId) {
+        return {
+          'tenants.tenant': { equals: tenantId },
+        }
+      }
+
+      // Top-level scope: show only super-admin and super-editor users
+      return {
+        roles: { in: [Roles.superAdmin, Roles.superEditor] },
+      }
+    },
   },
   auth: true,
   fields: [
     {
-      name: 'roleLevel',
+      name: 'roleSelector',
       type: 'ui',
       admin: {
         position: 'sidebar',
-        condition: (_data, _siblingData, { user }) => isSuperAdmin(user),
+        condition: (_data, _siblingData, { user }) => isTopLevelUser(user),
         components: {
-          Field: '@/components/RoleLevelSelector',
+          Field: '@/components/UserRoleField',
         },
       },
     },
     {
       admin: {
         position: 'sidebar',
-        hidden: true, // Hidden because RoleLevelSelector handles the UI
+        hidden: true, // Hidden - managed by UserRoleField component
       },
       name: 'roles',
       type: 'select',
+      index: true,
       options: [Roles.superAdmin, Roles.superEditor],
-      defaultValue: Roles.superAdmin, // First user becomes super-admin by default
+      // No defaultValue - first user logic handled in beforeChange hook
+      // Tenant users should have roles: null
       access: {
         create: isSuperAdminOrBootstrapFieldAccess,
         update: isSuperAdminFieldAccess,
@@ -104,14 +119,13 @@ export const Users: CollectionConfig = {
       },
       admin: {
         position: 'sidebar',
-        condition: (data, siblingData, { user }) =>
-          isSuperAdmin(user) && (isGuestWriterAssignment(data) || isGuestWriterAssignment(siblingData)),
+        hidden: true,
         description: 'Maximum number of published posts a guest-writer can create.',
       },
       defaultValue: 1,
     },
     {
-      ...defaultTenantArrayField,
+      ...tenantsField,
       access: {
         update: isSuperAdminOrEditorFieldAccess,
         create: isSuperAdminOrEditorFieldAccess,
@@ -120,26 +134,32 @@ export const Users: CollectionConfig = {
         beforeChange: [assignUsersToOneTenant],
       },
       maxRows: 1, // Ensure only one tenant assignment per user
-      validate: (value: unknown, { req, data }: { req: AccessArgs['req']; data: Partial<{ roles?: string | null }> }) => {
-        if (!req.user) return true
+      validate: async (value: unknown, { req, data }: { req: AccessArgs['req']; data: Partial<{ roles?: string | null }> }) => {
+        // Bootstrap: no logged-in user means first user creation - will become super-admin
+        if (!req.user) {
+          const existingUsers = await req.payload.find({
+            collection: Collections.USERS,
+            depth: 0,
+            limit: 1,
+          })
+          // First user will be super-admin, no tenant needed
+          if (existingUsers.totalDocs === 0) return true
+        }
         if (isSuperAdmin(req.user)) return true
         // Top-level users (super-admin/super-editor) don't need tenant
         if (data?.roles) return true
-        if (!Array.isArray(value) || value.length < 1) {
+        const arraySchema = z.array(z.unknown())
+        const parsed = arraySchema.safeParse(value)
+        if (!parsed.success || parsed.data.length < 1) {
           return 'Tenant is required for non super-admin users.'
         }
-        if (value.length > 1) return 'Only one tenant allowed'
+        if (parsed.data.length > 1) return 'Only one tenant allowed'
         return true
       },
       admin: {
-        ...(defaultTenantArrayField?.admin || {}),
         position: 'sidebar',
-        // Show tenants field when "Tenant Level" is selected (roles is empty)
-        condition: (data, _siblingData, { user }) => {
-          if (!isSuperAdmin(user)) return false
-          // Show when roles is empty (tenant level)
-          return !data?.roles
-        },
+        // Hidden - managed by UserRoleField which syncs from plugin's tenant field
+        hidden: true,
       },
     },
   ],
@@ -152,7 +172,7 @@ export const Users: CollectionConfig = {
         if (req.user) return data // Already has a logged-in user
 
         const existingUsers = await req.payload.find({
-          collection: 'users',
+          collection: Collections.USERS,
           depth: 0,
           limit: 1,
         })
@@ -169,7 +189,7 @@ export const Users: CollectionConfig = {
       // Ensure at least there is one super-admin account
       async ({ id, req }) => {
         const userToDelete = await req.payload.findByID({
-          collection: 'users',
+          collection: Collections.USERS,
           id,
           depth: 0,
         })
@@ -177,7 +197,7 @@ export const Users: CollectionConfig = {
         if (!isSuperAdmin(userToDelete)) return
 
         const superAdmins = await req.payload.find({
-          collection: 'users',
+          collection: Collections.USERS,
           where: {
             roles: { equals: Roles.superAdmin },
           },

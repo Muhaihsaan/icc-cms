@@ -1,6 +1,6 @@
 import type { AccessArgs } from 'payload'
 import { z } from 'zod'
-import { Roles } from '@/access/accessPermission'
+import { Roles } from '@/access'
 import { normalizeTenantId } from '@/access/helpers'
 
 const rolesArraySchema = z.array(z.string())

@@ -5,7 +5,8 @@ import {
   tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
-} from '@/access/accessPermission'
+} from '@/access'
+import { Collections } from '@/config/collections'
 import { link } from '@/fields/link'
 import { revalidateFooter } from './hooks/revalidateFooter'
 
@@ -13,11 +14,11 @@ export const Footer: CollectionConfig = {
   slug: 'footer',
   trash: true,
   access: {
-    admin: tenantCollectionAdminAccess('footer'),
-    create: withTenantCollectionAccess('footer', tenantAdminUpdateAccess),
+    admin: tenantCollectionAdminAccess(Collections.FOOTER),
+    create: withTenantCollectionAccess(Collections.FOOTER, tenantAdminUpdateAccess),
     delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
-    read: withTenantCollectionAccess('footer', tenantPublicReadAccess('footer')),
-    update: withTenantCollectionAccess('footer', tenantAdminUpdateAccess),
+    read: withTenantCollectionAccess(Collections.FOOTER, tenantPublicReadAccess(Collections.FOOTER)),
+    update: withTenantCollectionAccess(Collections.FOOTER, tenantAdminUpdateAccess),
   },
   fields: [
     {

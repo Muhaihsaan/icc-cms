@@ -5,6 +5,7 @@ import { getPayload } from 'payload'
 import React from 'react'
 import RichText from '@/components/RichText'
 import { z } from 'zod'
+import { Collections } from '@/config/collections'
 
 import { CollectionArchive } from '@/components/CollectionArchive'
 
@@ -45,7 +46,7 @@ export const ArchiveBlock: React.FC<
     }
 
     const fetchedPosts = await payload.find({
-      collection: 'posts',
+      collection: Collections.POSTS,
       depth: 0,
       limit,
       ...(flattenedCategories && flattenedCategories.length > 0

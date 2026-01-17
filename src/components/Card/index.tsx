@@ -47,7 +47,10 @@ export const Card: React.FC<{
     [metaImage]
   )
   const titleToUse = titleFromProps || title
-  const sanitizedDescription = description?.replace(/\s/g, ' ') // replace non-breaking space with white space
+  const sanitizedDescription = useMemo(
+    () => description?.replace(/\s/g, ' '),
+    [description],
+  ) // replace non-breaking space with white space
   const href = `/${relationTo}/${slug}`
 
   return (

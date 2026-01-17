@@ -39,6 +39,7 @@ import { generateMeta } from '@/utilities/generateMeta'
 import PageClient from '@/components/PageClient'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
+import { Collections } from '@/config/collections'
 
 type Args = {
   params: Promise<{
@@ -60,7 +61,7 @@ async function queryPostBySlugUncachedImpl(args: {
   const payloadReq = await createTenantRequest(payload, tenant)
 
   const result = await payload.find({
-    collection: 'posts',
+    collection: Collections.POSTS,
     draft: args.draft,
     limit: 1,
     pagination: false,

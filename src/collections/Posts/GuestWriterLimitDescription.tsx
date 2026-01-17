@@ -3,8 +3,9 @@
 import React from 'react'
 import type { User } from '@/payload-types'
 import { useAuth, usePayloadAPI } from '@payloadcms/ui'
-import { Roles } from '@/access/accessPermission'
+import { Roles } from '@/access'
 import { z } from 'zod'
+import { DocStatus } from '@/config/doc-status'
 
 const postsListResponseSchema = z.object({
   totalDocs: z.number(),
@@ -26,7 +27,7 @@ const encodeQuery = (pairs: QueryKV): string => {
   for (const [key, value] of pairs) {
     params.set(key, `${value}`)
   }
-  return params.toString()
+  return `${params}`
 }
 
 // Build a query string for the Posts API to count published posts by a user.
@@ -35,7 +36,7 @@ const buildQuery = (userId: UserId): string =>
     ['depth', 0],
     ['limit', 1],
     ['where[and][0][authors][contains]', userId],
-    ['where[and][1][or][0][_status][equals]', 'published'],
+    ['where[and][1][or][0][_status][equals]', DocStatus.PUBLISHED],
     ['where[and][1][or][1][publishedAt][exists]', true],
   ])
 

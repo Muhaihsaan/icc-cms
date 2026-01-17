@@ -1,5 +1,6 @@
 import { BeforeSync, DocToSync } from '@payloadcms/plugin-search/types'
 import { z } from 'zod'
+import { Collections } from '@/config/collections'
 
 const categorySchema = z.object({
   id: z.union([z.string(), z.number()]),
@@ -50,7 +51,7 @@ export const beforeSyncWithSearch: BeforeSync = async ({ req, originalDoc, searc
     // Batch fetch all unpopulated categories in a single query
     if (idsToFetch.length > 0) {
       const fetchedDocs = await req.payload.find({
-        collection: 'categories',
+        collection: Collections.CATEGORIES,
         where: { id: { in: idsToFetch } },
         depth: 0,
         limit: idsToFetch.length,
@@ -76,7 +77,7 @@ export const beforeSyncWithSearch: BeforeSync = async ({ req, originalDoc, searc
     }
 
     modifiedDoc.categories = populatedCategories.map((each) => ({
-      relationTo: 'categories',
+      relationTo: Collections.CATEGORIES,
       categoryID: String(each.id),
       title: each.title,
     }))

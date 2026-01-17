@@ -1,13 +1,6 @@
-import type { CollectionAfterChangeHook } from 'payload'
+import { createTagRevalidationHook } from '@/hooks/revalidation-service'
 
-import { revalidateTag } from 'next/cache'
-
-export const revalidateFooter: CollectionAfterChangeHook = ({ doc, req: { payload, context } }) => {
-  if (context?.disableRevalidate) return doc
-
-  payload.logger.info(`Revalidating footer`)
-
-  revalidateTag('global_footer')
-
-  return doc
-}
+export const revalidateFooter = createTagRevalidationHook({
+  tag: 'global_footer',
+  logMessage: 'Revalidating footer',
+})

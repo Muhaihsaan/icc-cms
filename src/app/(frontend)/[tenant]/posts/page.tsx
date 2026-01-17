@@ -6,9 +6,11 @@ import { Pagination } from '@/components/Pagination'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import React from 'react'
+import { unstable_cache } from 'next/cache'
 import PageClient from '@/components/PageClient'
-import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
+import { fetchTenantByDomain } from '@/utilities/createTenantRequest'
 import { notFound } from 'next/navigation'
+import { Collections } from '@/config/collections'
 
 type Args = {
   params: Promise<{
@@ -16,20 +18,16 @@ type Args = {
   }>
 }
 
-export default async function Page({ params: paramsPromise }: Args) {
-  const { tenant } = await paramsPromise
+async function fetchPostsUncached(tenantId: string | number) {
   const payload = await getPayload({ config: configPromise })
 
-  const tenantDoc = await fetchTenantByDomain(tenant)
-  if (!tenantDoc) notFound()
-  const payloadReq = await createTenantRequest(payload, tenantDoc)
-
-  const posts = await payload.find({
-    collection: 'posts',
+  return payload.find({
+    collection: Collections.POSTS,
     depth: 0,
     limit: 12,
     overrideAccess: false,
-    req: payloadReq,
+    sort: '-publishedAt',
+    where: { tenant: { equals: tenantId } },
     select: {
       title: true,
       slug: true,
@@ -37,6 +35,24 @@ export default async function Page({ params: paramsPromise }: Args) {
       meta: true,
     },
   })
+}
+
+const fetchPostsCached = (tenantDomain: string, tenantId: string | number) =>
+  unstable_cache(
+    () => fetchPostsUncached(tenantId),
+    ['posts-list', tenantDomain],
+    {
+      tags: [`posts-list:${tenantDomain}`],
+    },
+  )()
+
+export default async function Page({ params: paramsPromise }: Args) {
+  const { tenant } = await paramsPromise
+
+  const tenantDoc = await fetchTenantByDomain(tenant)
+  if (!tenantDoc) notFound()
+
+  const posts = await fetchPostsCached(tenant, tenantDoc.id)
 
   return (
     <div className="pt-24 pb-24">
@@ -49,7 +65,7 @@ export default async function Page({ params: paramsPromise }: Args) {
 
       <div className="container mb-8">
         <PageRange
-          collection="posts"
+          collection={Collections.POSTS}
           currentPage={posts.page}
           limit={12}
           totalDocs={posts.totalDocs}

@@ -1,4 +1,5 @@
 import { Field } from 'payload'
+import { Collections } from '@/config/collections'
 
 export const searchFields: Field[] = [
   {
@@ -13,7 +14,6 @@ export const searchFields: Field[] = [
     name: 'meta',
     label: 'Meta',
     type: 'group',
-    index: true,
     admin: {
       readOnly: true,
     },
@@ -22,17 +22,19 @@ export const searchFields: Field[] = [
         type: 'text',
         name: 'title',
         label: 'Title',
+        index: true,
       },
       {
         type: 'text',
         name: 'description',
         label: 'Description',
+        index: true,
       },
       {
         name: 'image',
         label: 'Image',
         type: 'upload',
-        relationTo: 'media',
+        relationTo: Collections.MEDIA,
       },
     ],
   },

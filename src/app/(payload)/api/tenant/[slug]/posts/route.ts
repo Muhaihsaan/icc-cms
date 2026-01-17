@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { getPayload } from 'payload'
+import configPromise from '@payload-config'
 import { getTenantContext } from '@/app/(payload)/api/tenant/_lib/tenantContext'
+import { Collections } from '@/config/collections'
+import { DocStatus } from '@/config/doc-status'
 
 const paginationSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -31,7 +35,7 @@ export async function GET(request: Request, { params }: { params: Promise<RouteP
 
     const { payload, tenant, req } = context
     const result = await payload.find({
-      collection: 'posts',
+      collection: Collections.POSTS,
       page,
       limit,
       overrideAccess: false,
@@ -39,7 +43,7 @@ export async function GET(request: Request, { params }: { params: Promise<RouteP
       where: {
         and: [
           { tenant: { equals: tenant.id } },
-          { _status: { equals: 'published' } },
+          { _status: { equals: DocStatus.PUBLISHED } },
           { deletedAt: { exists: false } },
         ],
       },
@@ -60,7 +64,13 @@ export async function GET(request: Request, { params }: { params: Promise<RouteP
       },
     })
   } catch (error) {
-    console.error('Error fetching posts:', error)
+    // Use Payload logger for structured logging
+    try {
+      const payload = await getPayload({ config: configPromise })
+      payload.logger.error({ err: error, route: 'GET /api/tenant/[slug]/posts' }, 'Error fetching posts')
+    } catch {
+      console.error('Error fetching posts:', error)
+    }
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
   }
 }

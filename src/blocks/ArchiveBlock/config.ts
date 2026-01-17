@@ -6,6 +6,7 @@ import {
   InlineToolbarFeature,
   lexicalEditor,
 } from '@payloadcms/richtext-lexical'
+import { Collections } from '@/config/collections'
 
 export const Archive: Block = {
   slug: 'archive',
@@ -47,12 +48,12 @@ export const Archive: Block = {
       admin: {
         condition: (_, siblingData) => siblingData.populateBy === 'collection',
       },
-      defaultValue: 'posts',
+      defaultValue: Collections.POSTS,
       label: 'Collections To Show',
       options: [
         {
           label: 'Posts',
-          value: 'posts',
+          value: Collections.POSTS,
         },
       ],
     },
@@ -64,7 +65,7 @@ export const Archive: Block = {
       },
       hasMany: true,
       label: 'Categories To Show',
-      relationTo: 'categories',
+      relationTo: Collections.CATEGORIES,
     },
     {
       name: 'limit',
@@ -84,7 +85,7 @@ export const Archive: Block = {
       },
       hasMany: true,
       label: 'Selection',
-      relationTo: ['posts'],
+      relationTo: [Collections.POSTS],
     },
   ],
   labels: {

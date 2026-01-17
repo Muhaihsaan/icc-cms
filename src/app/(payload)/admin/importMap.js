@@ -19,7 +19,7 @@ import { SlugComponent as SlugComponent_92cc057d0a2abb4f6cf0307edf59f986 } from 
 import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BlocksFeatureClient as BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { GuestWriterLimitDescription as GuestWriterLimitDescription_56cd87f665152d8637b5cdbb6e081e3f } from '@/collections/Posts/GuestWriterLimitDescription'
-import { default as default_1802ce90c1e781cf814dc5d782cdeb4f } from '@/components/RoleLevelSelector'
+import { default as default_4a384121f2abb832ea9c55da9e25a4db } from '@/components/UserRoleField'
 import { AllowPublicReadField as AllowPublicReadField_a7e72a28c40e86a60dd40029508e1330 } from '@/components/AllowPublicReadField'
 import { WatchTenantCollection as WatchTenantCollection_1d0591e3cf4f332c83a86da13a0de59a } from '@payloadcms/plugin-multi-tenant/client'
 import { TenantsListRedirect as TenantsListRedirect_e492b13f42d5d2362a883498aba56fe3 } from '@/components/TenantsListRedirect'
@@ -29,6 +29,7 @@ import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from 
 import { TenantSelector as TenantSelector_9d7720c4b50db35595dfefa592fabd33 } from '@/components/TenantSelector'
 import { TenantSelector as TenantSelector_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
 import { HideTrashProvider as HideTrashProvider_d35e7dcff6de773700154b87506fb6cf } from '@/components/HideTrashProvider'
+import { TopLevelModeProvider as TopLevelModeProvider_c43a16aa3e0d065b7dfcbcc2eabe2937 } from '@/components/TenantSelector/TopLevelModeContext'
 import { TenantSelectionProvider as TenantSelectionProvider_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
 
 export const importMap = {
@@ -53,7 +54,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#HorizontalRuleFeatureClient": HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BlocksFeatureClient": BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/collections/Posts/GuestWriterLimitDescription#GuestWriterLimitDescription": GuestWriterLimitDescription_56cd87f665152d8637b5cdbb6e081e3f,
-  "@/components/RoleLevelSelector#default": default_1802ce90c1e781cf814dc5d782cdeb4f,
+  "@/components/UserRoleField#default": default_4a384121f2abb832ea9c55da9e25a4db,
   "@/components/AllowPublicReadField#AllowPublicReadField": AllowPublicReadField_a7e72a28c40e86a60dd40029508e1330,
   "@payloadcms/plugin-multi-tenant/client#WatchTenantCollection": WatchTenantCollection_1d0591e3cf4f332c83a86da13a0de59a,
   "@/components/TenantsListRedirect#TenantsListRedirect": TenantsListRedirect_e492b13f42d5d2362a883498aba56fe3,
@@ -63,5 +64,6 @@ export const importMap = {
   "@/components/TenantSelector#TenantSelector": TenantSelector_9d7720c4b50db35595dfefa592fabd33,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelector": TenantSelector_d6d5f193a167989e2ee7d14202901e62,
   "@/components/HideTrashProvider#HideTrashProvider": HideTrashProvider_d35e7dcff6de773700154b87506fb6cf,
+  "@/components/TenantSelector/TopLevelModeContext#TopLevelModeProvider": TopLevelModeProvider_c43a16aa3e0d065b7dfcbcc2eabe2937,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelectionProvider": TenantSelectionProvider_d6d5f193a167989e2ee7d14202901e62
 }

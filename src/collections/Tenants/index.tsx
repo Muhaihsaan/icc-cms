@@ -4,14 +4,18 @@ import { z } from 'zod'
 import {
   isSuperAdminAccess,
   isSuperAdminFieldAccess,
+  Roles,
   tenantManagedCollections,
   tenantsReadAccess,
   tenantsUpdateAccess,
-} from '@/access/accessPermission'
+} from '@/access'
+import { Collections } from '@/config/collections'
 
 const siblingDataSchema = z.object({
   allowedCollections: z.array(z.string()).optional(),
 })
+
+const userRolesSchema = z.object({ roles: z.string().nullable() }).nullable()
 
 // Auto-clean allowPublicRead when allowedCollections changes
 const cleanAllowPublicRead: CollectionBeforeChangeHook = ({ data }) => {
@@ -36,6 +40,13 @@ export const Tenants: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
+    hidden: ({ user }) => {
+      const parsed = userRolesSchema.safeParse(user)
+      if (!parsed.success) return true
+      if (!parsed.data) return true
+      const roles = parsed.data.roles
+      return roles !== Roles.superAdmin && roles !== Roles.superEditor
+    },
     components: {
       beforeList: ['@/components/TenantsListRedirect#TenantsListRedirect'],
     },
@@ -49,6 +60,7 @@ export const Tenants: CollectionConfig = {
     {
       name: 'domain',
       type: 'text',
+      index: true,
       admin: {
         description: 'Used for domain-based tenant handling',
       },
@@ -65,7 +77,7 @@ export const Tenants: CollectionConfig = {
     {
       name: 'logo',
       type: 'upload',
-      relationTo: 'media',
+      relationTo: Collections.MEDIA,
     },
     {
       name: 'allowPublicRead',

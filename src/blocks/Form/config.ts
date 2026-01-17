@@ -6,6 +6,7 @@ import {
   InlineToolbarFeature,
   lexicalEditor,
 } from '@payloadcms/richtext-lexical'
+import { Collections } from '@/config/collections'
 
 export const FormBlock: Block = {
   slug: 'formBlock',
@@ -14,7 +15,7 @@ export const FormBlock: Block = {
     {
       name: 'form',
       type: 'relationship',
-      relationTo: 'forms',
+      relationTo: Collections.FORMS,
       required: true,
     },
     {

@@ -5,7 +5,8 @@ import {
   tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
-} from '@/access/accessPermission'
+} from '@/access'
+import { Collections } from '@/config/collections'
 import { link } from '@/fields/link'
 import { revalidateHeader } from './hooks/revalidateHeader'
 
@@ -13,11 +14,11 @@ export const Header: CollectionConfig = {
   slug: 'header',
   trash: true,
   access: {
-    admin: tenantCollectionAdminAccess('header'),
-    create: withTenantCollectionAccess('header', tenantAdminUpdateAccess),
+    admin: tenantCollectionAdminAccess(Collections.HEADER),
+    create: withTenantCollectionAccess(Collections.HEADER, tenantAdminUpdateAccess),
     delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
-    read: withTenantCollectionAccess('header', tenantPublicReadAccess('header')),
-    update: withTenantCollectionAccess('header', tenantAdminUpdateAccess),
+    read: withTenantCollectionAccess(Collections.HEADER, tenantPublicReadAccess(Collections.HEADER)),
+    update: withTenantCollectionAccess(Collections.HEADER, tenantAdminUpdateAccess),
   },
   fields: [
     {

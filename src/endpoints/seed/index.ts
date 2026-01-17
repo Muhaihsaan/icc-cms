@@ -9,18 +9,19 @@ import { imageHero1 } from './image-hero-1'
 import { post1 } from './post-1'
 import { post2 } from './post-2'
 import { post3 } from './post-3'
-import { Roles } from '@/access/accessPermission'
+import { Roles } from '@/access'
+import { Collections } from '@/config/collections'
 
 const collections: CollectionSlug[] = [
-  'categories',
-  'footer',
-  'header',
-  'media',
-  'pages',
-  'posts',
-  'forms',
-  'form-submissions',
-  'search',
+  Collections.CATEGORIES,
+  Collections.FOOTER,
+  Collections.HEADER,
+  Collections.MEDIA,
+  Collections.PAGES,
+  Collections.POSTS,
+  Collections.FORMS,
+  Collections.FORM_SUBMISSIONS,
+  Collections.SEARCH,
 ]
 
 // Next.js revalidation errors are normal when seeding the database without a server running
@@ -56,7 +57,7 @@ export const seed = async ({
   payload.logger.info(`— Seeding tenant and admin user...`)
 
   await payload.delete({
-    collection: 'users',
+    collection: Collections.USERS,
     depth: 0,
     where: {
       email: {
@@ -66,7 +67,7 @@ export const seed = async ({
   })
 
   const existingTenant = await payload.find({
-    collection: 'tenants',
+    collection: Collections.TENANTS,
     limit: 1,
     depth: 0,
   })
@@ -74,17 +75,18 @@ export const seed = async ({
   const tenant =
     existingTenant.docs[0] ||
     (await payload.create({
-      collection: 'tenants',
+      collection: Collections.TENANTS,
       data: {
         name: 'Default Tenant',
         slug: 'default',
         domain: 'localhost',
-        allowPublicRead: ['pages', 'posts', 'media', 'categories', 'header', 'footer'],
+        allowedCollections: [Collections.PAGES, Collections.POSTS, Collections.MEDIA, Collections.CATEGORIES, Collections.HEADER, Collections.FOOTER],
+        allowPublicRead: [Collections.PAGES, Collections.POSTS, Collections.MEDIA, Collections.CATEGORIES, Collections.HEADER, Collections.FOOTER],
       },
     }))
 
   await payload.delete({
-    collection: 'users',
+    collection: Collections.USERS,
     depth: 0,
     where: {
       email: {
@@ -94,7 +96,7 @@ export const seed = async ({
   })
 
   await payload.create({
-    collection: 'users',
+    collection: Collections.USERS,
     data: {
       name: 'Admin User',
       email: 'admin@local.cms',
@@ -128,7 +130,7 @@ export const seed = async ({
 
   const [demoAuthor, image1Doc, image2Doc, image3Doc, imageHomeDoc] = await Promise.all([
     payload.create({
-      collection: 'users',
+      collection: Collections.USERS,
       data: {
         name: 'Demo Author',
         email: 'demo-author@example.com',
@@ -136,28 +138,28 @@ export const seed = async ({
       },
     }),
     payload.create({
-      collection: 'media',
+      collection: Collections.MEDIA,
       data: image1,
       file: image1Buffer,
     }),
     payload.create({
-      collection: 'media',
+      collection: Collections.MEDIA,
       data: image2,
       file: image2Buffer,
     }),
     payload.create({
-      collection: 'media',
+      collection: Collections.MEDIA,
       data: image2,
       file: image3Buffer,
     }),
     payload.create({
-      collection: 'media',
+      collection: Collections.MEDIA,
       data: imageHero1,
       file: hero1Buffer,
     }),
 
     payload.create({
-      collection: 'categories',
+      collection: Collections.CATEGORIES,
       data: {
         title: 'Technology',
         breadcrumbs: [
@@ -170,7 +172,7 @@ export const seed = async ({
     }),
 
     payload.create({
-      collection: 'categories',
+      collection: Collections.CATEGORIES,
       data: {
         title: 'News',
         breadcrumbs: [
@@ -183,7 +185,7 @@ export const seed = async ({
     }),
 
     payload.create({
-      collection: 'categories',
+      collection: Collections.CATEGORIES,
       data: {
         title: 'Finance',
         breadcrumbs: [
@@ -195,7 +197,7 @@ export const seed = async ({
       },
     }),
     payload.create({
-      collection: 'categories',
+      collection: Collections.CATEGORIES,
       data: {
         title: 'Design',
         breadcrumbs: [
@@ -208,7 +210,7 @@ export const seed = async ({
     }),
 
     payload.create({
-      collection: 'categories',
+      collection: Collections.CATEGORIES,
       data: {
         title: 'Software',
         breadcrumbs: [
@@ -221,7 +223,7 @@ export const seed = async ({
     }),
 
     payload.create({
-      collection: 'categories',
+      collection: Collections.CATEGORIES,
       data: {
         title: 'Engineering',
         breadcrumbs: [
@@ -239,7 +241,7 @@ export const seed = async ({
   // Do not create posts with `Promise.all` because we want the posts to be created in order
   // This way we can sort them by `createdAt` or `publishedAt` and they will be in the expected order
   const post1Doc = await payload.create({
-    collection: 'posts',
+    collection: Collections.POSTS,
     depth: 0,
     context: {
       disableRevalidate: true,
@@ -248,7 +250,7 @@ export const seed = async ({
   })
 
   const post2Doc = await payload.create({
-    collection: 'posts',
+    collection: Collections.POSTS,
     depth: 0,
     context: {
       disableRevalidate: true,
@@ -257,7 +259,7 @@ export const seed = async ({
   })
 
   const post3Doc = await payload.create({
-    collection: 'posts',
+    collection: Collections.POSTS,
     depth: 0,
     context: {
       disableRevalidate: true,
@@ -268,21 +270,21 @@ export const seed = async ({
   // update each post with related posts
   await payload.update({
     id: post1Doc.id,
-    collection: 'posts',
+    collection: Collections.POSTS,
     data: {
       relatedPosts: [post2Doc.id, post3Doc.id],
     },
   })
   await payload.update({
     id: post2Doc.id,
-    collection: 'posts',
+    collection: Collections.POSTS,
     data: {
       relatedPosts: [post1Doc.id, post3Doc.id],
     },
   })
   await payload.update({
     id: post3Doc.id,
-    collection: 'posts',
+    collection: Collections.POSTS,
     data: {
       relatedPosts: [post1Doc.id, post2Doc.id],
     },
@@ -291,7 +293,7 @@ export const seed = async ({
   payload.logger.info(`— Seeding contact form...`)
 
   const contactForm = await payload.create({
-    collection: 'forms',
+    collection: Collections.FORMS,
     depth: 0,
     data: contactFormData,
   })
@@ -300,12 +302,12 @@ export const seed = async ({
 
   const [_, contactPage] = await Promise.all([
     payload.create({
-      collection: 'pages',
+      collection: Collections.PAGES,
       depth: 0,
       data: home({ heroImage: imageHomeDoc, metaImage: image2Doc }),
     }),
     payload.create({
-      collection: 'pages',
+      collection: Collections.PAGES,
       depth: 0,
       data: contactPageData({ contactForm: contactForm }),
     }),
@@ -315,7 +317,7 @@ export const seed = async ({
 
   await Promise.all([
     payload.create({
-      collection: 'header',
+      collection: Collections.HEADER,
       data: {
         navItems: [
           {
@@ -330,7 +332,7 @@ export const seed = async ({
               type: 'reference',
               label: 'Contact',
               reference: {
-                relationTo: 'pages',
+                relationTo: Collections.PAGES,
                 value: contactPage.id,
               },
             },
@@ -339,7 +341,7 @@ export const seed = async ({
       },
     }),
     payload.create({
-      collection: 'footer',
+      collection: Collections.FOOTER,
       data: {
         navItems: [
           {

@@ -1,5 +1,6 @@
 import { RequiredDataFromCollectionSlug } from 'payload'
 import type { PostArgs } from './post-1'
+import { DocStatus } from '@/config/doc-status'
 
 export const post3: (args: PostArgs) => RequiredDataFromCollectionSlug<'posts'> = ({
   heroImage,
@@ -8,7 +9,7 @@ export const post3: (args: PostArgs) => RequiredDataFromCollectionSlug<'posts'> 
 }) => {
   return {
     slug: 'dollar-and-sense-the-financial-forecast',
-    _status: 'published',
+    _status: DocStatus.PUBLISHED,
     authors: [author],
     content: {
       root: {

@@ -8,6 +8,7 @@ import {
   UnderlineFeature,
 } from '@payloadcms/richtext-lexical'
 import { z } from 'zod'
+import { Collections } from '@/config/collections'
 
 const namedFieldSchema = z.object({ name: z.string() })
 const linkFieldsSchema = z.object({ linkType: z.string().optional() })
@@ -27,7 +28,7 @@ export const defaultLexical = lexicalEditor({
     BoldFeature(),
     ItalicFeature(),
     LinkFeature({
-      enabledCollections: ['pages', 'posts'],
+      enabledCollections: [Collections.PAGES, Collections.POSTS],
       fields: ({ defaultFields }) => {
         const defaultFieldsWithoutUrl = defaultFields.filter((field) => {
           const result = namedFieldSchema.safeParse(field)

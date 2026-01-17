@@ -1,6 +1,7 @@
 import type { CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import type { Page } from '@/payload-types'
+import { DocStatus } from '@/config/doc-status'
 
 const toTenantPath = (tenantDomain: string, slug?: string | null): string => {
   const cleanSlug = slug && slug !== 'home' ? slug : ''
@@ -18,7 +19,7 @@ export const revalidatePage: CollectionAfterChangeHook<Page> = ({
   if (!tenantDomain) return doc
 
   // Revalidate current page when published
-  if (doc._status === 'published') {
+  if (doc._status === DocStatus.PUBLISHED) {
     const path = toTenantPath(tenantDomain, doc.slug)
     payload.logger.info(`Revalidating page: ${path}`)
 
@@ -28,7 +29,7 @@ export const revalidatePage: CollectionAfterChangeHook<Page> = ({
   }
 
   // Revalidate old page if it was previously published
-  if (previousDoc?._status === 'published' && previousDoc.tenantDomain) {
+  if (previousDoc?._status === DocStatus.PUBLISHED && previousDoc.tenantDomain) {
     const oldPath = toTenantPath(previousDoc.tenantDomain, previousDoc.slug)
     payload.logger.info(`Revalidating old page: ${oldPath}`)
 

@@ -12,19 +12,20 @@ import { useRouter } from 'next/navigation'
 import './index.scss'
 
 import { getClientSideURL } from '@/utilities/getURL'
+import { Collections } from '@/config/collections'
 
 const baseClass = 'admin-bar'
 
-const collectionKeySchema = z.enum(['pages', 'posts', 'projects'])
+const collectionKeySchema = z.enum([Collections.PAGES, Collections.POSTS, 'projects'])
 
 type CollectionKey = z.infer<typeof collectionKeySchema>
 
 const collectionLabels: Record<CollectionKey, { plural: string; singular: string }> = {
-  pages: {
+  [Collections.PAGES]: {
     plural: 'Pages',
     singular: 'Page',
   },
-  posts: {
+  [Collections.POSTS]: {
     plural: 'Posts',
     singular: 'Post',
   },
@@ -43,7 +44,7 @@ export const AdminBar: React.FC<{
   const segments = useSelectedLayoutSegments()
   const [show, setShow] = useState(false)
   const segmentParsed = collectionKeySchema.safeParse(segments?.[1])
-  const collection: CollectionKey = segmentParsed.success ? segmentParsed.data : 'pages'
+  const collection: CollectionKey = segmentParsed.success ? segmentParsed.data : Collections.PAGES
   const router = useRouter()
 
   const onAuthChange = React.useCallback((user: PayloadMeUser) => {

@@ -1,4 +1,5 @@
 import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
+import { z } from 'zod'
 
 import {
   BlocksFeature,
@@ -10,13 +11,14 @@ import {
 } from '@payloadcms/richtext-lexical'
 
 import {
-  Roles,
   tenantPublicReadAccess,
   tenantCollectionAdminAccess,
   postsCreateAccess,
   postsUpdateAccess,
   withTenantCollectionAccess,
-} from '@/access/accessPermission'
+} from '@/access'
+import { Collections } from '@/config/collections'
+import { hasGuestWriterRole } from '@/access/helpers'
 import { Banner } from '@/blocks/Banner/config'
 import { Code } from '@/blocks/Code/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
@@ -24,7 +26,7 @@ import { generatePreviewPath } from '@/utilities/generatePreviewPath'
 import { populateAuthors } from './hooks/populateAuthors'
 import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
 import type { FieldAccess } from 'payload'
-import type { User, Post } from '@/payload-types'
+import type { Post } from '@/payload-types'
 
 import {
   MetaDescriptionField,
@@ -35,20 +37,20 @@ import {
 } from '@payloadcms/plugin-seo/fields'
 import { slugField } from '@/fields/slug'
 import { populateTenantDomain } from '@/hooks/populate-tenant-domain'
+import { DocStatus } from '@/config/doc-status'
 
-const isGuestWriterUser = (user: User | null | undefined): boolean => {
-  if (!user?.tenants) return false
-  for (const t of user.tenants) {
-    if (!t.roles) continue
-    if (t.roles.includes(Roles.guestWriter)) return true
-  }
-  return false
+const slugSchema = z.object({ slug: z.string() })
+
+const parseSlug = (data: unknown): string => {
+  const parsed = slugSchema.safeParse(data)
+  if (!parsed.success) return ''
+  return parsed.data.slug
 }
 
 const assignGuestWriterAuthor: CollectionBeforeChangeHook<Post> = ({ req, data }) => {
   const user = req.user
   if (!user) return data
-  if (!isGuestWriterUser(user)) return data
+  if (!hasGuestWriterRole(user)) return data
 
   const nextData: Partial<Post> = data ?? {}
 
@@ -61,17 +63,17 @@ const assignGuestWriterAuthor: CollectionBeforeChangeHook<Post> = ({ req, data }
 const canUpdateAuthors: FieldAccess = ({ req }) => {
   const user = req.user
   if (!user) return false
-  return !isGuestWriterUser(user)
+  return !hasGuestWriterRole(user)
 }
 
 export const Posts: CollectionConfig<'posts'> = {
   slug: 'posts',
   trash: true,
   access: {
-    admin: tenantCollectionAdminAccess('posts'),
-    create: withTenantCollectionAccess('posts', postsCreateAccess),
+    admin: tenantCollectionAdminAccess(Collections.POSTS),
+    create: withTenantCollectionAccess(Collections.POSTS, postsCreateAccess),
     delete: postsUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
-    read: tenantPublicReadAccess('posts', { publishedOnly: true }),
+    read: tenantPublicReadAccess(Collections.POSTS, { publishedOnly: true }),
     update: postsUpdateAccess,
   },
   // This config controls what's populated by default when a post is referenced
@@ -94,8 +96,8 @@ export const Posts: CollectionConfig<'posts'> = {
     livePreview: {
       url: ({ data, req }) => {
         const path = generatePreviewPath({
-          slug: typeof data?.slug === 'string' ? data.slug : '',
-          collection: 'posts',
+          slug: parseSlug(data),
+          collection: Collections.POSTS,
           req,
         })
 
@@ -104,8 +106,8 @@ export const Posts: CollectionConfig<'posts'> = {
     },
     preview: (data, { req }) =>
       generatePreviewPath({
-        slug: typeof data?.slug === 'string' ? data.slug : '',
-        collection: 'posts',
+        slug: parseSlug(data),
+        collection: Collections.POSTS,
         req,
       }),
     useAsTitle: 'title',
@@ -124,7 +126,7 @@ export const Posts: CollectionConfig<'posts'> = {
             {
               name: 'heroImage',
               type: 'upload',
-              relationTo: 'media',
+              relationTo: Collections.MEDIA,
             },
             {
               name: 'content',
@@ -163,7 +165,7 @@ export const Posts: CollectionConfig<'posts'> = {
                 }
               },
               hasMany: true,
-              relationTo: 'posts',
+              relationTo: Collections.POSTS,
             },
             {
               name: 'categories',
@@ -172,7 +174,7 @@ export const Posts: CollectionConfig<'posts'> = {
                 position: 'sidebar',
               },
               hasMany: true,
-              relationTo: 'categories',
+              relationTo: Collections.CATEGORIES,
             },
           ],
           label: 'Meta',
@@ -190,7 +192,7 @@ export const Posts: CollectionConfig<'posts'> = {
               hasGenerateFn: true,
             }),
             MetaImageField({
-              relationTo: 'media',
+              relationTo: Collections.MEDIA,
             }),
 
             MetaDescriptionField({}),
@@ -218,7 +220,7 @@ export const Posts: CollectionConfig<'posts'> = {
       hooks: {
         beforeChange: [
           ({ siblingData, value }) => {
-            if (siblingData._status === 'published' && !value) {
+            if (siblingData._status === DocStatus.PUBLISHED && !value) {
               return new Date()
             }
             return value
@@ -237,6 +239,7 @@ export const Posts: CollectionConfig<'posts'> = {
     {
       name: 'authors',
       type: 'relationship',
+      index: true,
       admin: {
         position: 'sidebar',
       },
@@ -244,11 +247,11 @@ export const Posts: CollectionConfig<'posts'> = {
         update: canUpdateAuthors,
       },
       defaultValue: ({ req }) => {
-        if (isGuestWriterUser(req.user)) return [req.user?.id].filter(Boolean)
+        if (hasGuestWriterRole(req.user)) return [req.user?.id].filter(Boolean)
         return undefined
       },
       hasMany: true,
-      relationTo: 'users',
+      relationTo: Collections.USERS,
       required: true,
       maxDepth: 0,
     },

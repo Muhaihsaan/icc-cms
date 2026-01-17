@@ -420,8 +420,8 @@ export interface User {
   guestWriterPostLimit?: number | null;
   tenants?:
     | {
-        tenant: number | Tenant;
-        roles: ('tenant-admin' | 'tenant-viewer' | 'guest-writer')[];
+        tenant?: (number | null) | Tenant;
+        roles?: ('tenant-admin' | 'tenant-viewer' | 'guest-writer')[] | null;
         id?: string | null;
       }[]
     | null;
@@ -854,6 +854,7 @@ export interface Footer {
  */
 export interface Redirect {
   id: number;
+  tenant?: (number | null) | Tenant;
   /**
    * You will need to rebuild the website when changing this field.
    */
@@ -1506,6 +1507,7 @@ export interface FooterSelect<T extends boolean = true> {
  * via the `definition` "redirects_select".
  */
 export interface RedirectsSelect<T extends boolean = true> {
+  tenant?: T;
   from?: T;
   to?:
     | T

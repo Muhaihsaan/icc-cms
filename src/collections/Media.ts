@@ -13,7 +13,8 @@ import {
   tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
-} from '@/access/accessPermission'
+} from '@/access'
+import { Collections } from '@/config/collections'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -22,11 +23,11 @@ export const Media: CollectionConfig = {
   slug: 'media',
   trash: true,
   access: {
-    admin: tenantCollectionAdminAccess('media'),
-    create: withTenantCollectionAccess('media', tenantAdminUpdateAccess),
+    admin: tenantCollectionAdminAccess(Collections.MEDIA),
+    create: withTenantCollectionAccess(Collections.MEDIA, tenantAdminUpdateAccess),
     delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
-    read: withTenantCollectionAccess('media', tenantPublicReadAccess('media')),
-    update: withTenantCollectionAccess('media', tenantAdminUpdateAccess),
+    read: withTenantCollectionAccess(Collections.MEDIA, tenantPublicReadAccess(Collections.MEDIA)),
+    update: withTenantCollectionAccess(Collections.MEDIA, tenantAdminUpdateAccess),
   },
   fields: [
     {

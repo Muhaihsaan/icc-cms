@@ -13,6 +13,7 @@ import { generateMeta } from '@/utilities/generateMeta'
 import PageClient from '@/components/PageClient'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
+import { Collections } from '@/config/collections'
 
 type Args = {
   params: Promise<{ tenant: string; slug: string }>
@@ -31,7 +32,7 @@ async function queryPageBySlugUncachedImpl(args: {
   const payloadReq = await createTenantRequest(payload, tenant)
 
   const result = await payload.find({
-    collection: 'pages',
+    collection: Collections.PAGES,
     draft: args.draft,
     limit: 1,
     pagination: false,

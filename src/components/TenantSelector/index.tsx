@@ -2,25 +2,15 @@
 
 import { useAuth } from '@payloadcms/ui'
 import { useTenantSelection } from '@payloadcms/plugin-multi-tenant/client'
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { z } from 'zod'
 
-const Roles = {
-  superAdmin: 'super-admin',
-  superEditor: 'super-editor',
-} as const
-
-const userRolesSchema = z.object({
-  roles: z.string().nullable().optional(),
-})
-
-const isTopLevelUser = (user: unknown): boolean => {
-  const parsed = userRolesSchema.safeParse(user)
-  if (!parsed.success) return false
-  const roles = parsed.data.roles
-  if (!roles) return false
-  return roles === Roles.superAdmin || roles === Roles.superEditor
-}
+import { isTopLevelUser } from '@/access/client-checks'
+import {
+  generateHiddenCollectionsCss,
+  tenantScopedDashboardCollections,
+} from '@/config/tenant-collections'
+import { useTopLevelMode } from './TopLevelModeContext'
 
 const optionSchema = z.object({
   label: z.string(),
@@ -28,9 +18,15 @@ const optionSchema = z.object({
 })
 const optionsArraySchema = z.array(optionSchema)
 
+// Schema for document object
+const documentSchema = z.object({
+  cookie: z.string(),
+})
+
 export function TenantSelector(): React.ReactElement | null {
   const { user } = useAuth()
   const tenantSelection = useTenantSelection()
+  const { isTopLevelMode, setTopLevelMode } = useTopLevelMode()
 
   const isTopLevel = isTopLevelUser(user)
 
@@ -40,19 +36,33 @@ export function TenantSelector(): React.ReactElement | null {
 
   const selectedTenantIdSchema = z.union([z.string(), z.number()]).optional()
   const selectedTenantIdParsed = selectedTenantIdSchema.safeParse(tenantSelection?.selectedTenantID)
-  const selectedTenantId = selectedTenantIdParsed.success ? selectedTenantIdParsed.data : undefined
+  const pluginTenantId = selectedTenantIdParsed.success ? selectedTenantIdParsed.data : undefined
 
   const setTenant = tenantSelection?.setTenant
 
-  // Top Level = no tenant selected
-  const isTopLevelSelected = !selectedTenantId
+  // The effective tenant ID: undefined if in top-level mode, otherwise plugin's value
+  const selectedTenantId = isTopLevelMode ? undefined : pluginTenantId
+
+  // Top Level = explicitly in top-level mode
+  const isTopLevelSelected = isTopLevelMode
 
   const handleTopLevelSelect = () => {
-    setTenant?.({ id: undefined })
-    document.cookie = 'payload-tenant=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    setTopLevelMode(true)
+    // Clear the tenant cookie so server-side filtering works correctly
+    const docParsed = documentSchema.safeParse(globalThis.document)
+    if (docParsed.success) {
+      globalThis.document.cookie = 'payload-tenant=; path=/; max-age=0'
+    }
+    // Refresh to apply server-side filtering
+    globalThis.window?.location.reload()
   }
 
-  // Hide sidebar tenant selector since we show it here
+  const handleTenantSelect = (id: string | number) => {
+    setTopLevelMode(false)
+    setTenant?.({ id })
+  }
+
+  // Hide sidebar tenant selector for top-level users (they use the dashboard selector)
   useEffect(() => {
     if (!isTopLevel) return
 
@@ -67,17 +77,23 @@ export function TenantSelector(): React.ReactElement | null {
   }, [isTopLevel])
 
   // Hide collection cards based on selection
-  useEffect(() => {
-    if (!isTopLevel) return
-
+  // Using useLayoutEffect to inject CSS before paint, preventing visual flash
+  // Read cookie directly to avoid dependency on auth state which loads async
+  useLayoutEffect(() => {
     const styleId = 'hide-tenant-collections'
+
+    // Check cookie directly - don't wait for auth to determine if top-level mode
+    const isTopLevelCookie = document.cookie.includes('icc-top-level=true')
+
+    // Should hide tenant cards if: cookie says top-level OR (auth loaded and user is in top-level mode)
+    const shouldHideTenantCards = isTopLevelCookie || (isTopLevel && isTopLevelSelected)
 
     // Always remove existing style first
     const existingStyle = document.getElementById(styleId)
     if (existingStyle) existingStyle.remove()
 
     // If "Top Level" is selected (no tenant), hide tenant-managed cards
-    if (isTopLevelSelected) {
+    if (shouldHideTenantCards) {
       const style = document.createElement('style')
       style.id = styleId
       style.textContent = `
@@ -97,16 +113,8 @@ export function TenantSelector(): React.ReactElement | null {
             max-width: 100% !important;
           }
         }
-        /* Hide tenant-managed collection cards */
-        .dashboard__card-list li:has(#card-pages),
-        .dashboard__card-list li:has(#card-posts),
-        .dashboard__card-list li:has(#card-media),
-        .dashboard__card-list li:has(#card-categories),
-        .dashboard__card-list li:has(#card-header),
-        .dashboard__card-list li:has(#card-footer),
-        .dashboard__card-list li:has(#card-search) {
-          display: none !important;
-        }
+        /* Hide tenant-scoped collection cards */
+        ${generateHiddenCollectionsCss(tenantScopedDashboardCollections)}
       `
       document.head.appendChild(style)
 
@@ -163,7 +171,7 @@ export function TenantSelector(): React.ReactElement | null {
         </button>
 
         <select
-          value={selectedTenantId ? String(selectedTenantId) : ''}
+          value={selectedTenantId ? `${selectedTenantId}` : ''}
           onChange={(e) => {
             const val = e.target.value
             if (!val) return
@@ -172,7 +180,7 @@ export function TenantSelector(): React.ReactElement | null {
             const numSchema = z.coerce.number()
             const numParsed = numSchema.safeParse(val)
             const id = numParsed.success ? numParsed.data : val
-            setTenant?.({ id })
+            handleTenantSelect(id)
           }}
           className="tenant-selector-select"
           style={{
@@ -186,7 +194,7 @@ export function TenantSelector(): React.ReactElement | null {
         >
           <option value="">Select tenant...</option>
           {tenantOptions.map((t) => (
-            <option key={t.value} value={String(t.value)}>{t.label}</option>
+            <option key={t.value} value={`${t.value}`}>{t.label}</option>
           ))}
         </select>
       </div>

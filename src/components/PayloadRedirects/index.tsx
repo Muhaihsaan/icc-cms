@@ -5,9 +5,10 @@ import { z } from 'zod'
 import { getCachedDocument } from '@/utilities/getDocument'
 import { getCachedRedirects } from '@/utilities/getRedirects'
 import { notFound, redirect } from 'next/navigation'
+import { Collections } from '@/config/collections'
 
 const stringIdSchema = z.string()
-const collectionSchema = z.enum(['pages', 'posts'])
+const collectionSchema = z.enum([Collections.PAGES, Collections.POSTS])
 const documentObjectSchema = z.object({
   slug: z.string().nullable().optional(),
 })
@@ -49,7 +50,7 @@ export const PayloadRedirects: React.FC<Props> = async ({ disableNotFound, tenan
         const docResult = await getCachedDocument(collectionParsed.data, id, tenantDomain)()
         const docParsed = documentSchema.safeParse(docResult)
         const slug = docParsed.success ? docParsed.data.slug : ''
-        redirectUrl = `${collectionParsed.data !== 'pages' ? `/${collectionParsed.data}` : ''}/${slug}`
+        redirectUrl = `${collectionParsed.data !== Collections.PAGES ? `/${collectionParsed.data}` : ''}/${slug}`
       } else {
         redirectUrl = ''
       }
@@ -58,7 +59,7 @@ export const PayloadRedirects: React.FC<Props> = async ({ disableNotFound, tenan
       const slug = objectParsed.success ? objectParsed.data.slug : ''
       const relationTo = redirectItem.to?.reference?.relationTo
       const collectionParsed = collectionSchema.safeParse(relationTo)
-      const pathPrefix = collectionParsed.success && collectionParsed.data !== 'pages' ? `/${collectionParsed.data}` : ''
+      const pathPrefix = collectionParsed.success && collectionParsed.data !== Collections.PAGES ? `/${collectionParsed.data}` : ''
       redirectUrl = `${pathPrefix}/${slug}`
     }
 

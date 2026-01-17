@@ -1,11 +1,8 @@
-import type { CollectionAfterChangeHook } from 'payload'
+import { createTagRevalidationHook } from '@/hooks/revalidation-service'
+import { Collections } from '@/config/collections'
 
-import { revalidateTag } from 'next/cache'
-
-export const revalidateRedirects: CollectionAfterChangeHook = ({ doc, req: { payload } }) => {
-  payload.logger.info(`Revalidating redirects`)
-
-  revalidateTag('redirects')
-
-  return doc
-}
+export const revalidateRedirects = createTagRevalidationHook({
+  tag: Collections.REDIRECTS,
+  logMessage: 'Revalidating redirects',
+  checkDisableRevalidate: false,
+})

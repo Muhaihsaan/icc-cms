@@ -1,5 +1,7 @@
 import type { RequiredDataFromCollectionSlug } from 'payload'
 import type { Media } from '@/payload-types'
+import { Collections } from '@/config/collections'
+import { DocStatus } from '@/config/doc-status'
 
 type HomeArgs = {
   heroImage: Media
@@ -12,7 +14,7 @@ export const home: (args: HomeArgs) => RequiredDataFromCollectionSlug<'pages'> =
 }) => {
   return {
     slug: 'home',
-    _status: 'published',
+    _status: DocStatus.PUBLISHED,
     hero: {
       type: 'highImpact',
       links: [
@@ -567,7 +569,7 @@ export const home: (args: HomeArgs) => RequiredDataFromCollectionSlug<'pages'> =
           },
         },
         populateBy: 'collection',
-        relationTo: 'posts',
+        relationTo: Collections.POSTS,
       },
       {
         blockName: 'CTA',

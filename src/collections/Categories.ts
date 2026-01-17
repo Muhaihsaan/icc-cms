@@ -5,18 +5,19 @@ import {
   tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
-} from '@/access/accessPermission'
+} from '@/access'
+import { Collections } from '@/config/collections'
 import { slugField } from '@/fields/slug'
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
   trash: true,
   access: {
-    admin: tenantCollectionAdminAccess('categories'),
-    create: withTenantCollectionAccess('categories', tenantAdminUpdateAccess),
+    admin: tenantCollectionAdminAccess(Collections.CATEGORIES),
+    create: withTenantCollectionAccess(Collections.CATEGORIES, tenantAdminUpdateAccess),
     delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
-    read: withTenantCollectionAccess('categories', tenantPublicReadAccess('categories')),
-    update: withTenantCollectionAccess('categories', tenantAdminUpdateAccess),
+    read: withTenantCollectionAccess(Collections.CATEGORIES, tenantPublicReadAccess(Collections.CATEGORIES)),
+    update: withTenantCollectionAccess(Collections.CATEGORIES, tenantAdminUpdateAccess),
   },
   admin: {
     useAsTitle: 'title',

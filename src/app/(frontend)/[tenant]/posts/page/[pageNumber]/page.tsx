@@ -9,6 +9,7 @@ import React from 'react'
 import PageClient from '@/components/PageClient'
 import { notFound } from 'next/navigation'
 import { fetchTenantByDomain, createTenantRequest } from '@/utilities/createTenantRequest'
+import { Collections } from '@/config/collections'
 
 type Args = {
   params: Promise<{
@@ -31,7 +32,7 @@ export default async function Page({ params: paramsPromise }: Args) {
   const payloadReq = await createTenantRequest(payload, tenantDoc)
 
   const posts = await payload.find({
-    collection: 'posts',
+    collection: Collections.POSTS,
     depth: 0,
     limit: 12,
     page,
@@ -42,6 +43,9 @@ export default async function Page({ params: paramsPromise }: Args) {
       slug: true,
       categories: true,
       meta: true,
+    },
+    where: {
+      tenant: { equals: tenantDoc.id },
     },
   })
 
@@ -57,7 +61,7 @@ export default async function Page({ params: paramsPromise }: Args) {
 
       <div className="container mb-8">
         <PageRange
-          collection="posts"
+          collection={Collections.POSTS}
           currentPage={posts.page}
           limit={12}
           totalDocs={posts.totalDocs}

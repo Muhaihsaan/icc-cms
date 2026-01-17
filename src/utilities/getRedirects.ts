@@ -2,23 +2,44 @@ import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { unstable_cache } from 'next/cache'
 import { createTenantRequestByDomain } from '@/utilities/createTenantRequest'
+import { Collections } from '@/config/collections'
 
-export async function getRedirects(tenantDomain: string, depth = 1) {
+import type { Redirect } from '@/payload-types'
+
+type RedirectData = Pick<Redirect, 'id' | 'from' | 'to'>
+
+const REDIRECTS_PAGE_SIZE = 100
+
+export async function getRedirects(tenantDomain: string, depth = 1): Promise<RedirectData[]> {
   const payload = await getPayload({ config: configPromise })
   const payloadReq = await createTenantRequestByDomain(payload, tenantDomain)
-  if (!payloadReq) return []
+  if (!payloadReq?.tenant) return []
 
-  const { docs: redirects } = await payload.find({
-    collection: 'redirects',
-    req: payloadReq,
-    depth,
-    limit: 1000, // Reasonable upper bound to prevent memory issues
-    pagination: false,
-    select: {
-      from: true,
-      to: true,
-    },
-  })
+  const redirects: RedirectData[] = []
+  let page = 1
+  let hasMore = true
+
+  // Paginated fetching to handle any number of redirects
+  while (hasMore) {
+    const results = await payload.find({
+      collection: Collections.REDIRECTS,
+      req: payloadReq,
+      depth,
+      limit: REDIRECTS_PAGE_SIZE,
+      page,
+      select: {
+        from: true,
+        to: true,
+      },
+      where: {
+        tenant: { equals: payloadReq.tenant.id },
+      },
+    })
+
+    redirects.push(...results.docs)
+    hasMore = results.hasNextPage
+    page++
+  }
 
   return redirects
 }

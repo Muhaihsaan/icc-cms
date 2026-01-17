@@ -6,7 +6,8 @@ import {
   tenantPublicReadAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
-} from '../../access/accessPermission'
+} from '@/access'
+import { Collections } from '@/config/collections'
 import { Archive } from '../../blocks/ArchiveBlock/config'
 import { CallToAction } from '../../blocks/CallToAction/config'
 import { Content } from '../../blocks/Content/config'
@@ -38,10 +39,10 @@ export const Pages: CollectionConfig<'pages'> = {
   slug: 'pages',
   trash: true,
   access: {
-    admin: tenantCollectionAdminAccess('pages'),
-    create: withTenantCollectionAccess('pages', tenantAdminUpdateAccess),
+    admin: tenantCollectionAdminAccess(Collections.PAGES),
+    create: withTenantCollectionAccess(Collections.PAGES, tenantAdminUpdateAccess),
     delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
-    read: tenantPublicReadAccess('pages', { publishedOnly: true }),
+    read: tenantPublicReadAccess(Collections.PAGES, { publishedOnly: true }),
     update: tenantAdminUpdateAccess,
   },
   // This config controls what's populated by default when a page is referenced
@@ -57,14 +58,14 @@ export const Pages: CollectionConfig<'pages'> = {
       url: ({ data, req }) =>
         generatePreviewPath({
           slug: getSlug(data),
-          collection: 'pages',
+          collection: Collections.PAGES,
           req,
         }),
     },
     preview: (data, { req }) =>
       generatePreviewPath({
         slug: getSlug(data),
-        collection: 'pages',
+        collection: Collections.PAGES,
         req,
       }),
     useAsTitle: 'title',
@@ -109,7 +110,7 @@ export const Pages: CollectionConfig<'pages'> = {
               hasGenerateFn: true,
             }),
             MetaImageField({
-              relationTo: 'media',
+              relationTo: Collections.MEDIA,
             }),
 
             MetaDescriptionField({}),
