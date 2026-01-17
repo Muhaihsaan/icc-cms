@@ -5,7 +5,7 @@ import {
   tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
-  shouldHideForTopLevelMode,
+  shouldHideCollection,
 } from '@/access'
 import { Collections } from '@/config/collections'
 import { link } from '@/fields/link'
@@ -15,7 +15,7 @@ export const Header: CollectionConfig = {
   slug: 'header',
   trash: true,
   admin: {
-    hidden: ({ user }) => shouldHideForTopLevelMode(user),
+    hidden: shouldHideCollection('header'),
   },
   access: {
     admin: tenantCollectionAdminAccess(Collections.HEADER),

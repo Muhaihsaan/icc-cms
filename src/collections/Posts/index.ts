@@ -16,7 +16,7 @@ import {
   postsCreateAccess,
   postsUpdateAccess,
   withTenantCollectionAccess,
-  shouldHideForTopLevelMode,
+  shouldHideCollection,
 } from '@/access'
 import { Collections } from '@/config/collections'
 import { hasGuestWriterRole } from '@/access/helpers'
@@ -90,7 +90,7 @@ export const Posts: CollectionConfig<'posts'> = {
     },
   },
   admin: {
-    hidden: ({ user }) => shouldHideForTopLevelMode(user),
+    hidden: shouldHideCollection('posts'),
     components: {
       Description: '@/collections/Posts/GuestWriterLimitDescription#GuestWriterLimitDescription',
     },

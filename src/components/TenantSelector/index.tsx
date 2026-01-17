@@ -2,14 +2,12 @@
 
 import { useAuth } from '@payloadcms/ui'
 import { useTenantSelection } from '@payloadcms/plugin-multi-tenant/client'
-import { useEffect, useLayoutEffect } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { z } from 'zod'
 
 import { isTopLevelUser } from '@/access/client-checks'
 import { useTopLevelMode } from './TopLevelModeContext'
-
-// Collections to hide in top-level mode (only show Users and Tenants)
-const HIDDEN_IN_TOP_LEVEL = ['pages', 'posts', 'media', 'categories', 'header', 'footer']
+import { tenantManagedCollections } from '@/config/tenant-collections'
 
 const optionSchema = z.object({
   label: z.string(),
@@ -17,12 +15,20 @@ const optionSchema = z.object({
 })
 const optionsArraySchema = z.array(optionSchema)
 
+// Schema for tenant API response
+const tenantResponseSchema = z.object({
+  allowedCollections: z.array(z.string()).nullable().optional(),
+})
+
 export function TenantSelector(): React.ReactElement | null {
   const { user } = useAuth()
   const tenantSelection = useTenantSelection()
   const { isTopLevelMode, setTopLevelMode } = useTopLevelMode()
 
   const isTopLevel = isTopLevelUser(user)
+
+  // Track selected tenant's allowedCollections for filtering
+  const [allowedCollections, setAllowedCollections] = useState<string[] | null>(null)
 
   // Parse options from plugin
   const optionsParsed = optionsArraySchema.safeParse(tenantSelection?.options)
@@ -42,12 +48,42 @@ export function TenantSelector(): React.ReactElement | null {
 
   const handleTopLevelSelect = () => {
     setTopLevelMode(true)
+    setAllowedCollections(null)
   }
 
   const handleTenantSelect = (id: string | number) => {
     setTopLevelMode(false)
     setTenant?.({ id })
   }
+
+  // Fetch allowedCollections when a tenant is selected
+  useEffect(() => {
+    if (!isTopLevel || isTopLevelMode || !selectedTenantId) {
+      setAllowedCollections(null)
+      return
+    }
+
+    const fetchAllowed = async () => {
+      try {
+        const res = await fetch(`/api/tenants/${selectedTenantId}?depth=0`)
+        if (!res.ok) {
+          setAllowedCollections(null)
+          return
+        }
+        const data: unknown = await res.json()
+        const parsed = tenantResponseSchema.safeParse(data)
+        if (parsed.success && parsed.data.allowedCollections) {
+          setAllowedCollections(parsed.data.allowedCollections)
+        } else {
+          setAllowedCollections(null)
+        }
+      } catch {
+        setAllowedCollections(null)
+      }
+    }
+
+    void fetchAllowed()
+  }, [isTopLevel, isTopLevelMode, selectedTenantId])
 
   // Hide sidebar tenant selector for top-level users (they use the dashboard selector)
   useEffect(() => {
@@ -63,8 +99,9 @@ export function TenantSelector(): React.ReactElement | null {
     }
   }, [isTopLevel])
 
-  // Hide tenant-scoped collections in top-level mode (dashboard cards + nav links)
-  // Check localStorage directly on initial render to prevent flash
+  // Hide collections based on mode:
+  // - Top-level mode: hide all tenant-managed collections
+  // - Tenant selected: hide collections not in allowedCollections
   useLayoutEffect(() => {
     const styleId = 'hide-top-level-collections'
     const existing = document.getElementById(styleId)
@@ -72,20 +109,33 @@ export function TenantSelector(): React.ReactElement | null {
 
     // Check localStorage directly to catch initial page load before state is ready
     const isTopLevelFromStorage = localStorage.getItem('icc-top-level') === 'true'
-    const shouldHide = isTopLevelFromStorage || (isTopLevel && isTopLevelSelected)
+    const inTopLevelMode = isTopLevelFromStorage || (isTopLevel && isTopLevelSelected)
 
-    if (!shouldHide) return
+    // Determine which collections to hide
+    let collectionsToHide: string[] = []
 
-    // Generate CSS to hide dashboard cards and nav links for tenant-scoped collections
-    const cardSelectors = HIDDEN_IN_TOP_LEVEL.map((c) => `#card-${c}`).join(', ')
-    const navSelectors = HIDDEN_IN_TOP_LEVEL.map((c) => `nav a[href*="/collections/${c}"]`).join(
-      ', ',
-    )
+    if (inTopLevelMode) {
+      // In top-level mode: hide all tenant-managed collections
+      collectionsToHide = [...tenantManagedCollections]
+    } else if (isTopLevel && selectedTenantId && allowedCollections) {
+      // Top-level user with tenant selected: hide collections not in allowedCollections
+      collectionsToHide = tenantManagedCollections.filter(
+        (c) => !allowedCollections.includes(c),
+      )
+    }
+
+    if (collectionsToHide.length === 0) return
+
+    // Generate CSS to hide dashboard cards and nav links
+    const cardSelectors = collectionsToHide.map((c) => `#card-${c}`).join(', ')
+    const navSelectors = collectionsToHide
+      .map((c) => `nav a[href*="/collections/${c}"]`)
+      .join(', ')
 
     const style = document.createElement('style')
     style.id = styleId
     style.textContent = `
-      /* Hide tenant-scoped collections */
+      /* Hide filtered collections */
       ${cardSelectors} { display: none !important; }
       ${navSelectors} { display: none !important; }
       /* Fix grid layout to reflow remaining cards */
@@ -110,7 +160,7 @@ export function TenantSelector(): React.ReactElement | null {
     return () => {
       document.getElementById(styleId)?.remove()
     }
-  }, [isTopLevel, isTopLevelSelected])
+  }, [isTopLevel, isTopLevelSelected, selectedTenantId, allowedCollections])
 
   // Only show for top-level users
   if (!isTopLevel) return null

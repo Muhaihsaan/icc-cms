@@ -74,13 +74,36 @@ export const withTenantCollectionAccess = (
 }
 
 // Allow admin UI access based on allowed collections.
-// Top-level users always see all collections (tenant requirement enforced on actual operations).
+// This controls permissions for tenant-scoped collections.
+// Note: Dashboard visibility is controlled by admin.hidden using shouldHideCollection().
 export const tenantCollectionAdminAccess =
   (collection: TenantManagedCollection) =>
   async ({ req }: { req: AccessArgs['req'] }) => {
-    // Top-level users can always see collections in admin UI
-    if (isTopLevelUser(req.user)) return true
-    return isTenantCollectionAllowed({ req, collection })
+    // Get tenant ID from cookie or user's tenants array
+    let tenantId = normalizeTenantId(getTenantFromReq(req))
+
+    // For tenant users without cookie, resolve from their assigned tenant
+    if (!tenantId && !isTopLevelUser(req.user)) {
+      const tenantData = getUserTenantData(req)
+      if (tenantData.allTenantIds.length === 1) {
+        tenantId = tenantData.allTenantIds[0]
+      }
+    }
+
+    // Top-level users with NO tenant selected = show all (top-level mode)
+    if (isTopLevelUser(req.user) && !tenantId) {
+      return true
+    }
+
+    // If we have a tenant ID, check allowedCollections
+    if (tenantId) {
+      const allowedCollections = await getTenantAllowedCollections(req, tenantId)
+      if (!allowedCollections || allowedCollections.length === 0) return false
+      return allowedCollections.includes(collection)
+    }
+
+    // No tenant resolved = deny access
+    return false
   }
 
 // Allow read access to tenant-scoped documents for tenant members.

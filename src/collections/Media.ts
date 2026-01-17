@@ -13,7 +13,7 @@ import {
   tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
-  shouldHideForTopLevelMode,
+  shouldHideCollection,
 } from '@/access'
 import { Collections } from '@/config/collections'
 
@@ -24,7 +24,7 @@ export const Media: CollectionConfig = {
   slug: 'media',
   trash: true,
   admin: {
-    hidden: ({ user }) => shouldHideForTopLevelMode(user),
+    hidden: shouldHideCollection('media'),
   },
   access: {
     admin: tenantCollectionAdminAccess(Collections.MEDIA),

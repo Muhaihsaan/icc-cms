@@ -18,6 +18,7 @@ import {
 import { Collections } from '@/config/collections'
 import { assignUsersToOneTenant } from './hooks/assignUsersToOneTenant'
 import { setCookieBasedOnDomain } from './hooks/setCookieBasedOnDomain'
+import { populateTenantAllowedCollections } from './hooks/populateTenantAllowedCollections'
 
 // Define tenants field manually to control validation during bootstrap
 const tenantsField: ArrayField = {
@@ -210,5 +211,6 @@ export const Users: CollectionConfig = {
       },
     ],
     afterLogin: [setCookieBasedOnDomain],
+    afterRead: [populateTenantAllowedCollections],
   },
 }

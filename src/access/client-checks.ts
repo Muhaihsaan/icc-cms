@@ -76,3 +76,54 @@ export const getTenantAdminTenantId = (user: unknown): string | number | undefin
 
   return undefined
 }
+
+// Schema for tenant entry with allowedCollections (populated by afterRead hook)
+const tenantEntryWithAllowedSchema = z.object({
+  tenant: z.union([z.string(), z.number(), z.object({ id: z.union([z.string(), z.number()]) })]),
+  roles: z.array(z.string()).nullable().optional(),
+  allowedCollections: z.array(z.string()).nullable().optional(),
+})
+
+const userWithAllowedCollectionsSchema = z.object({
+  tenants: z.array(tenantEntryWithAllowedSchema).nullable().optional(),
+})
+
+// Schema for the args object passed to admin.hidden: { user: User }
+const hiddenArgsSchema = z.object({
+  user: userWithAllowedCollectionsSchema.nullable(),
+})
+
+/**
+ * Check if a collection should be hidden for a tenant user based on allowedCollections.
+ * Used by admin.hidden on tenant-scoped collections.
+ *
+ * @param collection - The collection slug to check
+ * @returns A function that takes { user } args and returns true if the collection should be hidden
+ */
+export const shouldHideCollection = (collection: string) => (args: unknown): boolean => {
+  // admin.hidden receives { user } not just user
+  const argsResult = hiddenArgsSchema.safeParse(args)
+  const user = argsResult.success ? argsResult.data.user : args
+
+  // Top-level users: use existing top-level mode logic (CSS filtering in TenantSelector)
+  if (isTopLevelUser(user)) {
+    return shouldHideForTopLevelMode(user)
+  }
+
+  // Tenant users: check allowedCollections from their tenant
+  const parsed = userWithAllowedCollectionsSchema.safeParse(user)
+  if (!parsed.success) return false
+
+  const tenants = parsed.data.tenants
+  if (!tenants || tenants.length === 0) return false
+
+  const entry = tenants[0]
+  if (!entry) return false
+
+  const allowedCollections = entry.allowedCollections
+  // If no allowedCollections data, don't hide (fail open)
+  if (!allowedCollections || allowedCollections.length === 0) return false
+
+  // Hide if collection is NOT in allowedCollections
+  return !allowedCollections.includes(collection)
+}
