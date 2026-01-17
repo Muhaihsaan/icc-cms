@@ -5,6 +5,7 @@ import {
   tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
+  shouldHideForTopLevelMode,
 } from '@/access'
 import { Collections } from '@/config/collections'
 import { slugField } from '@/fields/slug'
@@ -20,6 +21,7 @@ export const Categories: CollectionConfig = {
     update: withTenantCollectionAccess(Collections.CATEGORIES, tenantAdminUpdateAccess),
   },
   admin: {
+    hidden: ({ user }) => shouldHideForTopLevelMode(user),
     useAsTitle: 'title',
   },
   fields: [

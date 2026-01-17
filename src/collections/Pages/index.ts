@@ -6,6 +6,7 @@ import {
   tenantPublicReadAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
+  shouldHideForTopLevelMode,
 } from '@/access'
 import { Collections } from '@/config/collections'
 import { Archive } from '../../blocks/ArchiveBlock/config'
@@ -53,6 +54,7 @@ export const Pages: CollectionConfig<'pages'> = {
     slug: true,
   },
   admin: {
+    hidden: ({ user }) => shouldHideForTopLevelMode(user),
     defaultColumns: ['title', 'slug', 'updatedAt'],
     livePreview: {
       url: ({ data, req }) =>

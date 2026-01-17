@@ -19,11 +19,3 @@ export const tenantScopedDashboardCollections = [
 ] as const
 
 export type TenantScopedDashboardCollection = (typeof tenantScopedDashboardCollections)[number]
-
-// Generate CSS selector to hide tenant-scoped collection cards
-export const generateHiddenCollectionsCss = (collections: readonly string[]): string => {
-  const selectors = collections.map((c) => `.dashboard__card-list li:has(#card-${c})`)
-  return `${selectors.join(',\n')} {
-  display: none !important;
-}`
-}

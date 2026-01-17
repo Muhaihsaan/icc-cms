@@ -6,22 +6,16 @@ import { useEffect, useLayoutEffect } from 'react'
 import { z } from 'zod'
 
 import { isTopLevelUser } from '@/access/client-checks'
-import {
-  generateHiddenCollectionsCss,
-  tenantScopedDashboardCollections,
-} from '@/config/tenant-collections'
 import { useTopLevelMode } from './TopLevelModeContext'
+
+// Collections to hide in top-level mode (only show Users and Tenants)
+const HIDDEN_IN_TOP_LEVEL = ['pages', 'posts', 'media', 'categories', 'header', 'footer']
 
 const optionSchema = z.object({
   label: z.string(),
   value: z.union([z.string(), z.number()]),
 })
 const optionsArraySchema = z.array(optionSchema)
-
-// Schema for document object
-const documentSchema = z.object({
-  cookie: z.string(),
-})
 
 export function TenantSelector(): React.ReactElement | null {
   const { user } = useAuth()
@@ -48,13 +42,6 @@ export function TenantSelector(): React.ReactElement | null {
 
   const handleTopLevelSelect = () => {
     setTopLevelMode(true)
-    // Clear the tenant cookie so server-side filtering works correctly
-    const docParsed = documentSchema.safeParse(globalThis.document)
-    if (docParsed.success) {
-      globalThis.document.cookie = 'payload-tenant=; path=/; max-age=0'
-    }
-    // Refresh to apply server-side filtering
-    globalThis.window?.location.reload()
   }
 
   const handleTenantSelect = (id: string | number) => {
@@ -76,55 +63,53 @@ export function TenantSelector(): React.ReactElement | null {
     }
   }, [isTopLevel])
 
-  // Hide collection cards based on selection
-  // Using useLayoutEffect to inject CSS before paint, preventing visual flash
-  // Read cookie directly to avoid dependency on auth state which loads async
+  // Hide tenant-scoped collections in top-level mode (dashboard cards + nav links)
+  // Check localStorage directly on initial render to prevent flash
   useLayoutEffect(() => {
-    const styleId = 'hide-tenant-collections'
+    const styleId = 'hide-top-level-collections'
+    const existing = document.getElementById(styleId)
+    if (existing) existing.remove()
 
-    // Check cookie directly - don't wait for auth to determine if top-level mode
-    const isTopLevelCookie = document.cookie.includes('icc-top-level=true')
+    // Check localStorage directly to catch initial page load before state is ready
+    const isTopLevelFromStorage = localStorage.getItem('icc-top-level') === 'true'
+    const shouldHide = isTopLevelFromStorage || (isTopLevel && isTopLevelSelected)
 
-    // Should hide tenant cards if: cookie says top-level OR (auth loaded and user is in top-level mode)
-    const shouldHideTenantCards = isTopLevelCookie || (isTopLevel && isTopLevelSelected)
+    if (!shouldHide) return
 
-    // Always remove existing style first
-    const existingStyle = document.getElementById(styleId)
-    if (existingStyle) existingStyle.remove()
+    // Generate CSS to hide dashboard cards and nav links for tenant-scoped collections
+    const cardSelectors = HIDDEN_IN_TOP_LEVEL.map((c) => `#card-${c}`).join(', ')
+    const navSelectors = HIDDEN_IN_TOP_LEVEL.map((c) => `nav a[href*="/collections/${c}"]`).join(
+      ', ',
+    )
 
-    // If "Top Level" is selected (no tenant), hide tenant-managed cards
-    if (shouldHideTenantCards) {
-      const style = document.createElement('style')
-      style.id = styleId
-      style.textContent = `
-        /* Override grid to flexbox for proper reflow */
-        .dashboard__card-list {
-          display: flex !important;
-          flex-wrap: wrap !important;
-          gap: 24px !important;
-        }
-        .dashboard__card-list > li {
-          flex: 0 0 calc(50% - 12px) !important;
-          max-width: calc(50% - 12px) !important;
-        }
-        @media (max-width: 768px) {
-          .dashboard__card-list > li {
-            flex: 0 0 100% !important;
-            max-width: 100% !important;
-          }
-        }
-        /* Hide tenant-scoped collection cards */
-        ${generateHiddenCollectionsCss(tenantScopedDashboardCollections)}
-      `
-      document.head.appendChild(style)
-
-      return () => {
-        const el = document.getElementById(styleId)
-        if (el) el.remove()
+    const style = document.createElement('style')
+    style.id = styleId
+    style.textContent = `
+      /* Hide tenant-scoped collections */
+      ${cardSelectors} { display: none !important; }
+      ${navSelectors} { display: none !important; }
+      /* Fix grid layout to reflow remaining cards */
+      .dashboard__card-list {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 24px !important;
       }
-    }
+      .dashboard__card-list > li {
+        flex: 0 0 calc(50% - 12px) !important;
+        max-width: calc(50% - 12px) !important;
+      }
+      @media (max-width: 768px) {
+        .dashboard__card-list > li {
+          flex: 0 0 100% !important;
+          max-width: 100% !important;
+        }
+      }
+    `
+    document.head.appendChild(style)
 
-    return undefined
+    return () => {
+      document.getElementById(styleId)?.remove()
+    }
   }, [isTopLevel, isTopLevelSelected])
 
   // Only show for top-level users
@@ -160,7 +145,9 @@ export function TenantSelector(): React.ReactElement | null {
             padding: '0.5rem 1rem',
             borderRadius: '4px',
             border: 'none',
-            backgroundColor: isTopLevelSelected ? 'var(--theme-success-500)' : 'var(--theme-elevation-200)',
+            backgroundColor: isTopLevelSelected
+              ? 'var(--theme-success-500)'
+              : 'var(--theme-elevation-200)',
             color: isTopLevelSelected ? 'white' : 'inherit',
             cursor: 'pointer',
             fontWeight: isTopLevelSelected ? 600 : 400,
@@ -186,15 +173,21 @@ export function TenantSelector(): React.ReactElement | null {
           style={{
             padding: '0.5rem 1rem',
             borderRadius: '4px',
-            border: selectedTenantId ? '2px solid var(--theme-success-500)' : '1px solid var(--theme-elevation-200)',
-            backgroundColor: selectedTenantId ? 'var(--theme-success-100)' : 'var(--theme-elevation-0)',
+            border: selectedTenantId
+              ? '2px solid var(--theme-success-500)'
+              : '1px solid var(--theme-elevation-200)',
+            backgroundColor: selectedTenantId
+              ? 'var(--theme-success-100)'
+              : 'var(--theme-elevation-0)',
             cursor: 'pointer',
             minWidth: '180px',
           }}
         >
           <option value="">Select tenant...</option>
           {tenantOptions.map((t) => (
-            <option key={t.value} value={`${t.value}`}>{t.label}</option>
+            <option key={t.value} value={`${t.value}`}>
+              {t.label}
+            </option>
           ))}
         </select>
       </div>

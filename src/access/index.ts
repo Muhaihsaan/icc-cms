@@ -21,6 +21,9 @@ export {
   isSuperAdminOrEditorFieldAccess,
 } from '@/access/role-checks'
 
+// Client-side checks (for admin.hidden)
+export { shouldHideForTopLevelMode } from '@/access/client-checks'
+
 // Common access patterns
 export { anyone, authenticated, authenticatedOrPublished } from '@/access/common'
 

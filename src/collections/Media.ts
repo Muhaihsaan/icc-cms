@@ -13,6 +13,7 @@ import {
   tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
+  shouldHideForTopLevelMode,
 } from '@/access'
 import { Collections } from '@/config/collections'
 
@@ -22,6 +23,9 @@ const dirname = path.dirname(filename)
 export const Media: CollectionConfig = {
   slug: 'media',
   trash: true,
+  admin: {
+    hidden: ({ user }) => shouldHideForTopLevelMode(user),
+  },
   access: {
     admin: tenantCollectionAdminAccess(Collections.MEDIA),
     create: withTenantCollectionAccess(Collections.MEDIA, tenantAdminUpdateAccess),

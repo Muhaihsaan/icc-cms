@@ -293,12 +293,10 @@ export const getTenantAllowPublicRead = async ({
   }
 }
 
-const TOP_LEVEL_HEADER = 'x-icc-top-level'
-
 /**
  * Get the effective tenant for access control decisions.
- * Top-level users can override cookie via X-ICC-Top-Level header (set by middleware).
- * Returns undefined when in top-level mode (no tenant filtering).
+ * Top-level users in top-level mode (no tenant cookie) get undefined (no tenant filtering).
+ * Returns undefined when in top-level mode, otherwise returns the tenant from cookie/request.
  */
 export const getEffectiveTenant = (req: AccessArgs['req']): string | number | undefined => {
   // Non-top-level users: always use cookie-based tenant
@@ -306,24 +304,12 @@ export const getEffectiveTenant = (req: AccessArgs['req']): string | number | un
     return normalizeTenantId(getTenantFromReq(req))
   }
 
-  // Top-level user: check for top-level mode header (set by middleware)
-  const headers = req.headers
-  if (!headers) {
-    return normalizeTenantId(getTenantFromReq(req))
-  }
-
-  const headerValue = headers.get(TOP_LEVEL_HEADER)
-  // DEBUG: Remove after fixing
-  console.log('[getEffectiveTenant] header:', headerValue)
-  const parsed = z.literal('true').safeParse(headerValue)
-  if (parsed.success) {
+  // Top-level user: check if tenant cookie is set
+  // If no tenant cookie, they're in top-level mode
+  const tenantFromReq = getTenantFromReq(req)
+  if (!tenantFromReq) {
     return undefined // Top-level mode - no tenant filtering
   }
 
-  // Fall back to cookie-based tenant
-  const tenantFromReq = getTenantFromReq(req)
-  const normalized = normalizeTenantId(tenantFromReq)
-  // DEBUG: Remove after fixing
-  console.log('[getEffectiveTenant] tenantFromReq:', tenantFromReq, 'normalized:', normalized)
-  return normalized
+  return normalizeTenantId(tenantFromReq)
 }

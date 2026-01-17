@@ -37,6 +37,21 @@ export const isTopLevelUser = (user: unknown): boolean => {
   return roles === Roles.superAdmin || roles === Roles.superEditor
 }
 
+const TOP_LEVEL_STORAGE_KEY = 'icc-top-level'
+
+/**
+ * Check if collection should be hidden for top-level users in top-level mode.
+ * Used by admin.hidden on tenant-scoped collections.
+ */
+export const shouldHideForTopLevelMode = (user: unknown): boolean => {
+  // Non-top-level users always see tenant-scoped collections
+  if (!isTopLevelUser(user)) return false
+  // Server-side: can't check localStorage, don't hide
+  if (typeof window === 'undefined') return false
+  // Client-side: check localStorage for top-level mode
+  return localStorage.getItem(TOP_LEVEL_STORAGE_KEY) === 'true'
+}
+
 export const getTenantAdminTenantId = (user: unknown): string | number | undefined => {
   const parsed = userTenantsSchema.safeParse(user)
   if (!parsed.success) return undefined

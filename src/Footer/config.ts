@@ -5,6 +5,7 @@ import {
   tenantAdminUpdateAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
+  shouldHideForTopLevelMode,
 } from '@/access'
 import { Collections } from '@/config/collections'
 import { link } from '@/fields/link'
@@ -13,6 +14,9 @@ import { revalidateFooter } from './hooks/revalidateFooter'
 export const Footer: CollectionConfig = {
   slug: 'footer',
   trash: true,
+  admin: {
+    hidden: ({ user }) => shouldHideForTopLevelMode(user),
+  },
   access: {
     admin: tenantCollectionAdminAccess(Collections.FOOTER),
     create: withTenantCollectionAccess(Collections.FOOTER, tenantAdminUpdateAccess),
