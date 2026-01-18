@@ -105,10 +105,59 @@ The app will be available at `http://localhost:3000`
 | Role | Scope | Capabilities |
 |------|-------|--------------|
 | **Super Admin** | Global | Full access to everything, manage tenants and users |
-| **Super Editor** | Global | Edit all content across tenants, cannot manage users/tenants |
+| **Super Editor** | Global | Edit all content across tenants, limited user management |
 | **Tenant Admin** | Tenant | Full access within their tenant, can manage tenant users |
 | **Tenant User** | Tenant | Frontend authentication only, no admin panel access |
 | **Guest Writer** | Tenant | Can create posts only (with configurable limit) |
+
+### Super Editor Details
+
+Super Editor is designed for content managers who need cross-tenant editing access without full administrative privileges.
+
+**Can do:**
+- Read and edit all content across all tenants (pages, posts, media, categories, etc.)
+- Switch between tenants using the tenant selector
+- Update tenant settings (name, domain, slug, logo)
+- Create users for any tenant
+- Edit tenant-level users (tenant-admin, tenant-user, guest-writer)
+- Edit their own account
+
+**Cannot do:**
+- Create or delete tenants (Super Admin only)
+- Delete users (Super Admin only)
+- Edit other Super Admins or Super Editors
+- Modify `allowedCollections` field on tenants (Super Admin only)
+
+### Guest Writer Details
+
+Guest Writer is designed for external contributors who need limited post creation access with editorial oversight.
+
+**Post Limit:**
+- Each guest writer has a configurable `guestWriterPostLimit` (default: 1)
+- Only **Super Admins** can set/modify this limit via the user's sidebar field
+- The limit counts posts that have been published (not drafts)
+- Once the limit is reached, the guest writer cannot create new posts
+- A status message shows: "Guest-writer limit: X of Y posts created. Remaining: Z."
+
+**Can do:**
+- Access the admin panel (Posts collection only)
+- Create posts up to their configured limit
+- Edit their own posts (drafts only)
+- View their own posts (both drafts and published)
+
+**Cannot do:**
+- Publish posts directly (all posts are forced to draft status for admin review)
+- Delete posts
+- Access other collections (pages, media, categories, users, etc.)
+- See other users' posts
+- Set or modify the `publishedAt` date
+
+**Editorial Workflow:**
+1. Guest writer creates a post → automatically saved as draft
+2. Guest writer is auto-assigned as author (cannot change this)
+3. Tenant Admin or higher reviews the draft
+4. Admin publishes the post when approved
+5. Published post counts toward the guest writer's limit
 
 ## Available Scripts
 
@@ -310,6 +359,93 @@ After deployment, update each tenant's `domain` to the real hostname.
 | `/api/tenant/[slug]/posts` | Get posts for a tenant |
 | `/api/tenant/[slug]/posts/[postSlug]` | Get single post |
 | `/api/tenant/[slug]/page/[pageSlug]` | Get single page |
+| `/api/tenant/[slug]/sections` | Get all sections for a tenant |
+
+## Dynamic Sections
+
+Sections allow you to create flexible, structured content without code changes. Each section defines its own fields and data inline.
+
+### Creating a Section
+
+1. Go to **Sections** in the admin panel
+2. Click **Create New**
+3. Fill in:
+   - **Name**: Display name (e.g., "Homepage Hero")
+   - **Slug**: Auto-generated URL identifier
+4. Add **Fields** using the available types:
+
+| Type | Description | Stored Value |
+|------|-------------|--------------|
+| `Text` | Single/multi-line text | `"string"` |
+| `Textarea` | Multi-line text with line breaks | `"string"` |
+| `Rich Text` | Formatted content editor | `{ lexical JSON }` |
+| `Number` | Numeric values | `123` |
+| `Date` | Date/time picker | `"2024-01-15T10:30:00.000Z"` |
+| `Select` | Dropdown options | `["option1", "option2"]` |
+| `Media` | Image/file upload | `{ url, alt, ... }` |
+| `Internal Link` | Link to Page/Post | `{ id, slug, title }` |
+| `Array` | List of text or media | `[...]` |
+
+### Fetching Sections
+
+```ts
+// Fetch all sections for a tenant
+const res = await fetch('/api/tenant/acme/sections')
+const { docs: sections } = await res.json()
+
+// Find specific section by slug
+const hero = sections.find(s => s.slug === 'homepage-hero')
+
+// Access the computed data object
+console.log(hero.data)
+// {
+//   title: "Welcome to Our Site",
+//   description: "The best solution...",
+//   heroImage: { url: "/media/hero.jpg", alt: "Hero" }
+// }
+```
+
+### API Response Structure
+
+```json
+{
+  "docs": [
+    {
+      "id": 1,
+      "name": "Homepage Hero",
+      "slug": "homepage-hero",
+      "fields": [
+        { "type": "text", "key": "title", "textValue": "Welcome" },
+        { "type": "media", "key": "heroImage", "mediaValue": { "url": "..." } }
+      ],
+      "data": {
+        "title": "Welcome",
+        "heroImage": { "url": "..." }
+      }
+    }
+  ]
+}
+```
+
+The `data` object is auto-computed from `fields` for easier frontend access.
+
+### Frontend Usage
+
+```tsx
+const { docs: sections } = await fetch('/api/tenant/acme/sections').then(r => r.json())
+
+return sections.map(section => (
+  <section key={section.id} id={section.slug}>
+    {section.data.title && <h1>{section.data.title}</h1>}
+    {section.data.description && (
+      <p style={{ whiteSpace: 'pre-line' }}>{section.data.description}</p>
+    )}
+    {section.data.heroImage && (
+      <img src={section.data.heroImage.url} alt={section.data.heroImage.alt} />
+    )}
+  </section>
+))
+```
 
 ## Troubleshooting
 

@@ -152,6 +152,9 @@ export const plugins: Plugin[] = [
       [Collections.REDIRECTS]: {
         tenantFieldOverrides: { admin: { readOnly: true } },
       },
+      [Collections.SECTIONS]: {
+        tenantFieldOverrides: { admin: { readOnly: true } },
+      },
       [Collections.USERS]: {
         // We use custom baseListFilter in Users collection config
         useBaseListFilter: false,

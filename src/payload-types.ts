@@ -75,6 +75,7 @@ export interface Config {
     tenants: Tenant;
     header: Header;
     footer: Footer;
+    sections: Section;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -94,6 +95,7 @@ export interface Config {
     tenants: TenantsSelect<false> | TenantsSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
+    sections: SectionsSelect<false> | SectionsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -229,11 +231,11 @@ export interface Tenant {
   /**
    * Select which collections this tenant can access.
    */
-  allowedCollections: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[];
+  allowedCollections: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer' | 'sections')[];
   /**
    * Select which collections are publicly readable.
    */
-  allowPublicRead?: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[] | null;
+  allowPublicRead?: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer' | 'sections')[] | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -850,6 +852,79 @@ export interface Footer {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sections".
+ */
+export interface Section {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  name: string;
+  slug?: string | null;
+  slugLock?: boolean | null;
+  /**
+   * Define the fields for this section
+   */
+  fields: {
+    type: 'text' | 'textarea' | 'richText' | 'number' | 'date' | 'select' | 'media' | 'link' | 'array';
+    /**
+     * Field key (e.g., "title", "description")
+     */
+    key: string;
+    textValue?: string | null;
+    textareaValue?: string | null;
+    richTextValue?: {
+      root: {
+        type: string;
+        children: {
+          type: string;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    numberValue?: number | null;
+    dateValue?: string | null;
+    /**
+     * Define options for the select field
+     */
+    selectOptions?:
+      | {
+          value: string;
+          id?: string | null;
+        }[]
+      | null;
+    mediaValue?: (number | null) | Media;
+    /**
+     * Link to an internal Page or Post. For external URLs, use Text type.
+     */
+    linkValue?:
+      | ({
+          relationTo: 'pages';
+          value: number | Page;
+        } | null)
+      | ({
+          relationTo: 'posts';
+          value: number | Post;
+        } | null);
+    arrayValue?:
+      | {
+          type: 'text' | 'media';
+          value?: string | null;
+          media?: (number | null) | Media;
+          id?: string | null;
+        }[]
+      | null;
+    id?: string | null;
+  }[];
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -1053,6 +1128,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'footer';
         value: number | Footer;
+      } | null)
+    | ({
+        relationTo: 'sections';
+        value: number | Section;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1501,6 +1580,46 @@ export interface FooterSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sections_select".
+ */
+export interface SectionsSelect<T extends boolean = true> {
+  tenant?: T;
+  name?: T;
+  slug?: T;
+  slugLock?: T;
+  fields?:
+    | T
+    | {
+        type?: T;
+        key?: T;
+        textValue?: T;
+        textareaValue?: T;
+        richTextValue?: T;
+        numberValue?: T;
+        dateValue?: T;
+        selectOptions?:
+          | T
+          | {
+              value?: T;
+              id?: T;
+            };
+        mediaValue?: T;
+        linkValue?: T;
+        arrayValue?:
+          | T
+          | {
+              type?: T;
+              value?: T;
+              media?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

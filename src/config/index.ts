@@ -14,6 +14,7 @@ export const Collections = {
   FORMS: 'forms',
   FORM_SUBMISSIONS: 'form-submissions',
   SEARCH: 'search',
+  SECTIONS: 'sections',
 } as const
 
 export type CollectionSlug = (typeof Collections)[keyof typeof Collections]
@@ -34,6 +35,7 @@ export const tenantManagedCollections = [
   Collections.CATEGORIES,
   Collections.HEADER,
   Collections.FOOTER,
+  Collections.SECTIONS,
 ] as const
 
 export type TenantManagedCollection = (typeof tenantManagedCollections)[number]

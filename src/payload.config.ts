@@ -12,6 +12,7 @@ import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
 import { Tenants } from './collections/Tenants'
+import { Sections } from './collections/Sections'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
@@ -103,7 +104,7 @@ export default buildConfig({
       ...poolConfig,
     },
   }),
-  collections: [Pages, Posts, Media, Categories, Users, Tenants, Header, Footer],
+  collections: [Pages, Posts, Media, Categories, Users, Tenants, Header, Footer, Sections],
   cors: [getServerSideURL()].filter(Boolean),
   plugins: [...plugins, ...(storagePlugin ? [storagePlugin] : [])],
   secret: process.env.PAYLOAD_SECRET,
