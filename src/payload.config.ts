@@ -1,4 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { z } from 'zod'
 
 import sharp from 'sharp'
 import path from 'path'
@@ -19,6 +20,30 @@ import { getServerSideURL } from './utilities/getURL'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+
+// Schema for parsing optional numeric environment variables with defaults
+const envNumberSchema = (defaultValue: number) =>
+  z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return defaultValue
+      const num = parseInt(val, 10)
+      if (Number.isNaN(num)) return defaultValue
+      return num
+    })
+
+const poolConfig = z
+  .object({
+    max: envNumberSchema(10),
+    min: envNumberSchema(0),
+    idleTimeoutMillis: envNumberSchema(10000),
+  })
+  .parse({
+    max: process.env.DATABASE_POOL_MAX,
+    min: process.env.DATABASE_POOL_MIN,
+    idleTimeoutMillis: process.env.DATABASE_POOL_IDLE_TIMEOUT,
+  })
 
 export default buildConfig({
   i18n: {
@@ -71,9 +96,7 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URL || process.env.DATABASE_URI || '',
       // Using Neon pooler: use the "-pooler" connection string from Neon dashboard
-      max: Number(process.env.DATABASE_POOL_MAX) || 10,
-      min: Number(process.env.DATABASE_POOL_MIN) || 0,
-      idleTimeoutMillis: Number(process.env.DATABASE_POOL_IDLE_TIMEOUT) || 10000,
+      ...poolConfig,
     },
   }),
   collections: [Pages, Posts, Media, Categories, Users, Tenants, Header, Footer],

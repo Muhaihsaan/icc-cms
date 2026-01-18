@@ -1,6 +1,10 @@
 import { z } from 'zod'
 
 import { Roles } from '@/access/roles'
+import { hasGuestWriterRole } from '@/access/helpers'
+
+// Re-export for convenience
+export { hasGuestWriterRole }
 
 // Schema for validating user roles field
 const userRolesSchema = z.object({
@@ -92,20 +96,6 @@ const userWithAllowedCollectionsSchema = z.object({
 const hiddenArgsSchema = z.object({
   user: userWithAllowedCollectionsSchema.nullable(),
 })
-
-// Check if user has guest writer role
-export const hasGuestWriterRole = (user: unknown): boolean => {
-  const parsed = userWithAllowedCollectionsSchema.safeParse(user)
-  if (!parsed.success) return false
-
-  const tenants = parsed.data.tenants
-  if (!tenants || tenants.length === 0) return false
-
-  const entry = tenants[0]
-  if (!entry || !entry.roles) return false
-
-  return entry.roles.includes(Roles.guestWriter)
-}
 
 /**
  * Check if a collection should be hidden for a tenant user based on allowedCollections.

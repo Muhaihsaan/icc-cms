@@ -1,5 +1,4 @@
 import type { CollectionConfig } from 'payload'
-import { z } from 'zod'
 
 import {
   tenantAdminUpdateAccess,
@@ -17,6 +16,7 @@ import { MediaBlock } from '../../blocks/MediaBlock/config'
 import { hero } from '@/heros/config'
 import { slugField } from '@/fields/slug'
 import { generatePreviewPath } from '../../utilities/generatePreviewPath'
+import { parseSlug } from '@/utilities/parseSlug'
 import { revalidateDelete, revalidatePage } from './hooks/revalidatePage'
 
 import {
@@ -27,14 +27,6 @@ import {
   PreviewField,
 } from '@payloadcms/plugin-seo/fields'
 import { populateTenantDomain } from '@/hooks/populate-tenant-domain'
-
-const slugSchema = z.object({ slug: z.string() })
-
-const getSlug = (data: unknown): string => {
-  const result = slugSchema.safeParse(data)
-  if (!result.success) return ''
-  return result.data.slug
-}
 
 export const Pages: CollectionConfig<'pages'> = {
   slug: 'pages',
@@ -59,14 +51,14 @@ export const Pages: CollectionConfig<'pages'> = {
     livePreview: {
       url: ({ data, req }) =>
         generatePreviewPath({
-          slug: getSlug(data),
+          slug: parseSlug(data),
           collection: Collections.PAGES,
           req,
         }),
     },
     preview: (data, { req }) =>
       generatePreviewPath({
-        slug: getSlug(data),
+        slug: parseSlug(data),
         collection: Collections.PAGES,
         req,
       }),

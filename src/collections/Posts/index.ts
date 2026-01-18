@@ -1,5 +1,4 @@
 import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
-import { z } from 'zod'
 
 import {
   BlocksFeature,
@@ -21,13 +20,14 @@ import {
 } from '@/access'
 import { Collections } from '@/config/collections'
 import { hasGuestWriterRole } from '@/access/helpers'
+import { notGuestWriterFieldAccess } from '@/access/field-access'
+import { parseSlug } from '@/utilities/parseSlug'
 import { Banner } from '@/blocks/Banner/config'
 import { Code } from '@/blocks/Code/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
 import { generatePreviewPath } from '@/utilities/generatePreviewPath'
 import { populateAuthors } from './hooks/populateAuthors'
 import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
-import type { FieldAccess } from 'payload'
 import type { Post } from '@/payload-types'
 
 import {
@@ -40,14 +40,6 @@ import {
 import { slugField } from '@/fields/slug'
 import { populateTenantDomain } from '@/hooks/populate-tenant-domain'
 import { DocStatus } from '@/config/doc-status'
-
-const slugSchema = z.object({ slug: z.string() })
-
-const parseSlug = (data: unknown): string => {
-  const parsed = slugSchema.safeParse(data)
-  if (!parsed.success) return ''
-  return parsed.data.slug
-}
 
 const assignGuestWriterAuthor: CollectionBeforeChangeHook<Post> = ({ req, data }) => {
   const user = req.user
@@ -76,19 +68,6 @@ const preventGuestWriterPublish: CollectionBeforeChangeHook<Post> = ({ req, data
     _status: DocStatus.DRAFT,
     publishedAt: null,
   }
-}
-
-const canUpdateAuthors: FieldAccess = ({ req }) => {
-  const user = req.user
-  if (!user) return false
-  return !hasGuestWriterRole(user)
-}
-
-// Guest writers cannot modify publishedAt field
-const canUpdatePublishedAt: FieldAccess = ({ req }) => {
-  const user = req.user
-  if (!user) return false
-  return !hasGuestWriterRole(user)
 }
 
 export const Posts: CollectionConfig<'posts'> = {
@@ -238,7 +217,7 @@ export const Posts: CollectionConfig<'posts'> = {
       name: 'publishedAt',
       type: 'date',
       access: {
-        update: canUpdatePublishedAt,
+        update: notGuestWriterFieldAccess,
       },
       admin: {
         date: {
@@ -275,7 +254,7 @@ export const Posts: CollectionConfig<'posts'> = {
         position: 'sidebar',
       },
       access: {
-        update: canUpdateAuthors,
+        update: notGuestWriterFieldAccess,
       },
       defaultValue: ({ req }) => {
         if (hasGuestWriterRole(req.user)) return [req.user?.id].filter(Boolean)
