@@ -42,12 +42,6 @@ export const hasGuestWriterRole = (data: unknown): boolean => {
 const tenantIdSchema = z.union([z.string(), z.number()])
 const tenantIdObjectSchema = z.object({ id: tenantIdSchema })
 
-// Schema that normalizes tenant value to just the ID using transform
-export const tenantValueSchema = z.union([
-  tenantIdSchema,
-  tenantIdObjectSchema.transform((obj) => obj.id),
-])
-
 const reqWithTenantSchema = z.object({ tenant: z.unknown() })
 
 // Schema for user with tenants array (needed for cookie validation)
@@ -218,20 +212,8 @@ export const getUserTenantData = (req: AccessArgs['req']): UserTenantData => {
     hasAnyRole: false,
   }
 
-  // DEBUG: Log raw user tenants data
-  console.log('[getUserTenantData] DEBUG raw user data', {
-    userEmail: req.user?.email,
-    userTenants: req.user?.tenants,
-    userTenantsType: typeof req.user?.tenants,
-    userTenantsIsArray: Array.isArray(req.user?.tenants),
-  })
-
   const parsed = userWithTenantRolesSchema.safeParse(req.user)
   if (!parsed.success || !parsed.data.tenants) {
-    console.log('[getUserTenantData] DEBUG parse failed or no tenants', {
-      parseSuccess: parsed.success,
-      parseError: !parsed.success ? parsed.error.message : null,
-    })
     return result
   }
 
@@ -242,13 +224,6 @@ export const getUserTenantData = (req: AccessArgs['req']): UserTenantData => {
     if (tenantId !== undefined) {
       result.allTenantIds.push(tenantId)
     }
-
-    // DEBUG: Log each tenant entry
-    console.log('[getUserTenantData] DEBUG tenant entry', {
-      entry,
-      tenantId,
-      roles: entry.roles,
-    })
 
     if (!Array.isArray(entry.roles)) continue
     if (entry.roles.length > 0) result.hasAnyRole = true
@@ -264,9 +239,6 @@ export const getUserTenantData = (req: AccessArgs['req']): UserTenantData => {
       result.hasGuestWriterRole = true
     }
   }
-
-  // DEBUG: Log final result
-  console.log('[getUserTenantData] DEBUG final result', result)
 
   return result
 }

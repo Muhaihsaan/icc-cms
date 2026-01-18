@@ -17,13 +17,9 @@ export const usersReadAccess: Access = ({ req }) => {
   // Top-level users: scoped by tenant selection, no deletedAt filter
   if (isTopLevelUser(user)) {
     const tenantId = getEffectiveTenant(req)
-    // DEBUG: Remove after fixing
-    console.log('[usersReadAccess] tenantId:', tenantId, 'type:', typeof tenantId)
     if (tenantId) {
       // Tenant selected: show that tenant's users
-      const query = { 'tenants.tenant': { equals: tenantId } }
-      console.log('[usersReadAccess] query:', JSON.stringify(query))
-      return query
+      return { 'tenants.tenant': { equals: tenantId } }
     }
     // No tenant selected (Top Level mode): show only top-level users
     return {

@@ -421,7 +421,7 @@ export interface User {
   tenants?:
     | {
         tenant?: (number | null) | Tenant;
-        roles?: ('tenant-admin' | 'tenant-viewer' | 'guest-writer')[] | null;
+        roles?: ('tenant-admin' | 'tenant-user' | 'guest-writer')[] | null;
         id?: string | null;
       }[]
     | null;

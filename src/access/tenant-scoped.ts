@@ -90,21 +90,9 @@ export const tenantCollectionAdminAccess =
       }
     }
 
-    // DEBUG: Trace guest writer access issue
-    console.log('[tenantCollectionAdminAccess] DEBUG', {
-      collection,
-      userEmail: req.user?.email,
-      tenantId,
-      tenantData,
-      hasGuestWriterRole: tenantData.hasGuestWriterRole,
-      isTopLevel: isTopLevelUser(req.user),
-    })
-
     // Guest writers can only access Posts collection
     if (tenantData.hasGuestWriterRole) {
-      const result = collection === Collections.POSTS
-      console.log('[tenantCollectionAdminAccess] Guest writer result:', { collection, result })
-      return result
+      return collection === Collections.POSTS
     }
 
     // Top-level users with NO tenant selected = show all (top-level mode)
