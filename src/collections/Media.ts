@@ -23,6 +23,7 @@ const dirname = path.dirname(filename)
 export const Media: CollectionConfig = {
   slug: 'media',
   trash: true,
+  lockDocuments: false,
   admin: {
     hidden: shouldHideCollection('media'),
   },
@@ -47,6 +48,17 @@ export const Media: CollectionConfig = {
           return [...rootFeatures, FixedToolbarFeature(), InlineToolbarFeature()]
         },
       }),
+    },
+    {
+      name: 'fileUrl',
+      type: 'ui',
+      label: 'File URL',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field: '@/components/fields/FileUrlField#FileUrlField',
+        },
+      },
     },
   ],
   upload: {

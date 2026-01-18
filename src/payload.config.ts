@@ -1,5 +1,4 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
-import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { z } from 'zod'
 
 import sharp from 'sharp'
@@ -16,8 +15,12 @@ import { Tenants } from './collections/Tenants'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
+import { getStoragePlugin } from './plugins/storage'
 import { defaultLexical } from '@/fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
+
+// Get storage plugin based on environment
+const storagePlugin = getStoragePlugin()
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -102,16 +105,7 @@ export default buildConfig({
   }),
   collections: [Pages, Posts, Media, Categories, Users, Tenants, Header, Footer],
   cors: [getServerSideURL()].filter(Boolean),
-  plugins: [
-    ...plugins,
-    vercelBlobStorage({
-      enabled: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-      collections: {
-        media: true,
-      },
-      token: process.env.BLOB_READ_WRITE_TOKEN || '',
-    }),
-  ],
+  plugins: [...plugins, ...(storagePlugin ? [storagePlugin] : [])],
   secret: process.env.PAYLOAD_SECRET,
   sharp,
   typescript: {
