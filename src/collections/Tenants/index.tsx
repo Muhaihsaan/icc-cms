@@ -66,26 +66,6 @@ export const Tenants: CollectionConfig = {
       relationTo: Collections.MEDIA,
     },
     {
-      name: 'allowPublicRead',
-      type: 'select',
-      hasMany: true,
-      admin: {
-        description: 'First select allowedCollections, then choose which are publicly readable.',
-        position: 'sidebar',
-        // Only show when allowedCollections has selections
-        condition: (data) => Array.isArray(data?.allowedCollections) && data.allowedCollections.length > 0,
-        components: {
-          Field: '@/components/AllowPublicReadField#AllowPublicReadField',
-        },
-      },
-      defaultValue: [],
-      options: tenantManagedCollections.map((collection) => ({
-        label: collection,
-        value: collection,
-      })),
-      validate: validateAllowPublicRead,
-    },
-    {
       name: 'allowedCollections',
       type: 'select',
       required: true,
@@ -104,6 +84,26 @@ export const Tenants: CollectionConfig = {
         value: collection,
       })),
       validate: validateAllowedCollections,
+    },
+    {
+      name: 'allowPublicRead',
+      type: 'select',
+      hasMany: true,
+      admin: {
+        description: 'Select which collections are publicly readable.',
+        position: 'sidebar',
+        // Only show when allowedCollections has selections
+        condition: (data) => Array.isArray(data?.allowedCollections) && data.allowedCollections.length > 0,
+        components: {
+          Field: '@/components/AllowPublicReadField#AllowPublicReadField',
+        },
+      },
+      defaultValue: [],
+      options: tenantManagedCollections.map((collection) => ({
+        label: collection,
+        value: collection,
+      })),
+      validate: validateAllowPublicRead,
     },
   ],
   hooks: {

@@ -227,13 +227,13 @@ export interface Tenant {
   slug: string;
   logo?: (number | null) | Media;
   /**
-   * First select allowedCollections, then choose which are publicly readable.
-   */
-  allowPublicRead?: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[] | null;
-  /**
    * Select which collections this tenant can access.
    */
   allowedCollections: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[];
+  /**
+   * Select which collections are publicly readable.
+   */
+  allowPublicRead?: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[] | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1448,8 +1448,8 @@ export interface TenantsSelect<T extends boolean = true> {
   domain?: T;
   slug?: T;
   logo?: T;
-  allowPublicRead?: T;
   allowedCollections?: T;
+  allowPublicRead?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
