@@ -35,10 +35,10 @@ const tenantsField: ArrayField = {
     {
       name: 'roles',
       type: 'select',
-      defaultValue: [Roles.tenantViewer],
+      defaultValue: [Roles.tenantUser],
       hasMany: true,
       required: false,
-      options: [Roles.tenantAdmin, Roles.tenantViewer, Roles.guestWriter],
+      options: [Roles.tenantAdmin, Roles.tenantUser, Roles.guestWriter],
       access: {
         update: isSuperAdminFieldAccess,
       },

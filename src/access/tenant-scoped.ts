@@ -136,7 +136,7 @@ export const tenantMemberReadAccess: Access = ({ req }) => {
 
   // Tenant-level users: filter out trashed items
   const tenantData = getUserTenantData(req)
-  if (tenantData.hasAdminRole || tenantData.hasViewerRole || tenantData.hasGuestWriterRole) {
+  if (tenantData.hasAdminRole || tenantData.hasTenantUserRole || tenantData.hasGuestWriterRole) {
     return whereTenantScoped(tenantData.allTenantIds)
   }
   return false

@@ -28,5 +28,5 @@ export const assignUsersToOneTenant = ({ req, value }: AssignUsersToOneTenantArg
 
   if (!currentTenant) return value
 
-  return [{ tenant: currentTenant, roles: [Roles.tenantViewer] }]
+  return [{ tenant: currentTenant, roles: [Roles.tenantUser] }]
 }

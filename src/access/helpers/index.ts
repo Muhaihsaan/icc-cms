@@ -187,7 +187,7 @@ export type UserTenantData = {
   allTenantIds: Array<string | number>
   adminTenantIds: Array<string | number>
   hasAdminRole: boolean
-  hasViewerRole: boolean
+  hasTenantUserRole: boolean
   hasGuestWriterRole: boolean
   hasAnyRole: boolean
 }
@@ -213,7 +213,7 @@ export const getUserTenantData = (req: AccessArgs['req']): UserTenantData => {
     allTenantIds: [],
     adminTenantIds: [],
     hasAdminRole: false,
-    hasViewerRole: false,
+    hasTenantUserRole: false,
     hasGuestWriterRole: false,
     hasAnyRole: false,
   }
@@ -257,8 +257,8 @@ export const getUserTenantData = (req: AccessArgs['req']): UserTenantData => {
       result.hasAdminRole = true
       if (tenantId !== undefined) result.adminTenantIds.push(tenantId)
     }
-    if (entry.roles.includes(Roles.tenantViewer)) {
-      result.hasViewerRole = true
+    if (entry.roles.includes(Roles.tenantUser)) {
+      result.hasTenantUserRole = true
     }
     if (entry.roles.includes(Roles.guestWriter)) {
       result.hasGuestWriterRole = true

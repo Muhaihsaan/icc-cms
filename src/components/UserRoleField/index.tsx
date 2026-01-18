@@ -17,7 +17,7 @@ const TOP_LEVEL_ROLES = [
 
 const TENANT_ROLES = [
   { value: Roles.tenantAdmin, label: 'Tenant Admin' },
-  { value: Roles.tenantViewer, label: 'Tenant Viewer' },
+  { value: Roles.tenantUser, label: 'Tenant User' },
   { value: Roles.guestWriter, label: 'Guest Writer' },
 ]
 
@@ -105,7 +105,7 @@ const UserRoleField: FieldClientComponent = () => {
     dispatchFields({
       type: 'UPDATE',
       path: 'tenants',
-      value: [{ tenant: selectedTenantId, roles: tenantRoles || [Roles.tenantViewer] }],
+      value: [{ tenant: selectedTenantId, roles: tenantRoles || [Roles.tenantUser] }],
     })
   }, [selectedTenantId, dispatchFields, tenantRoles])
 

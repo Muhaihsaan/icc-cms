@@ -161,7 +161,7 @@ export const postsReadAccess =
     const tenantData = getUserTenantData(req)
 
     // Tenant admins and viewers: tenant-scoped access
-    if (tenantData.hasAdminRole || tenantData.hasViewerRole) {
+    if (tenantData.hasAdminRole || tenantData.hasTenantUserRole) {
       return whereTenantScoped(tenantData.allTenantIds)
     }
 
