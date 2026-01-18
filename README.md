@@ -147,6 +147,103 @@ src/
     └── tenant/          # Tenant-related utilities
 ```
 
+## Adding a New Collection
+
+### Step 1: Add the Collection Slug
+
+Add your collection slug to `src/config/index.ts`:
+
+```ts
+export const Collections = {
+  PAGES: 'pages',
+  POSTS: 'posts',
+  // ... existing collections
+  YOUR_COLLECTION: 'your-collection', // Add your new collection
+} as const
+```
+
+### Step 2: Create the Collection File
+
+Create a new file at `src/collections/YourCollection/index.ts`:
+
+```ts
+import type { CollectionConfig } from 'payload'
+import {
+  tenantCollectionAdminAccess,
+  tenantCollectionCreateAccess,
+  tenantCollectionUpdateAccess,
+  tenantCollectionDeleteAccess,
+  tenantCollectionReadAccess,
+  withTenantCollectionAccess,
+  shouldHideCollection,
+} from '@/access'
+import { Collections } from '@/config'
+
+export const YourCollection: CollectionConfig = {
+  slug: Collections.YOUR_COLLECTION,
+  access: {
+    admin: tenantCollectionAdminAccess(Collections.YOUR_COLLECTION),
+    create: withTenantCollectionAccess(Collections.YOUR_COLLECTION, tenantCollectionCreateAccess),
+    update: withTenantCollectionAccess(Collections.YOUR_COLLECTION, tenantCollectionUpdateAccess),
+    delete: withTenantCollectionAccess(Collections.YOUR_COLLECTION, tenantCollectionDeleteAccess),
+    read: tenantCollectionReadAccess(Collections.YOUR_COLLECTION),
+  },
+  admin: {
+    hidden: shouldHideCollection(Collections.YOUR_COLLECTION),
+    useAsTitle: 'title',
+  },
+  fields: [
+    {
+      name: 'title',
+      type: 'text',
+      required: true,
+    },
+    // Add your fields here
+  ],
+}
+```
+
+### Step 3: Make it Tenant-Managed (Optional)
+
+If you want the collection to be assignable per-tenant, add it to `tenantManagedCollections` in `src/config/index.ts`:
+
+```ts
+export const tenantManagedCollections = [
+  Collections.PAGES,
+  Collections.POSTS,
+  // ... existing collections
+  Collections.YOUR_COLLECTION, // Add here to make it tenant-assignable
+] as const
+```
+
+### Step 4: Register in Payload Config
+
+Add your collection to `src/payload.config.ts`:
+
+```ts
+import { YourCollection } from './collections/YourCollection'
+
+export default buildConfig({
+  // ...
+  collections: [Pages, Posts, Media, /* ... */, YourCollection],
+  // ...
+})
+```
+
+### Step 5: Run Migrations
+
+```bash
+pnpm payload migrate:create   # Create migration for new collection
+pnpm payload:migrate          # Run the migration
+pnpm generate:types           # Regenerate TypeScript types
+```
+
+After these steps, the new collection will:
+- Appear in the admin panel
+- Be assignable to tenants (if added to `tenantManagedCollections`)
+- Respect tenant-based access control
+- Be hidden from users who don't have access to it
+
 ## Production Deployment
 
 ### Environment Variables (Required)
@@ -188,6 +285,17 @@ For production, configure DNS for each tenant:
 2. **Individual domains**: Each tenant can have their own domain
 
 Set the `domain` field in each tenant's configuration to match.
+
+For local development, use unique hostnames per tenant (e.g., `a.localhost`, `b.localhost`) and map them in `/etc/hosts`. Avoid setting all tenants to plain `localhost` or they'll collide.
+
+Example `/etc/hosts`:
+```text
+127.0.0.1 a.localhost
+127.0.0.1 b.localhost
+```
+Then run `pnpm dev` and visit `http://a.localhost:3000` or `http://b.localhost:3000`.
+Make sure each tenant's `domain` field matches its local hostname during dev.
+After deployment, update each tenant's `domain` to the real hostname.
 
 ## API Endpoints
 
