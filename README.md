@@ -2,25 +2,6 @@
 
 A multi-tenant headless CMS built with [Payload CMS](https://payloadcms.com) and [Next.js](https://nextjs.org). Each tenant gets isolated content (pages, posts, media, etc.) while sharing the same CMS infrastructure.
 
-## Features
-
-- Multi-tenant architecture with tenant isolation
-- Role-based access control (Super Admin, Super Editor, Tenant Admin, Tenant User, Guest Writer)
-- Per-tenant content: Pages, Posts, Media, Categories, Header, Footer
-- Configurable collections per tenant
-- Public/private content control per tenant
-- Guest writer functionality with post limits
-- Draft/publish workflow
-- SEO management
-- Vercel Blob storage support
-
-## Prerequisites
-
-- Node.js 20+
-- pnpm 8+
-- Docker (for local PostgreSQL)
-- Git
-
 ## Local Development Setup
 
 ### 1. Clone and Install
@@ -42,8 +23,8 @@ cp .env.example .env
 Edit `.env` with your values:
 
 ```env
-# Database (PostgreSQL via Docker)
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/payload
+# Database (PostgreSQL via Docker - matches docker-compose.yml)
+DATABASE_URL=postgresql://icc:icc123@localhost:5644/icc-cms
 
 # Security - generate a strong secret (min 32 chars)
 PAYLOAD_SECRET=your-super-secret-key-min-32-characters
@@ -51,11 +32,15 @@ PAYLOAD_SECRET=your-super-secret-key-min-32-characters
 # Server URL (no trailing slash)
 NEXT_PUBLIC_SERVER_URL=http://localhost:3000
 
-# Optional: Cron job authentication
-CRON_SECRET=your-cron-secret
+# Storage: "minio" for local, "vercel" for production
+PAYLOAD_STORAGE=minio
 
-# Optional: Vercel Blob (only needed in production)
-# BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
+# MinIO settings (for local development)
+MINIO_ENDPOINT=http://localhost:19111
+MINIO_REGION=us-east-1
+MINIO_BUCKET=icc-dev
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
 ```
 
 ### 3. Start the Database and Run Migrations
@@ -171,7 +156,8 @@ src/
 | `DATABASE_URL` | PostgreSQL connection string |
 | `PAYLOAD_SECRET` | Strong secret for JWT encryption (min 32 chars) |
 | `NEXT_PUBLIC_SERVER_URL` | Your production URL |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (if using Vercel) |
+| `PAYLOAD_STORAGE` | Set to `vercel` for Vercel Blob storage |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (required when `PAYLOAD_STORAGE=vercel`) |
 
 ### Deploying to Vercel
 
@@ -179,10 +165,10 @@ src/
 2. Import the repository in Vercel
 3. Add a PostgreSQL database (Vercel Postgres or Neon)
 4. Add Blob storage for media files
-5. Configure environment variables
+5. Configure environment variables:
+   - Set `PAYLOAD_STORAGE=vercel`
+   - Add `BLOB_READ_WRITE_TOKEN` from Vercel Blob
 6. Deploy
-
-The app automatically uses Vercel Blob storage when `BLOB_READ_WRITE_TOKEN` is set.
 
 ### Database Migrations
 

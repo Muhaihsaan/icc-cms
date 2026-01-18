@@ -5,13 +5,13 @@ services:
     ports:
       - '5644:5432'
     environment:
-      POSTGRES_DB: powerbuilding-cms
-      POSTGRES_USER: powerbuilding
-      POSTGRES_PASSWORD: powerbuilding123
+      POSTGRES_DB: icc-cms
+      POSTGRES_USER: icc
+      POSTGRES_PASSWORD: icc123
     # volumes:
     #   - pgdata:/var/lib/postgresql/data
     networks:
-      - pbcms_network
+      - icc_network
 
   minio:
     image: minio/minio:latest
@@ -32,7 +32,7 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - pbcms_network
+      - icc_network
 
   createbuckets:
     image: minio/mc
@@ -41,8 +41,8 @@ services:
       /bin/sh -c "
       echo '⏳ Waiting for MinIO API...';
       until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 2; done;
-      until mc mb local/pbcms-dev; do sleep 2; done;
-      mc anonymous set public local/pbcms-dev;
+      until mc mb local/icc-dev; do sleep 2; done;
+      mc anonymous set public local/icc-dev;
       echo '✅ Bucket created';
       exit 0;"
     depends_on:
@@ -50,12 +50,12 @@ services:
         condition: service_healthy
     restart: 'no'
     networks:
-      - pbcms_network
+      - icc_network
 
 volumes:
   pgdata:
   minio_data:
 
 networks:
-  pbcms_network:
+  icc_network:
     driver: bridge
