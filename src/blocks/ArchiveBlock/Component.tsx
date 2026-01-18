@@ -5,7 +5,7 @@ import { getPayload } from 'payload'
 import React from 'react'
 import RichText from '@/components/RichText'
 import { z } from 'zod'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 import { CollectionArchive } from '@/components/CollectionArchive'
 

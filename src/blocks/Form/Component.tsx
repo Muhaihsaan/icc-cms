@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import type { DefaultTypedEditorState } from '@payloadcms/richtext-lexical'
 import { z } from 'zod'
 
-import { fields } from './fields'
+import { fields } from './formFieldMap'
 import { getClientSideURL } from '@/utilities/getURL'
 
 const fieldKeySchema = z.object({

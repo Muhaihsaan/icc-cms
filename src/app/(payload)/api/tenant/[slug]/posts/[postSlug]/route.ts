@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { getTenantContext } from '@/app/(payload)/api/tenant/_lib/tenantContext'
-import { Collections } from '@/config/collections'
-import { DocStatus } from '@/config/doc-status'
+import { Collections } from '@/config'
+import { DocStatus } from '@/config'
 
 type RouteParams = {
   slug: string

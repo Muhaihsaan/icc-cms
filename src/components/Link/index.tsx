@@ -4,7 +4,7 @@ import Link from 'next/link'
 import React from 'react'
 
 import type { Page, Post } from '@/payload-types'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 type CMSLinkType = {
   appearance?: 'inline' | ButtonProps['variant']

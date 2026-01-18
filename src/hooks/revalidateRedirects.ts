@@ -1,5 +1,5 @@
 import { createTagRevalidationHook } from '@/hooks/revalidation-service'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 export const revalidateRedirects = createTagRevalidationHook({
   tag: Collections.REDIRECTS,

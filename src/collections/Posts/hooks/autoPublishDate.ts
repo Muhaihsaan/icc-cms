@@ -1,6 +1,6 @@
 import type { FieldHook } from 'payload'
 
-import { DocStatus } from '@/config/doc-status'
+import { DocStatus } from '@/config'
 
 // Auto-set publishedAt to current date when post is published without a date
 export const autoPublishDate: FieldHook = ({ siblingData, value }) => {

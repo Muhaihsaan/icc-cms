@@ -1,6 +1,6 @@
 import type { CollectionAfterReadHook } from 'payload'
 import type { User } from '@/payload-types'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 /**
  * Populates allowedCollections from the tenant into the user's tenant entry.

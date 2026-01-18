@@ -3,7 +3,7 @@ import type { Access, Where } from 'payload'
 import { getUserTenantData, getEffectiveTenant } from '@/access/helpers'
 import { isSuperAdmin, isSuperEditor, isTopLevelUser } from '@/access/role-checks'
 import { Roles } from '@/access/roles'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 // Allow reading users scoped to their tenant or role level.
 // Top-level users with no tenant selected see only top-level users.
@@ -38,6 +38,13 @@ export const usersReadAccess: Access = ({ req }) => {
     }
     return where
   }
+
+  // Guest writers and tenant users can only read their own user record
+  // This is needed for /api/users/me to work
+  if (tenantData.hasGuestWriterRole || tenantData.hasTenantUserRole) {
+    return { id: { equals: user.id } }
+  }
+
   return false
 }
 

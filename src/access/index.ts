@@ -20,13 +20,15 @@ export {
   isSuperAdminOrEditor,
   isSuperAdminOrEditorFieldAccess,
   hasAdminPanelAccess,
+  usersCollectionAdminAccess,
+  notGuestWriterFieldAccess,
 } from '@/access/role-checks'
 
 // Client-side checks (for admin.hidden)
-export { shouldHideForTopLevelMode, shouldHideCollection } from '@/access/client-checks'
+export { shouldHideForTopLevelMode, shouldHideCollection, shouldHideUsersCollection } from '@/access/client-checks'
 
-// Common access patterns
-export { anyone, authenticated, authenticatedOrPublished } from '@/access/common'
+// Base access patterns
+export { anyone, authenticated, authenticatedOrPublished } from '@/access/base-access'
 
 // Tenant-scoped access patterns
 export {
@@ -56,4 +58,4 @@ export { postsCreateAccess, postsUpdateAccess, postsDeleteAccess, postsReadAcces
 export { tenantsReadAccess, tenantsUpdateAccess } from '@/access/collections/tenants'
 
 // Re-export tenant collections config for backward compatibility
-export { tenantManagedCollections, type TenantManagedCollection } from '@/config/tenant-collections'
+export { tenantManagedCollections, type TenantManagedCollection } from '@/config'

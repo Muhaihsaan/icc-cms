@@ -1,7 +1,7 @@
 import { createLocalReq, getPayload, type Payload, type PayloadRequest, type Where } from 'payload'
 import { unstable_cache } from 'next/cache'
 import configPromise from '@payload-config'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 import type { Tenant } from '@/payload-types'
 

@@ -1,6 +1,6 @@
 import type { CollectionBeforeDeleteHook } from 'payload'
 
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 import { isSuperAdmin, Roles } from '@/access'
 
 // Prevent deletion of the last super-admin account

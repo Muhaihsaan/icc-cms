@@ -15,7 +15,7 @@ import {
   withTenantCollectionAccess,
   shouldHideCollection,
 } from '@/access'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)

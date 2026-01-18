@@ -17,10 +17,10 @@ import {
   postsReadAccess,
   withTenantCollectionAccess,
   shouldHideCollection,
+  notGuestWriterFieldAccess,
 } from '@/access'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 import { hasGuestWriterRole } from '@/access/helpers'
-import { notGuestWriterFieldAccess } from '@/access/field-access'
 import { parseSlug } from '@/utilities/parseSlug'
 import { Banner } from '@/blocks/Banner/config'
 import { Code } from '@/blocks/Code/config'

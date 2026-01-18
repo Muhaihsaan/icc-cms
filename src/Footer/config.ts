@@ -7,7 +7,7 @@ import {
   withTenantCollectionAccess,
   shouldHideCollection,
 } from '@/access'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 import { link } from '@/fields/link'
 import { revalidateFooter } from './hooks/revalidateFooter'
 

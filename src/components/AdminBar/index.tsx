@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation'
 import './index.scss'
 
 import { getClientSideURL } from '@/utilities/getURL'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 const baseClass = 'admin-bar'
 

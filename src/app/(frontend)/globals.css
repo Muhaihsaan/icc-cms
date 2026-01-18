@@ -4,11 +4,12 @@
 
 @layer base {
   :root {
-    --background: 0 0% 96%;
-    --foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Match Payload admin dark theme */
+    --background: 0 0% 8%;
+    --foreground: 0 0% 95%;
+    --primary: 0 0% 95%;
+    --primary-foreground: 0 0% 8%;
+    --muted-foreground: 0 0% 60%;
     --radius: 0.25rem;
   }
 

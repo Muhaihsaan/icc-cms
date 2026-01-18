@@ -6,7 +6,7 @@ import {
   createTenantRequest,
   fetchTenantByField,
   type TenantRequest,
-} from '@/utilities/createTenantRequest'
+} from '@/utilities/tenant/createTenantRequest'
 
 type PayloadInstance = Awaited<ReturnType<typeof getPayload>>
 

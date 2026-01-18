@@ -1,4 +1,30 @@
-import { Collections } from './collections'
+// Centralized configuration constants
+
+// Collection slug constants
+export const Collections = {
+  PAGES: 'pages',
+  POSTS: 'posts',
+  MEDIA: 'media',
+  CATEGORIES: 'categories',
+  USERS: 'users',
+  TENANTS: 'tenants',
+  HEADER: 'header',
+  FOOTER: 'footer',
+  REDIRECTS: 'redirects',
+  FORMS: 'forms',
+  FORM_SUBMISSIONS: 'form-submissions',
+  SEARCH: 'search',
+} as const
+
+export type CollectionSlug = (typeof Collections)[keyof typeof Collections]
+
+// Document status constants
+export const DocStatus = {
+  DRAFT: 'draft',
+  PUBLISHED: 'published',
+} as const
+
+export type DocStatusValue = (typeof DocStatus)[keyof typeof DocStatus]
 
 // Collections that are managed per-tenant and can be toggled in tenant settings
 export const tenantManagedCollections = [

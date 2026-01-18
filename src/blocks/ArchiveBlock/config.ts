@@ -6,7 +6,7 @@ import {
   InlineToolbarFeature,
   lexicalEditor,
 } from '@payloadcms/richtext-lexical'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 export const Archive: Block = {
   slug: 'archive',

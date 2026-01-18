@@ -4,9 +4,9 @@ import { z } from 'zod'
 import { getUserTenantData, getTenantFromReq, getTenantAllowPublicRead, normalizeTenantId } from '@/access/helpers'
 import { isTopLevelUser } from '@/access/role-checks'
 import { whereTenantScoped } from '@/access/tenant-scoped'
-import { Collections } from '@/config/collections'
-import { DocStatus } from '@/config/doc-status'
-import type { TenantManagedCollection } from '@/config/tenant-collections'
+import { Collections } from '@/config'
+import { DocStatus } from '@/config'
+import type { TenantManagedCollection } from '@/config'
 
 const guestWriterLimitSchema = z.object({
   guestWriterPostLimit: z.number(),

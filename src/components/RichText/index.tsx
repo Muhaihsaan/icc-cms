@@ -11,7 +11,7 @@ import {
   RichText as ConvertRichText,
 } from '@payloadcms/richtext-lexical/react'
 import { z } from 'zod'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 import { CodeBlock, CodeBlockProps } from '@/blocks/Code/Component'
 

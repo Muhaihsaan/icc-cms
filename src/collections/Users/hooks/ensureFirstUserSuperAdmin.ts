@@ -1,6 +1,6 @@
 import type { CollectionBeforeChangeHook } from 'payload'
 
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 import { Roles } from '@/access/roles'
 
 // Ensure the first user created is always a super-admin

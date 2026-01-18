@@ -1,8 +1,8 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { unstable_cache } from 'next/cache'
-import { createTenantRequestByDomain } from '@/utilities/createTenantRequest'
-import { Collections } from '@/config/collections'
+import { createTenantRequestByDomain } from '@/utilities/tenant/createTenantRequest'
+import { Collections } from '@/config'
 
 import type { Redirect } from '@/payload-types'
 

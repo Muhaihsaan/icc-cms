@@ -3,7 +3,7 @@ import type { Config, Tenant } from '@/payload-types'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { unstable_cache } from 'next/cache'
-import { createTenantRequest } from '@/utilities/createTenantRequest'
+import { createTenantRequest } from '@/utilities/tenant/createTenantRequest'
 
 type Global = keyof Config['collections']
 

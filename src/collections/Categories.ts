@@ -7,7 +7,7 @@ import {
   withTenantCollectionAccess,
   shouldHideCollection,
 } from '@/access'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 import { slugField } from '@/fields/slug'
 
 export const Categories: CollectionConfig = {

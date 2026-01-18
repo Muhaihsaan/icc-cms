@@ -1,5 +1,5 @@
 import { Field } from 'payload'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 export const searchFields: Field[] = [
   {

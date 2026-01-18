@@ -5,7 +5,6 @@ import type { User } from '@/payload-types'
 import { useAuth, usePayloadAPI } from '@payloadcms/ui'
 import { Roles } from '@/access'
 import { z } from 'zod'
-import { DocStatus } from '@/config/doc-status'
 
 const postsListResponseSchema = z.object({
   totalDocs: z.number(),
@@ -34,14 +33,12 @@ const encodeQuery = (pairs: QueryKV): string => {
   return `${params}`
 }
 
-// Build a query string for the Posts API to count published posts by a user.
+// Build a query string for the Posts API to count all posts by a user (regardless of status).
 const buildPostsQuery = (userId: UserId): string =>
   encodeQuery([
     ['depth', 0],
     ['limit', 1],
-    ['where[and][0][authors][contains]', userId],
-    ['where[and][1][or][0][_status][equals]', DocStatus.PUBLISHED],
-    ['where[and][1][or][1][publishedAt][exists]', true],
+    ['where[authors][contains]', userId],
   ])
 
 const tenantEntrySchema = z.object({
@@ -96,10 +93,10 @@ export const GuestWriterLimitDescription: React.FC = () => {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.25rem' }}>
       <p>
-        Guest-writer limit: {countLabel} of {limit} posts used. Remaining: {remaining}.
+        Guest-writer limit: {countLabel} of {limit} posts created. Remaining: {remaining}.
       </p>
       <p style={{ fontSize: '0.875em', opacity: 0.7 }}>
-        Your posts will be reviewed by an admin before actually published.
+        Your posts will be reviewed by an admin before being published.
       </p>
     </div>
   )

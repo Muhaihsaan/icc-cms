@@ -9,7 +9,7 @@ import {
   tenantsReadAccess,
   tenantsUpdateAccess,
 } from '@/access'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 import { cleanAllowPublicRead } from './hooks/cleanAllowPublicRead'
 import { validateAllowPublicRead, validateAllowedCollections } from './hooks/validators'
 

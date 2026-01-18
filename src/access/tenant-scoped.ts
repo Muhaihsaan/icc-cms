@@ -9,9 +9,9 @@ import {
   normalizeTenantId,
 } from '@/access/helpers'
 import { isTopLevelUser } from '@/access/role-checks'
-import type { TenantManagedCollection } from '@/config/tenant-collections'
-import { Collections } from '@/config/collections'
-import { DocStatus } from '@/config/doc-status'
+import type { TenantManagedCollection } from '@/config'
+import { Collections } from '@/config'
+import { DocStatus } from '@/config'
 
 // Where clause that matches nothing (returns empty results gracefully).
 export const whereNoAccess: Where = { id: { in: [] } }
@@ -103,7 +103,13 @@ export const tenantCollectionAdminAccess =
     // If we have a tenant ID, check allowedCollections
     if (tenantId) {
       const allowedCollections = await getTenantAllowedCollections(req, tenantId)
-      if (!allowedCollections || allowedCollections.length === 0) return false
+      // undefined = tenant not found, deny access
+      if (allowedCollections === undefined) return false
+      // null = not configured, allow all collections (fail open)
+      if (allowedCollections === null) return true
+      // empty array = explicitly set to none, deny all
+      if (allowedCollections.length === 0) return false
+      // check if collection is in allowed list
       return allowedCollections.includes(collection)
     }
 

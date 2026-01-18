@@ -2,10 +2,10 @@ import type React from 'react'
 import type { Page, Post } from '@/payload-types'
 import { z } from 'zod'
 
-import { getCachedDocument } from '@/utilities/getDocument'
-import { getCachedRedirects } from '@/utilities/getRedirects'
+import { getCachedDocument } from '@/utilities/tenant/getDocument'
+import { getCachedRedirects } from '@/utilities/tenant/getRedirects'
 import { notFound, redirect } from 'next/navigation'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 const stringIdSchema = z.string()
 const collectionSchema = z.enum([Collections.PAGES, Collections.POSTS])

@@ -1,5 +1,5 @@
 import type { Block } from 'payload'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 export const MediaBlock: Block = {
   slug: 'mediaBlock',

@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 import { isSuperAdmin, Roles } from '@/access'
 import { isSuperAdmin as isSuperAdminClient } from '@/access/client-checks'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 type TenantsValidateArgs = {
   req: AccessArgs['req']

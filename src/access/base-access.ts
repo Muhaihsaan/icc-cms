@@ -2,7 +2,7 @@ import type { Access } from 'payload'
 import type { AccessArgs } from 'payload'
 
 import type { User } from '@/payload-types'
-import { DocStatus } from '@/config/doc-status'
+import { DocStatus } from '@/config'
 
 type isAuthenticated = (args: AccessArgs<User>) => boolean
 

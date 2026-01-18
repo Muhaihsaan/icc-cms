@@ -1,7 +1,7 @@
 import type { CollectionAfterReadHook, PayloadRequest } from 'payload'
 import type { Post, User } from 'src/payload-types'
 import { z } from 'zod'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 type UserId = User['id']
 type AuthorData = { id: UserId; name: User['name'] }

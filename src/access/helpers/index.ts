@@ -2,8 +2,8 @@ import type { AccessArgs } from 'payload'
 import { z } from 'zod'
 
 import { Roles } from '@/access/roles'
-import type { TenantManagedCollection } from '@/config/tenant-collections'
-import { Collections } from '@/config/collections'
+import type { TenantManagedCollection } from '@/config'
+import { Collections } from '@/config'
 
 const TENANT_COOKIE_NAME = 'payload-tenant'
 

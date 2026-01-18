@@ -1,6 +1,6 @@
 import { BeforeSync, DocToSync } from '@payloadcms/plugin-search/types'
 import { z } from 'zod'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 const categorySchema = z.object({
   id: z.union([z.string(), z.number()]),

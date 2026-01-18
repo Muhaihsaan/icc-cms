@@ -13,8 +13,9 @@ import {
   usersDeleteAccess,
   usersReadAccess,
   usersUpdateAccess,
+  shouldHideUsersCollection,
 } from '@/access'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 import { assignUsersToOneTenant } from './hooks/assignUsersToOneTenant'
 import { setCookieBasedOnDomain } from './hooks/setCookieBasedOnDomain'
 import { populateTenantAllowedCollections } from './hooks/populateTenantAllowedCollections'
@@ -59,6 +60,8 @@ export const Users: CollectionConfig = {
     read: usersReadAccess,
   },
   admin: {
+    // Hide Users collection from guest writers (they can access admin but shouldn't see Users)
+    hidden: shouldHideUsersCollection,
     defaultColumns: ['name', 'email', 'roles'],
     useAsTitle: 'name',
     baseListFilter: ({ req }): Where => {

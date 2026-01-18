@@ -1,7 +1,7 @@
 import type { CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import type { Page } from '@/payload-types'
-import { DocStatus } from '@/config/doc-status'
+import { DocStatus } from '@/config'
 
 const toTenantPath = (tenantDomain: string, slug?: string | null): string => {
   const cleanSlug = slug && slug !== 'home' ? slug : ''

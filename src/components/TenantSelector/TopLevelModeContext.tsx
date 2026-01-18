@@ -1,31 +1,29 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import { useAuth } from '@payloadcms/ui'
 
 import { isTopLevelUser } from '@/access/client-checks'
 
 const TOP_LEVEL_KEY = 'icc-top-level'
 
-// localStorage helpers
+// localStorage helpers - only call these in useEffect/event handlers, never during render
 function getTopLevelStorage(): boolean {
-  if (typeof window === 'undefined') return false
   return localStorage.getItem(TOP_LEVEL_KEY) === 'true'
 }
 
 function setTopLevelStorage(value: boolean): void {
-  if (typeof window === 'undefined') return
   localStorage.setItem(TOP_LEVEL_KEY, value.toString())
 }
 
 function hasStorageSet(): boolean {
-  if (typeof window === 'undefined') return false
   return localStorage.getItem(TOP_LEVEL_KEY) !== null
 }
 
 type TopLevelModeContextType = {
   isTopLevelMode: boolean
   setTopLevelMode: (value: boolean) => void
+  isHydrated: boolean
 }
 
 const TopLevelModeContext = createContext<TopLevelModeContextType | null>(null)
@@ -34,17 +32,23 @@ export function TopLevelModeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const isTopLevel = isTopLevelUser(user)
 
-  // Top-level users default to top-level mode (check localStorage for persistence)
-  // Regular users are never in top-level mode
-  const [isTopLevelMode, setIsTopLevelMode] = useState(() => {
-    if (!isTopLevel) return false
-    // Check if localStorage has a value - if not, default to true for top-level users
-    if (!hasStorageSet()) {
+  // Initialize with server-safe default (false), sync with localStorage after mount
+  const [isTopLevelMode, setIsTopLevelMode] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  // Sync state with localStorage after hydration
+  useEffect(() => {
+    if (!isTopLevel) {
+      setIsTopLevelMode(false)
+    } else if (!hasStorageSet()) {
+      // First time: default to true for top-level users
       setTopLevelStorage(true)
-      return true
+      setIsTopLevelMode(true)
+    } else {
+      setIsTopLevelMode(getTopLevelStorage())
     }
-    return getTopLevelStorage()
-  })
+    setIsHydrated(true)
+  }, [isTopLevel])
 
   const setTopLevelMode = useCallback(
     (value: boolean) => {
@@ -62,7 +66,7 @@ export function TopLevelModeProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <TopLevelModeContext.Provider value={{ isTopLevelMode, setTopLevelMode }}>
+    <TopLevelModeContext.Provider value={{ isTopLevelMode, setTopLevelMode, isHydrated }}>
       {children}
     </TopLevelModeContext.Provider>
   )
@@ -72,7 +76,7 @@ export function useTopLevelMode() {
   const context = useContext(TopLevelModeContext)
   if (!context) {
     // If used outside provider, return safe defaults
-    return { isTopLevelMode: false, setTopLevelMode: () => {} }
+    return { isTopLevelMode: false, setTopLevelMode: () => {}, isHydrated: false }
   }
   return context
 }

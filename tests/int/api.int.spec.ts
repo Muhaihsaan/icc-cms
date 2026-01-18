@@ -1,6 +1,6 @@
 import { getPayload, Payload } from 'payload'
 import config from '@/payload.config'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 import { describe, it, beforeAll, expect } from 'vitest'
 

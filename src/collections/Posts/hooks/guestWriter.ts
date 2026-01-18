@@ -1,7 +1,7 @@
 import type { CollectionBeforeChangeHook } from 'payload'
 
 import { hasGuestWriterRole } from '@/access/helpers'
-import { DocStatus } from '@/config/doc-status'
+import { DocStatus } from '@/config'
 import type { Post } from '@/payload-types'
 
 // Auto-assign guest writer as author of their own posts

@@ -1,7 +1,7 @@
 import type { Field, GroupField } from 'payload'
 
 import { getUserFirstTenantId } from '@/access/helpers'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 export type LinkAppearances = 'default' | 'outline'
 

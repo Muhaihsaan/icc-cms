@@ -8,7 +8,7 @@ import {
 } from '@payloadcms/richtext-lexical'
 
 import { linkGroup } from '@/fields/linkGroup'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 export const hero: Field = {
   name: 'hero',

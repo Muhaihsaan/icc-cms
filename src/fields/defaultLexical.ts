@@ -8,7 +8,7 @@ import {
   UnderlineFeature,
 } from '@payloadcms/richtext-lexical'
 import { z } from 'zod'
-import { Collections } from '@/config/collections'
+import { Collections } from '@/config'
 
 const namedFieldSchema = z.object({ name: z.string() })
 const linkFieldsSchema = z.object({ linkType: z.string().optional() })

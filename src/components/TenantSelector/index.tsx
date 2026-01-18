@@ -2,12 +2,12 @@
 
 import { useAuth } from '@payloadcms/ui'
 import { useTenantSelection } from '@payloadcms/plugin-multi-tenant/client'
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import { isTopLevelUser } from '@/access/client-checks'
 import { useTopLevelMode } from './TopLevelModeContext'
-import { tenantManagedCollections } from '@/config/tenant-collections'
+import { tenantManagedCollections } from '@/config'
 
 const optionSchema = z.object({
   label: z.string(),
@@ -23,7 +23,7 @@ const tenantResponseSchema = z.object({
 export function TenantSelector(): React.ReactElement | null {
   const { user } = useAuth()
   const tenantSelection = useTenantSelection()
-  const { isTopLevelMode, setTopLevelMode } = useTopLevelMode()
+  const { isTopLevelMode, setTopLevelMode, isHydrated } = useTopLevelMode()
 
   const isTopLevel = isTopLevelUser(user)
 
@@ -102,14 +102,16 @@ export function TenantSelector(): React.ReactElement | null {
   // Hide collections based on mode:
   // - Top-level mode: hide all tenant-managed collections
   // - Tenant selected: hide collections not in allowedCollections
-  useLayoutEffect(() => {
+  useEffect(() => {
+    // Wait for hydration to complete before applying styles
+    if (!isHydrated) return
+
     const styleId = 'hide-top-level-collections'
     const existing = document.getElementById(styleId)
     if (existing) existing.remove()
 
-    // Check localStorage directly to catch initial page load before state is ready
-    const isTopLevelFromStorage = localStorage.getItem('icc-top-level') === 'true'
-    const inTopLevelMode = isTopLevelFromStorage || (isTopLevel && isTopLevelSelected)
+    // Use state values (which are now synced with localStorage after hydration)
+    const inTopLevelMode = isTopLevel && isTopLevelSelected
 
     // Determine which collections to hide
     let collectionsToHide: string[] = []
@@ -160,7 +162,7 @@ export function TenantSelector(): React.ReactElement | null {
     return () => {
       document.getElementById(styleId)?.remove()
     }
-  }, [isTopLevel, isTopLevelSelected, selectedTenantId, allowedCollections])
+  }, [isHydrated, isTopLevel, isTopLevelSelected, selectedTenantId, allowedCollections])
 
   // Only show for top-level users
   if (!isTopLevel) return null

@@ -98,6 +98,24 @@ const hiddenArgsSchema = z.object({
 })
 
 /**
+ * Check if Users collection should be hidden.
+ * Only guest writers should have Users hidden - all other roles can see it.
+ */
+export const shouldHideUsersCollection = (args: unknown): boolean => {
+  const argsResult = hiddenArgsSchema.safeParse(args)
+  const user = argsResult.success ? argsResult.data.user : args
+
+  // Top-level users always see Users
+  if (isTopLevelUser(user)) return false
+
+  // Guest writers should NOT see Users collection
+  if (hasGuestWriterRole(user)) return true
+
+  // Tenant admins and tenant users can see Users
+  return false
+}
+
+/**
  * Check if a collection should be hidden for a tenant user based on allowedCollections.
  * Used by admin.hidden on tenant-scoped collections.
  *
@@ -130,8 +148,10 @@ export const shouldHideCollection = (collection: string) => (args: unknown): boo
   if (!entry) return false
 
   const allowedCollections = entry.allowedCollections
-  // If no allowedCollections data, don't hide (fail open)
-  if (!allowedCollections || allowedCollections.length === 0) return false
+  // null/undefined = not configured, don't hide (fail open, show all)
+  if (!allowedCollections) return false
+  // empty array = explicitly set to none, hide all tenant collections
+  if (allowedCollections.length === 0) return true
 
   // Hide if collection is NOT in allowedCollections
   return !allowedCollections.includes(collection)
