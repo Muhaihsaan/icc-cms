@@ -415,7 +415,7 @@ export interface User {
   roles?: ('super-admin' | 'super-editor') | null;
   name?: string | null;
   /**
-   * Maximum number of published posts a guest-writer can create.
+   * Maximum number of posts a guest-writer can create.
    */
   guestWriterPostLimit?: number | null;
   tenants?:

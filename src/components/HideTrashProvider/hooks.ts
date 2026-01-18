@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import type { ClientUser } from 'payload'
-import { isSuperAdmin } from '@/access/client-checks'
+import { isSuperAdmin, hasGuestWriterRole } from '@/access/client-checks'
 
 /**
  * Hides trash-related UI elements for non-super-admin users.
@@ -45,25 +45,33 @@ export function useHideTrash(user: ClientUser | null | undefined): void {
 }
 
 /**
- * Hides row selection checkboxes on users and tenants collections for non-super-admin users.
+ * Hides row selection checkboxes based on user role and collection.
  *
  * This hook injects CSS to hide:
  * - The select column header (#heading-_select)
  * - Individual row selection cells (.cell-_select, .row-_select)
  *
- * This prevents non-super-admins from bulk-selecting and performing
- * bulk operations (like bulk delete) on users and tenants.
+ * Selection is hidden for:
+ * - Non-super-admins on users and tenants collections
+ * - Guest writers on posts collection (they cannot delete posts)
  *
- * Super-admins retain full bulk selection capabilities.
- * The styles are only applied when viewing /collections/users or /collections/tenants.
+ * Super-admins retain full bulk selection capabilities on all collections.
  */
 export function useHideSelection(user: ClientUser | null | undefined, pathname: string | null): void {
   useEffect(() => {
     const isUsersCollection = pathname?.includes('/collections/users')
     const isTenantsCollection = pathname?.includes('/collections/tenants')
-    const shouldHide = isUsersCollection || isTenantsCollection
+    const isPostsCollection = pathname?.includes('/collections/posts')
 
-    if (isSuperAdmin(user) || !shouldHide) {
+    // Non-super-admins can't bulk select on users/tenants
+    const hideForNonSuperAdmin = !isSuperAdmin(user) && (isUsersCollection || isTenantsCollection)
+
+    // Guest writers can't bulk select on posts (no delete access)
+    const hideForGuestWriter = hasGuestWriterRole(user) && isPostsCollection
+
+    const shouldHide = hideForNonSuperAdmin || hideForGuestWriter
+
+    if (!shouldHide) {
       const existingStyle = document.getElementById('hide-select-style')
       if (existingStyle) existingStyle.remove()
       return
@@ -72,7 +80,7 @@ export function useHideSelection(user: ClientUser | null | undefined, pathname: 
     const style = document.createElement('style')
     style.id = 'hide-select-style'
     style.textContent = `
-      /* Hide selection checkboxes in users/tenants collection list */
+      /* Hide selection checkboxes */
       #heading-_select,
       .cell-_select,
       .row-_select {
@@ -86,6 +94,84 @@ export function useHideSelection(user: ClientUser | null | undefined, pathname: 
       if (existingStyle) existingStyle.remove()
     }
   }, [user, pathname])
+}
+
+/**
+ * Hides the Versions tab for guest writers.
+ *
+ * Guest writers should not have access to version history as they can only
+ * edit their own posts and don't need versioning capabilities.
+ */
+export function useHideVersions(user: ClientUser | null | undefined): void {
+  useEffect(() => {
+    if (!hasGuestWriterRole(user)) {
+      const existingStyle = document.getElementById('hide-versions-style')
+      if (existingStyle) existingStyle.remove()
+      return
+    }
+
+    const style = document.createElement('style')
+    style.id = 'hide-versions-style'
+    style.textContent = `
+      /* Hide Versions tab for guest writers */
+      [id^="doc-tab-Versions"],
+      button[id*="versions" i],
+      a[href*="/versions"] {
+        display: none !important;
+      }
+    `
+    document.head.appendChild(style)
+
+    return () => {
+      const existingStyle = document.getElementById('hide-versions-style')
+      if (existingStyle) existingStyle.remove()
+    }
+  }, [user])
+}
+
+/**
+ * Hides publish-related UI for guest writers.
+ *
+ * Guest writers cannot publish posts - they can only save drafts.
+ * This hides:
+ * - The publish button
+ * - The status/publish controls in the sidebar
+ * - The schedule publish option
+ */
+export function useHidePublish(user: ClientUser | null | undefined): void {
+  useEffect(() => {
+    if (!hasGuestWriterRole(user)) {
+      const existingStyle = document.getElementById('hide-publish-style')
+      if (existingStyle) existingStyle.remove()
+      return
+    }
+
+    const style = document.createElement('style')
+    style.id = 'hide-publish-style'
+    style.textContent = `
+      /* Hide publish button and status controls for guest writers */
+      .doc-controls__publish,
+      .publish,
+      #action-publish,
+      button[id*="publish" i],
+      .doc-controls__status,
+      .publish-button,
+      [class*="publish" i]:not([class*="unpublish"]),
+      /* Hide schedule publish */
+      .schedule-publish,
+      [class*="schedule-publish"],
+      /* Hide the status pill that shows Published/Draft with action links */
+      .doc-controls__content-status {
+        display: none !important;
+      }
+    `
+    document.head.appendChild(style)
+
+    return () => {
+      const existingStyle = document.getElementById('hide-publish-style')
+      if (existingStyle) existingStyle.remove()
+    }
+  }, [user])
 }
 
 /**

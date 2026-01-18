@@ -3,14 +3,17 @@
 import { useAuth } from '@payloadcms/ui'
 import { usePathname } from 'next/navigation'
 
-import { useHideTrash, useHideSelection, useHideTenantSelector } from './hooks'
+import { useHideTrash, useHideSelection, useHideVersions, useHidePublish, useHideTenantSelector } from './hooks'
 
 /**
  * Provider component that manages admin UI visibility based on user roles and current page.
  *
  * This provider combines multiple UI customization hooks:
  * - useHideTrash: Hides trash UI for non-super-admins
- * - useHideSelection: Hides bulk selection on users/tenants collections for non-super-admins
+ * - useHideSelection: Hides bulk selection on users/tenants collections for non-super-admins,
+ *   and on posts for guest writers
+ * - useHideVersions: Hides versions tab for guest writers
+ * - useHidePublish: Hides publish button and status controls for guest writers
  * - useHideTenantSelector: Hides tenant selector on collection pages
  *
  * @note Named HideTrashProvider for backwards compatibility, but handles multiple UI concerns.
@@ -22,6 +25,8 @@ export function HideTrashProvider({ children }: { children: React.ReactNode }): 
 
   useHideTrash(user)
   useHideSelection(user, pathname)
+  useHideVersions(user)
+  useHidePublish(user)
   useHideTenantSelector(pathname)
 
   return <>{children}</>

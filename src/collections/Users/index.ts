@@ -3,10 +3,10 @@ import { z } from 'zod'
 
 import {
   getEffectiveTenant,
+  hasAdminPanelAccess,
   isSuperAdmin,
   isSuperAdminFieldAccess,
   isSuperAdminOrBootstrapFieldAccess,
-  isSuperAdminOrEditor,
   isSuperAdminOrEditorFieldAccess,
   isTopLevelUser,
   Roles,
@@ -50,7 +50,7 @@ export const Users: CollectionConfig = {
   slug: 'users',
   trash: true,
   access: {
-    admin: isSuperAdminOrEditor,
+    admin: hasAdminPanelAccess,
     create: usersBootstrapCreateAccess,
     delete: usersDeleteAccess,
     update: usersUpdateAccess,
@@ -116,12 +116,26 @@ export const Users: CollectionConfig = {
       access: {
         create: isSuperAdminFieldAccess,
         update: isSuperAdminFieldAccess,
-        read: isSuperAdminFieldAccess,
+        // Allow super-admins to read any user's limit, and users to read their own
+        read: ({ req, doc }) => {
+          if (isSuperAdmin(req.user)) return true
+          // Allow users to read their own guestWriterPostLimit
+          return req.user?.id === doc?.id
+        },
       },
       admin: {
         position: 'sidebar',
-        hidden: true,
-        description: 'Maximum number of published posts a guest-writer can create.',
+        // Only show for super-admins when user has guest-writer role
+        condition: (data, _siblingData, { user }) => {
+          if (!isSuperAdmin(user)) return false
+          // Check if the user being edited has guest-writer role
+          const tenants = data?.tenants
+          if (!Array.isArray(tenants) || tenants.length === 0) return false
+          const firstTenant = tenants[0]
+          if (!firstTenant?.roles) return false
+          return firstTenant.roles.includes(Roles.guestWriter)
+        },
+        description: 'Maximum number of posts a guest-writer can create.',
       },
       defaultValue: 1,
     },

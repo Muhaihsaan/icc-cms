@@ -11,10 +11,11 @@ import {
 } from '@payloadcms/richtext-lexical'
 
 import {
-  tenantPublicReadAccess,
   tenantCollectionAdminAccess,
   postsCreateAccess,
   postsUpdateAccess,
+  postsDeleteAccess,
+  postsReadAccess,
   withTenantCollectionAccess,
   shouldHideCollection,
 } from '@/access'
@@ -61,7 +62,30 @@ const assignGuestWriterAuthor: CollectionBeforeChangeHook<Post> = ({ req, data }
   }
 }
 
+// Prevent guest writers from publishing posts - force draft status
+const preventGuestWriterPublish: CollectionBeforeChangeHook<Post> = ({ req, data }) => {
+  const user = req.user
+  if (!user) return data
+  if (!hasGuestWriterRole(user)) return data
+
+  const nextData: Partial<Post> = data ?? {}
+
+  // Force draft status and clear publishedAt for guest writers
+  return {
+    ...nextData,
+    _status: DocStatus.DRAFT,
+    publishedAt: null,
+  }
+}
+
 const canUpdateAuthors: FieldAccess = ({ req }) => {
+  const user = req.user
+  if (!user) return false
+  return !hasGuestWriterRole(user)
+}
+
+// Guest writers cannot modify publishedAt field
+const canUpdatePublishedAt: FieldAccess = ({ req }) => {
   const user = req.user
   if (!user) return false
   return !hasGuestWriterRole(user)
@@ -73,8 +97,8 @@ export const Posts: CollectionConfig<'posts'> = {
   access: {
     admin: tenantCollectionAdminAccess(Collections.POSTS),
     create: withTenantCollectionAccess(Collections.POSTS, postsCreateAccess),
-    delete: postsUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
-    read: tenantPublicReadAccess(Collections.POSTS, { publishedOnly: true }),
+    delete: postsDeleteAccess,
+    read: postsReadAccess(Collections.POSTS, { publishedOnly: true }),
     update: postsUpdateAccess,
   },
   // This config controls what's populated by default when a post is referenced
@@ -213,11 +237,16 @@ export const Posts: CollectionConfig<'posts'> = {
     {
       name: 'publishedAt',
       type: 'date',
+      access: {
+        update: canUpdatePublishedAt,
+      },
       admin: {
         date: {
           pickerAppearance: 'dayAndTime',
         },
         position: 'sidebar',
+        // Hide for guest writers since they can't publish
+        condition: (_data, _siblingData, { user }) => !hasGuestWriterRole(user),
       },
       hooks: {
         beforeChange: [
@@ -284,7 +313,7 @@ export const Posts: CollectionConfig<'posts'> = {
     ...slugField(),
   ],
   hooks: {
-    beforeChange: [assignGuestWriterAuthor, populateTenantDomain],
+    beforeChange: [assignGuestWriterAuthor, preventGuestWriterPublish, populateTenantDomain],
     afterChange: [revalidatePost],
     afterRead: [populateAuthors],
     afterDelete: [revalidateDelete],

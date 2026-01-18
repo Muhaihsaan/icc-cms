@@ -19,6 +19,7 @@ export {
   isSuperAdminOrTenantMember,
   isSuperAdminOrEditor,
   isSuperAdminOrEditorFieldAccess,
+  hasAdminPanelAccess,
 } from '@/access/role-checks'
 
 // Client-side checks (for admin.hidden)
@@ -49,7 +50,7 @@ export {
 } from '@/access/collections/users'
 
 // Collection-specific access: Posts
-export { postsCreateAccess, postsUpdateAccess } from '@/access/collections/posts'
+export { postsCreateAccess, postsUpdateAccess, postsDeleteAccess, postsReadAccess } from '@/access/collections/posts'
 
 // Collection-specific access: Tenants
 export { tenantsReadAccess, tenantsUpdateAccess } from '@/access/collections/tenants'

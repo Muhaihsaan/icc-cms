@@ -83,11 +83,28 @@ export const tenantCollectionAdminAccess =
     let tenantId = normalizeTenantId(getTenantFromReq(req))
 
     // For tenant users without cookie, resolve from their assigned tenant
+    const tenantData = getUserTenantData(req)
     if (!tenantId && !isTopLevelUser(req.user)) {
-      const tenantData = getUserTenantData(req)
       if (tenantData.allTenantIds.length === 1) {
         tenantId = tenantData.allTenantIds[0]
       }
+    }
+
+    // DEBUG: Trace guest writer access issue
+    console.log('[tenantCollectionAdminAccess] DEBUG', {
+      collection,
+      userEmail: req.user?.email,
+      tenantId,
+      tenantData,
+      hasGuestWriterRole: tenantData.hasGuestWriterRole,
+      isTopLevel: isTopLevelUser(req.user),
+    })
+
+    // Guest writers can only access Posts collection
+    if (tenantData.hasGuestWriterRole) {
+      const result = collection === Collections.POSTS
+      console.log('[tenantCollectionAdminAccess] Guest writer result:', { collection, result })
+      return result
     }
 
     // Top-level users with NO tenant selected = show all (top-level mode)

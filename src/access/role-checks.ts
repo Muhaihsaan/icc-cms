@@ -65,6 +65,16 @@ export const isSuperAdminOrEditor = ({ req }: AccessArgs): boolean => {
   return tenantData.hasAdminRole
 }
 
+// Allow admin panel access for any authenticated user with a tenant role.
+// This is used for the Users collection access.admin to gate overall admin UI access.
+export const hasAdminPanelAccess = ({ req }: AccessArgs): boolean => {
+  if (isSuperAdmin(req.user)) return true
+  if (isSuperEditor(req.user)) return true
+  const tenantData = getUserTenantData(req)
+  // Allow any user with a tenant role (admin, viewer, or guest writer)
+  return tenantData.hasAnyRole
+}
+
 // Allow field access for super-admins, super-editors, or tenant admins.
 export const isSuperAdminOrEditorFieldAccess: FieldAccess = ({ req }): boolean => {
   if (isSuperAdmin(req.user)) return true

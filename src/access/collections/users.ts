@@ -1,7 +1,7 @@
 import type { Access, Where } from 'payload'
 
 import { getUserTenantData, getEffectiveTenant } from '@/access/helpers'
-import { isSuperAdmin, isTopLevelUser } from '@/access/role-checks'
+import { isSuperAdmin, isSuperEditor, isTopLevelUser } from '@/access/role-checks'
 import { Roles } from '@/access/roles'
 import { Collections } from '@/config/collections'
 
@@ -46,14 +46,33 @@ export const usersReadAccess: Access = ({ req }) => {
 }
 
 // Allow updating users.
-// Top-level users (super-admin/super-editor) can update ALL users.
+// Super-admins can update ALL users.
+// Super-editors can update all users EXCEPT other top-level users (super-admin/super-editor).
 // Tenant-admins can only update users within their tenant(s).
 export const usersUpdateAccess: Access = ({ req }) => {
   const { user } = req
   if (!user) return false
 
-  // Top-level users can update all users
-  if (isTopLevelUser(user)) return true
+  // Super-admins can update all users
+  if (isSuperAdmin(user)) return true
+
+  // Super-editors can update all users except top-level users (but can edit themselves)
+  if (isSuperEditor(user)) {
+    const where: Where = {
+      or: [
+        // Can edit their own account
+        { id: { equals: user.id } },
+        // Can edit non-top-level users
+        {
+          and: [
+            { roles: { not_equals: Roles.superAdmin } },
+            { roles: { not_equals: Roles.superEditor } },
+          ],
+        },
+      ],
+    }
+    return where
+  }
 
   const tenantData = getUserTenantData(req)
   if (tenantData.hasAdminRole) {

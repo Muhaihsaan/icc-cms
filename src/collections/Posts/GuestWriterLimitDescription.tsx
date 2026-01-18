@@ -11,6 +11,10 @@ const postsListResponseSchema = z.object({
   totalDocs: z.number(),
 })
 
+const userResponseSchema = z.object({
+  guestWriterPostLimit: z.number().optional(),
+})
+
 type PayloadAPIState = {
   data?: unknown
   isLoading?: boolean
@@ -31,7 +35,7 @@ const encodeQuery = (pairs: QueryKV): string => {
 }
 
 // Build a query string for the Posts API to count published posts by a user.
-const buildQuery = (userId: UserId): string =>
+const buildPostsQuery = (userId: UserId): string =>
   encodeQuery([
     ['depth', 0],
     ['limit', 1],
@@ -62,14 +66,27 @@ export const GuestWriterLimitDescription: React.FC = () => {
 
   const userId = user?.id
   const shouldFetch = Boolean(userId && isGuestWriter)
-  const url = shouldFetch && userId ? `/api/posts?${buildQuery(userId)}` : '/api/users?limit=0'
-  const [{ data }]: [PayloadAPIState, unknown?] = usePayloadAPI(url)
-  const parsedData = postsListResponseSchema.safeParse(data)
-  const publishedCount = parsedData.success ? parsedData.data.totalDocs : null
+
+  // Fetch published posts count
+  const postsUrl = shouldFetch && userId ? `/api/posts?${buildPostsQuery(userId)}` : null
+  const [{ data: postsData }]: [PayloadAPIState, unknown?] = usePayloadAPI(
+    postsUrl ?? '/api/users?limit=0',
+  )
+  const parsedPostsData = postsListResponseSchema.safeParse(postsData)
+  const publishedCount = parsedPostsData.success ? parsedPostsData.data.totalDocs : null
+
+  // Fetch fresh user data to get updated guestWriterPostLimit
+  const userUrl = shouldFetch && userId ? `/api/users/${userId}?depth=0` : null
+  const [{ data: userData }]: [PayloadAPIState, unknown?] = usePayloadAPI(
+    userUrl ?? '/api/users?limit=0',
+  )
+  const parsedUserData = userResponseSchema.safeParse(userData)
+  const freshLimit = parsedUserData.success ? parsedUserData.data.guestWriterPostLimit : undefined
 
   if (!isGuestWriter) return null
 
-  const limit = user?.guestWriterPostLimit ?? 1
+  // Use fresh limit from API, fallback to session, then default to 1
+  const limit = freshLimit ?? user?.guestWriterPostLimit ?? 1
 
   const countLabel: number | '...' = publishedCount === null ? '...' : publishedCount
 
@@ -77,8 +94,13 @@ export const GuestWriterLimitDescription: React.FC = () => {
     publishedCount === null ? '...' : Math.max(limit - publishedCount, 0)
 
   return (
-    <p>
-      Guest-writer limit: {countLabel} of {limit} published posts used. Remaining: {remaining}.
-    </p>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.25rem' }}>
+      <p>
+        Guest-writer limit: {countLabel} of {limit} posts used. Remaining: {remaining}.
+      </p>
+      <p style={{ fontSize: '0.875em', opacity: 0.7 }}>
+        Your posts will be reviewed by an admin before actually published.
+      </p>
+    </div>
   )
 }
