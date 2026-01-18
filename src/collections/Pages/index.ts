@@ -8,12 +8,6 @@ import {
   shouldHideCollection,
 } from '@/access'
 import { Collections } from '@/config'
-import { Archive } from '../../blocks/ArchiveBlock/config'
-import { CallToAction } from '../../blocks/CallToAction/config'
-import { Content } from '../../blocks/Content/config'
-import { FormBlock } from '../../blocks/Form/config'
-import { MediaBlock } from '../../blocks/MediaBlock/config'
-import { hero } from '@/heros/config'
 import { slugField } from '@/fields/slug'
 import { generatePreviewPath } from '../../utilities/generatePreviewPath'
 import { parseSlug } from '@/utilities/parseSlug'
@@ -70,54 +64,29 @@ export const Pages: CollectionConfig<'pages'> = {
       type: 'text',
       required: true,
     },
+    ...slugField(),
     {
-      type: 'tabs',
-      tabs: [
-        {
-          fields: [hero],
-          label: 'Hero',
-        },
-        {
-          fields: [
-            {
-              name: 'layout',
-              type: 'blocks',
-              blocks: [CallToAction, Content, MediaBlock, Archive, FormBlock],
-              required: true,
-              admin: {
-                initCollapsed: true,
-              },
-            },
-          ],
-          label: 'Content',
-        },
-        {
-          name: 'meta',
-          label: 'SEO',
-          fields: [
-            OverviewField({
-              titlePath: 'meta.title',
-              descriptionPath: 'meta.description',
-              imagePath: 'meta.image',
-            }),
-            MetaTitleField({
-              hasGenerateFn: true,
-            }),
-            MetaImageField({
-              relationTo: Collections.MEDIA,
-            }),
-
-            MetaDescriptionField({}),
-            PreviewField({
-              // if the `generateUrl` function is configured
-              hasGenerateFn: true,
-
-              // field paths to match the target field for data
-              titlePath: 'meta.title',
-              descriptionPath: 'meta.description',
-            }),
-          ],
-        },
+      name: 'meta',
+      label: 'SEO',
+      type: 'group',
+      fields: [
+        OverviewField({
+          titlePath: 'meta.title',
+          descriptionPath: 'meta.description',
+          imagePath: 'meta.image',
+        }),
+        MetaTitleField({
+          hasGenerateFn: true,
+        }),
+        MetaImageField({
+          relationTo: Collections.MEDIA,
+        }),
+        MetaDescriptionField({}),
+        PreviewField({
+          hasGenerateFn: true,
+          titlePath: 'meta.title',
+          descriptionPath: 'meta.description',
+        }),
       ],
     },
     {
@@ -135,7 +104,6 @@ export const Pages: CollectionConfig<'pages'> = {
         position: 'sidebar',
       },
     },
-    ...slugField(),
   ],
   hooks: {
     beforeChange: [populateTenantDomain],

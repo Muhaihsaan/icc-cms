@@ -30,6 +30,7 @@ import { populateAuthors } from './hooks/populateAuthors'
 import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
 import { assignGuestWriterAuthor, preventGuestWriterPublish } from './hooks/guestWriter'
 import { autoPublishDate } from './hooks/autoPublishDate'
+import { calculateReadingTimeHook } from './hooks/calculate-reading-time'
 
 import {
   MetaDescriptionField,
@@ -170,16 +171,27 @@ export const Posts: CollectionConfig<'posts'> = {
             MetaImageField({
               relationTo: Collections.MEDIA,
             }),
-
             MetaDescriptionField({}),
             PreviewField({
-              // if the `generateUrl` function is configured
               hasGenerateFn: true,
-
-              // field paths to match the target field for data
               titlePath: 'meta.title',
               descriptionPath: 'meta.description',
             }),
+            {
+              name: 'canonicalUrl',
+              type: 'text',
+              admin: {
+                description: 'Override the default URL if this content exists elsewhere (leave empty to use default)',
+              },
+            },
+            {
+              name: 'noIndex',
+              type: 'checkbox',
+              defaultValue: false,
+              admin: {
+                description: 'Prevent search engines from indexing this post',
+              },
+            },
           ],
         },
       ],
@@ -197,6 +209,15 @@ export const Posts: CollectionConfig<'posts'> = {
       },
       hooks: {
         beforeChange: [autoPublishDate],
+      },
+    },
+    {
+      name: 'readingTime',
+      type: 'number',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description: 'Estimated reading time in minutes (auto-calculated)',
       },
     },
     {
@@ -253,7 +274,7 @@ export const Posts: CollectionConfig<'posts'> = {
     ...slugField(),
   ],
   hooks: {
-    beforeChange: [assignGuestWriterAuthor, preventGuestWriterPublish, populateTenantDomain],
+    beforeChange: [assignGuestWriterAuthor, preventGuestWriterPublish, populateTenantDomain, calculateReadingTimeHook],
     afterChange: [revalidatePost],
     afterRead: [populateAuthors],
     afterDelete: [revalidateDelete],

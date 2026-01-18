@@ -25,6 +25,21 @@ export const DocStatus = {
   PUBLISHED: 'published',
 } as const
 
+// Section field types
+export const SectionFieldTypes = {
+  TEXT: 'text',
+  TEXTAREA: 'textarea',
+  RICH_TEXT: 'richText',
+  NUMBER: 'number',
+  DATE: 'date',
+  SELECT: 'select',
+  MEDIA: 'media',
+  LINK: 'link',
+  ARRAY: 'array',
+} as const
+
+export type SectionFieldType = (typeof SectionFieldTypes)[keyof typeof SectionFieldTypes]
+
 export type DocStatusValue = (typeof DocStatus)[keyof typeof DocStatus]
 
 // Collections that are managed per-tenant and can be toggled in tenant settings
