@@ -131,13 +131,27 @@ export const plugins: Plugin[] = [
 
   multiTenantPlugin<Config>({
     collections: {
-      [Collections.PAGES]: {},
-      [Collections.POSTS]: {},
-      [Collections.HEADER]: {},
-      [Collections.FOOTER]: {},
-      [Collections.MEDIA]: {},
-      [Collections.CATEGORIES]: {},
-      [Collections.REDIRECTS]: {},
+      [Collections.PAGES]: {
+        tenantFieldOverrides: { admin: { readOnly: true } },
+      },
+      [Collections.POSTS]: {
+        tenantFieldOverrides: { admin: { readOnly: true } },
+      },
+      [Collections.HEADER]: {
+        tenantFieldOverrides: { admin: { readOnly: true } },
+      },
+      [Collections.FOOTER]: {
+        tenantFieldOverrides: { admin: { readOnly: true } },
+      },
+      [Collections.MEDIA]: {
+        tenantFieldOverrides: { admin: { readOnly: true } },
+      },
+      [Collections.CATEGORIES]: {
+        tenantFieldOverrides: { admin: { readOnly: true } },
+      },
+      [Collections.REDIRECTS]: {
+        tenantFieldOverrides: { admin: { readOnly: true } },
+      },
       [Collections.USERS]: {
         // We use custom baseListFilter in Users collection config
         useBaseListFilter: false,

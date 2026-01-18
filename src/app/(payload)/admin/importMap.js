@@ -18,7 +18,7 @@ import { PreviewComponent as PreviewComponent_a8a977ebc872c5d5ea7ee689724c0860 }
 import { SlugComponent as SlugComponent_92cc057d0a2abb4f6cf0307edf59f986 } from '@/fields/slug/SlugComponent'
 import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BlocksFeatureClient as BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
-import { GuestWriterLimitDescription as GuestWriterLimitDescription_56cd87f665152d8637b5cdbb6e081e3f } from '@/collections/Posts/GuestWriterLimitDescription'
+import { GuestWriterLimitDescription as GuestWriterLimitDescription_60b6d604682c51fbc8805f1e9938ebae } from '@/components/GuestWriterLimitDescription'
 import { default as default_4a384121f2abb832ea9c55da9e25a4db } from '@/components/UserRoleField'
 import { AllowPublicReadField as AllowPublicReadField_a7e72a28c40e86a60dd40029508e1330 } from '@/components/AllowPublicReadField'
 import { WatchTenantCollection as WatchTenantCollection_1d0591e3cf4f332c83a86da13a0de59a } from '@payloadcms/plugin-multi-tenant/client'
@@ -53,7 +53,7 @@ export const importMap = {
   "@/fields/slug/SlugComponent#SlugComponent": SlugComponent_92cc057d0a2abb4f6cf0307edf59f986,
   "@payloadcms/richtext-lexical/client#HorizontalRuleFeatureClient": HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BlocksFeatureClient": BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
-  "@/collections/Posts/GuestWriterLimitDescription#GuestWriterLimitDescription": GuestWriterLimitDescription_56cd87f665152d8637b5cdbb6e081e3f,
+  "@/components/GuestWriterLimitDescription#GuestWriterLimitDescription": GuestWriterLimitDescription_60b6d604682c51fbc8805f1e9938ebae,
   "@/components/UserRoleField#default": default_4a384121f2abb832ea9c55da9e25a4db,
   "@/components/AllowPublicReadField#AllowPublicReadField": AllowPublicReadField_a7e72a28c40e86a60dd40029508e1330,
   "@payloadcms/plugin-multi-tenant/client#WatchTenantCollection": WatchTenantCollection_1d0591e3cf4f332c83a86da13a0de59a,

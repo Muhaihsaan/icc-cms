@@ -47,9 +47,9 @@ export const Posts: CollectionConfig<'posts'> = {
   access: {
     admin: tenantCollectionAdminAccess(Collections.POSTS),
     create: withTenantCollectionAccess(Collections.POSTS, postsCreateAccess),
-    delete: postsDeleteAccess,
+    delete: withTenantCollectionAccess(Collections.POSTS, postsDeleteAccess),
     read: postsReadAccess(Collections.POSTS, { publishedOnly: true }),
-    update: postsUpdateAccess,
+    update: withTenantCollectionAccess(Collections.POSTS, postsUpdateAccess),
   },
   // This config controls what's populated by default when a post is referenced
   // https://payloadcms.com/docs/queries/select#defaultpopulate-collection-config-property
@@ -187,15 +187,12 @@ export const Posts: CollectionConfig<'posts'> = {
     {
       name: 'publishedAt',
       type: 'date',
-      access: {
-        update: notGuestWriterFieldAccess,
-      },
       admin: {
         date: {
           pickerAppearance: 'dayAndTime',
         },
         position: 'sidebar',
-        // Hide for guest writers since they can't publish
+        // Hidden for guest writers - preventGuestWriterPublish hook enforces draft status
         condition: (_data, _siblingData, { user }) => !hasGuestWriterRole(user),
       },
       hooks: {

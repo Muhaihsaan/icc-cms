@@ -16,7 +16,7 @@ export const Categories: CollectionConfig = {
   access: {
     admin: tenantCollectionAdminAccess(Collections.CATEGORIES),
     create: withTenantCollectionAccess(Collections.CATEGORIES, tenantAdminUpdateAccess),
-    delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
+    delete: withTenantCollectionAccess(Collections.CATEGORIES, tenantAdminUpdateAccess),
     read: withTenantCollectionAccess(Collections.CATEGORIES, tenantPublicReadAccess(Collections.CATEGORIES)),
     update: withTenantCollectionAccess(Collections.CATEGORIES, tenantAdminUpdateAccess),
   },

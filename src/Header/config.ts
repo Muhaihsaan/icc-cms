@@ -20,7 +20,7 @@ export const Header: CollectionConfig = {
   access: {
     admin: tenantCollectionAdminAccess(Collections.HEADER),
     create: withTenantCollectionAccess(Collections.HEADER, tenantAdminUpdateAccess),
-    delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
+    delete: withTenantCollectionAccess(Collections.HEADER, tenantAdminUpdateAccess),
     read: withTenantCollectionAccess(Collections.HEADER, tenantPublicReadAccess(Collections.HEADER)),
     update: withTenantCollectionAccess(Collections.HEADER, tenantAdminUpdateAccess),
   },

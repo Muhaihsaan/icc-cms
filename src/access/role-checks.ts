@@ -67,13 +67,12 @@ export const isSuperAdminOrEditor = ({ req }: AccessArgs): boolean => {
 
 // Allow admin panel access for users who can manage content.
 // This is used for the Users collection access.admin to gate overall admin UI access.
-// Tenant-users are excluded - they don't have admin panel access.
+// Guest-writers and tenant-users are excluded - they only access Posts via tenantCollectionAdminAccess.
 export const hasAdminPanelAccess = ({ req }: AccessArgs): boolean => {
   if (isSuperAdmin(req.user)) return true
   if (isSuperEditor(req.user)) return true
   const tenantData = getUserTenantData(req)
-  // Allow tenant-admins and guest-writers, but NOT tenant-users
-  return tenantData.hasAdminRole || tenantData.hasGuestWriterRole
+  return tenantData.hasAdminRole
 }
 
 // Allow field access for super-admins, super-editors, or tenant admins.

@@ -34,9 +34,9 @@ export const Pages: CollectionConfig<'pages'> = {
   access: {
     admin: tenantCollectionAdminAccess(Collections.PAGES),
     create: withTenantCollectionAccess(Collections.PAGES, tenantAdminUpdateAccess),
-    delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
+    delete: withTenantCollectionAccess(Collections.PAGES, tenantAdminUpdateAccess),
     read: tenantPublicReadAccess(Collections.PAGES, { publishedOnly: true }),
-    update: tenantAdminUpdateAccess,
+    update: withTenantCollectionAccess(Collections.PAGES, tenantAdminUpdateAccess),
   },
   // This config controls what's populated by default when a page is referenced
   // https://payloadcms.com/docs/queries/select#defaultpopulate-collection-config-property
