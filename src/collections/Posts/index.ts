@@ -1,4 +1,4 @@
-import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
+import type { CollectionConfig } from 'payload'
 
 import {
   BlocksFeature,
@@ -28,7 +28,8 @@ import { MediaBlock } from '@/blocks/MediaBlock/config'
 import { generatePreviewPath } from '@/utilities/generatePreviewPath'
 import { populateAuthors } from './hooks/populateAuthors'
 import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
-import type { Post } from '@/payload-types'
+import { assignGuestWriterAuthor, preventGuestWriterPublish } from './hooks/guestWriter'
+import { autoPublishDate } from './hooks/autoPublishDate'
 
 import {
   MetaDescriptionField,
@@ -39,36 +40,6 @@ import {
 } from '@payloadcms/plugin-seo/fields'
 import { slugField } from '@/fields/slug'
 import { populateTenantDomain } from '@/hooks/populate-tenant-domain'
-import { DocStatus } from '@/config/doc-status'
-
-const assignGuestWriterAuthor: CollectionBeforeChangeHook<Post> = ({ req, data }) => {
-  const user = req.user
-  if (!user) return data
-  if (!hasGuestWriterRole(user)) return data
-
-  const nextData: Partial<Post> = data ?? {}
-
-  return {
-    ...nextData,
-    authors: [user.id],
-  }
-}
-
-// Prevent guest writers from publishing posts - force draft status
-const preventGuestWriterPublish: CollectionBeforeChangeHook<Post> = ({ req, data }) => {
-  const user = req.user
-  if (!user) return data
-  if (!hasGuestWriterRole(user)) return data
-
-  const nextData: Partial<Post> = data ?? {}
-
-  // Force draft status and clear publishedAt for guest writers
-  return {
-    ...nextData,
-    _status: DocStatus.DRAFT,
-    publishedAt: null,
-  }
-}
 
 export const Posts: CollectionConfig<'posts'> = {
   slug: 'posts',
@@ -95,7 +66,7 @@ export const Posts: CollectionConfig<'posts'> = {
   admin: {
     hidden: shouldHideCollection('posts'),
     components: {
-      Description: '@/collections/Posts/GuestWriterLimitDescription#GuestWriterLimitDescription',
+      Description: '@/components/GuestWriterLimitDescription#GuestWriterLimitDescription',
     },
     defaultColumns: ['title', 'slug', 'updatedAt'],
     livePreview: {
@@ -228,14 +199,7 @@ export const Posts: CollectionConfig<'posts'> = {
         condition: (_data, _siblingData, { user }) => !hasGuestWriterRole(user),
       },
       hooks: {
-        beforeChange: [
-          ({ siblingData, value }) => {
-            if (siblingData._status === DocStatus.PUBLISHED && !value) {
-              return new Date()
-            }
-            return value
-          },
-        ],
+        beforeChange: [autoPublishDate],
       },
     },
     {
