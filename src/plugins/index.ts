@@ -158,7 +158,7 @@ export const plugins: Plugin[] = [
             // Don't hide - UserRoleField CSS will control visibility
           },
           // Allow empty tenant for bootstrap and top-level users
-          validate: async (value: unknown, { req }: { req: PayloadRequest }): Promise<string | true> => {
+          validate: async (_value: unknown, { req }: { req: PayloadRequest }): Promise<string | true> => {
             // Bootstrap: no user = first user creation
             if (!req.user) {
               const existingUsers = await req.payload.find({

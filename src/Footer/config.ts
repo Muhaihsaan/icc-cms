@@ -17,6 +17,7 @@ export const Footer: CollectionConfig = {
   admin: {
     group: 'Global Site Content',
     hidden: shouldHideCollection('footer'),
+    useAsTitle: 'label',
   },
   access: {
     admin: tenantCollectionAdminAccess(Collections.FOOTER),
@@ -26,6 +27,11 @@ export const Footer: CollectionConfig = {
     update: withTenantCollectionAccess(Collections.FOOTER, tenantAdminUpdateAccess),
   },
   fields: [
+    {
+      name: 'label',
+      type: 'text',
+      required: true,
+    },
     {
       name: 'navItems',
       type: 'array',

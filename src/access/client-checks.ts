@@ -1,45 +1,23 @@
-import { z } from 'zod'
-
-import { Roles } from '@/access/roles'
-import { hasGuestWriterRole } from '@/access/helpers'
+import {
+  Roles,
+  hasGuestWriterRole,
+  userTenantsSchema,
+  userWithAllowedCollectionsSchema,
+  hiddenArgsSchema,
+  tenantIdSchema,
+  tenantIdObjectSchema,
+  isSuperAdminSchema,
+  isSuperEditorSchema,
+  isTopLevelUserSchema,
+} from '@/access/helpers'
 
 // Re-export for convenience
 export { hasGuestWriterRole }
 
-// Schema for validating user roles field
-const userRolesSchema = z.object({
-  roles: z.string().nullable().optional(),
-})
-
-// Schema for validating user tenants with roles
-const tenantEntrySchema = z.object({
-  tenant: z.union([z.string(), z.number(), z.object({ id: z.union([z.string(), z.number()]) })]),
-  roles: z.array(z.string()).nullable().optional(),
-})
-
-const userTenantsSchema = z.object({
-  tenants: z.array(tenantEntrySchema).nullable().optional(),
-})
-
-export const isSuperAdmin = (user: unknown): boolean => {
-  const parsed = userRolesSchema.safeParse(user)
-  if (!parsed.success) return false
-  return parsed.data.roles === Roles.superAdmin
-}
-
-export const isSuperEditor = (user: unknown): boolean => {
-  const parsed = userRolesSchema.safeParse(user)
-  if (!parsed.success) return false
-  return parsed.data.roles === Roles.superEditor
-}
-
-export const isTopLevelUser = (user: unknown): boolean => {
-  const parsed = userRolesSchema.safeParse(user)
-  if (!parsed.success) return false
-  const roles = parsed.data.roles
-  if (!roles) return false
-  return roles === Roles.superAdmin || roles === Roles.superEditor
-}
+// Re-export Zod-based role checks for client-side use
+export const isSuperAdmin = isSuperAdminSchema
+export const isSuperEditor = isSuperEditorSchema
+export const isTopLevelUser = isTopLevelUserSchema
 
 const TOP_LEVEL_STORAGE_KEY = 'icc-top-level'
 
@@ -70,32 +48,14 @@ export const getTenantAdminTenantId = (user: unknown): string | number | undefin
   if (!roles || !roles.includes(Roles.tenantAdmin)) return undefined
 
   const tenant = entry.tenant
-  const tenantIdSchema = z.union([z.string(), z.number()])
   const directParsed = tenantIdSchema.safeParse(tenant)
   if (directParsed.success) return directParsed.data
 
-  const objSchema = z.object({ id: tenantIdSchema })
-  const objParsed = objSchema.safeParse(tenant)
+  const objParsed = tenantIdObjectSchema.safeParse(tenant)
   if (objParsed.success) return objParsed.data.id
 
   return undefined
 }
-
-// Schema for tenant entry with allowedCollections (populated by afterRead hook)
-const tenantEntryWithAllowedSchema = z.object({
-  tenant: z.union([z.string(), z.number(), z.object({ id: z.union([z.string(), z.number()]) })]),
-  roles: z.array(z.string()).nullable().optional(),
-  allowedCollections: z.array(z.string()).nullable().optional(),
-})
-
-const userWithAllowedCollectionsSchema = z.object({
-  tenants: z.array(tenantEntryWithAllowedSchema).nullable().optional(),
-})
-
-// Schema for the args object passed to admin.hidden: { user: User }
-const hiddenArgsSchema = z.object({
-  user: userWithAllowedCollectionsSchema.nullable(),
-})
 
 /**
  * Check if Users collection should be hidden.

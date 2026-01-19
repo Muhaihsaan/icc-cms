@@ -1,8 +1,8 @@
 // Re-export everything for backward compatibility with accessPermission.ts imports
 
 // Roles
-export { Roles } from '@/access/roles'
-export type { Role } from '@/access/roles'
+export { Roles } from '@/access/helpers'
+export type { Role } from '@/access/helpers'
 
 // Tenant data utilities
 export { getUserTenantData, getTenantAllowedCollections, getTenantAllowPublicRead, getEffectiveTenant } from '@/access/helpers'

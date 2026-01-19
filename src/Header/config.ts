@@ -17,6 +17,7 @@ export const Header: CollectionConfig = {
   admin: {
     group: 'Global Site Content',
     hidden: shouldHideCollection('header'),
+    useAsTitle: 'label',
   },
   access: {
     admin: tenantCollectionAdminAccess(Collections.HEADER),
@@ -26,6 +27,11 @@ export const Header: CollectionConfig = {
     update: withTenantCollectionAccess(Collections.HEADER, tenantAdminUpdateAccess),
   },
   fields: [
+    {
+      name: 'label',
+      type: 'text',
+      required: true,
+    },
     {
       name: 'navItems',
       type: 'array',

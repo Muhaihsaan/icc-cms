@@ -178,22 +178,22 @@ Guest Writer is designed for external contributors who need limited post creatio
 src/
 ├── access/              # Access control logic
 │   ├── collections/     # Collection-specific access
-│   ├── helpers/         # Access helper utilities
+│   ├── helpers/         # Access helper utilities (roles, validation)
 │   └── ...
 ├── app/
 │   ├── (frontend)/      # Public landing page
 │   └── (payload)/       # Payload admin & API routes
-├── blocks/              # Content blocks (Hero, CTA, etc.)
+├── blocks/              # Content blocks (Form, CTA, Banner, Code, Media)
 ├── collections/         # Payload collections
 ├── components/          # React components
 ├── config/              # Centralized configuration
 ├── fields/              # Reusable field configurations
 ├── hooks/               # Payload hooks
 ├── plugins/             # Payload plugins configuration
+├── providers/           # React context providers
 ├── search/              # Search configuration
-└── utilities/           # Utility functions
-    ├── hooks/           # React hooks
-    └── tenant/          # Tenant-related utilities
+├── Header/              # Header configuration
+└── Footer/              # Footer configuration
 ```
 
 ## Adding a New Collection

@@ -1,8 +1,7 @@
 import type { Access, Where } from 'payload'
 
-import { getUserTenantData, getEffectiveTenant } from '@/access/helpers'
+import { getUserTenantData, getEffectiveTenant, Roles } from '@/access/helpers'
 import { isSuperAdmin, isSuperEditor, isTopLevelUser } from '@/access/role-checks'
-import { Roles } from '@/access/roles'
 import { Collections } from '@/config'
 
 // Allow reading users scoped to their tenant or role level.

@@ -7,6 +7,7 @@ import {
   HorizontalRuleFeature,
   InlineToolbarFeature,
   lexicalEditor,
+  UploadFeature,
 } from '@payloadcms/richtext-lexical'
 
 import {
@@ -23,6 +24,7 @@ import { Collections } from '@/config'
 import { hasGuestWriterRole } from '@/access/helpers'
 import { parseSlug } from '@/utilities/parseSlug'
 import { Banner } from '@/blocks/Banner/config'
+import { CallToAction } from '@/blocks/CallToAction/config'
 import { Code } from '@/blocks/Code/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
 import { generatePreviewPath } from '@/utilities/generatePreviewPath'
@@ -45,6 +47,7 @@ import { populateTenantDomain } from '@/hooks/populate-tenant-domain'
 export const Posts: CollectionConfig<'posts'> = {
   slug: 'posts',
   trash: true,
+  lockDocuments: false,
   access: {
     admin: tenantCollectionAdminAccess(Collections.POSTS),
     create: withTenantCollectionAccess(Collections.POSTS, postsCreateAccess),
@@ -114,7 +117,14 @@ export const Posts: CollectionConfig<'posts'> = {
                   return [
                     ...rootFeatures,
                     HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4'] }),
-                    BlocksFeature({ blocks: [Banner, Code, MediaBlock] }),
+                    BlocksFeature({ blocks: [Banner, CallToAction, Code, MediaBlock] }),
+                    UploadFeature({
+                      collections: {
+                        [Collections.MEDIA]: {
+                          fields: [{ name: 'caption', type: 'text', label: 'Caption' }],
+                        },
+                      },
+                    }),
                     FixedToolbarFeature(),
                     InlineToolbarFeature(),
                     HorizontalRuleFeature(),
@@ -264,7 +274,7 @@ export const Posts: CollectionConfig<'posts'> = {
       fields: [
         {
           name: 'id',
-          type: 'number',
+          type: 'text',
         },
         {
           name: 'name',

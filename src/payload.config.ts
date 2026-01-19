@@ -97,6 +97,7 @@ export default buildConfig({
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
   db: postgresAdapter({
+    idType: 'uuid',
     pool: {
       connectionString: process.env.DATABASE_URL || process.env.DATABASE_URI || '',
       // Using Neon pooler: use the "-pooler" connection string from Neon dashboard

@@ -1,7 +1,7 @@
 import type { CollectionBeforeChangeHook } from 'payload'
 
 import { Collections } from '@/config'
-import { Roles } from '@/access/roles'
+import { Roles } from '@/access/helpers'
 
 // Ensure the first user created is always a super-admin
 export const ensureFirstUserSuperAdmin: CollectionBeforeChangeHook = async ({

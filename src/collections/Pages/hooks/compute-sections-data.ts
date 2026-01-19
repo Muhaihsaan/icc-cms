@@ -34,68 +34,41 @@ const sectionSchema = z.object({
 
 const sectionsArraySchema = z.array(sectionSchema)
 
+// Maps field type to its value field name
+const fieldValueMap: Record<string, keyof z.infer<typeof sectionFieldSchema>> = {
+  [SectionFieldTypes.TEXT]: 'textValue',
+  [SectionFieldTypes.TEXTAREA]: 'textareaValue',
+  [SectionFieldTypes.RICH_TEXT]: 'richTextValue',
+  [SectionFieldTypes.NUMBER]: 'numberValue',
+  [SectionFieldTypes.DATE]: 'dateValue',
+  [SectionFieldTypes.MEDIA]: 'mediaValue',
+  [SectionFieldTypes.LINK]: 'linkValue',
+}
+
 function computeSectionData(fields: z.infer<typeof sectionFieldSchema>[]): Record<string, unknown> {
   const data: Record<string, unknown> = {}
 
   for (const field of fields) {
     if (!field.key) continue
 
-    if (field.type === SectionFieldTypes.TEXT) {
-      data[field.key] = field.textValue ?? null
+    // Handle simple field types via mapping
+    const valueField = fieldValueMap[field.type]
+    if (valueField) {
+      data[field.key] = field[valueField] ?? null
       continue
     }
 
-    if (field.type === SectionFieldTypes.TEXTAREA) {
-      data[field.key] = field.textareaValue ?? null
-      continue
-    }
-
-    if (field.type === SectionFieldTypes.RICH_TEXT) {
-      data[field.key] = field.richTextValue ?? null
-      continue
-    }
-
-    if (field.type === SectionFieldTypes.NUMBER) {
-      data[field.key] = field.numberValue ?? null
-      continue
-    }
-
-    if (field.type === SectionFieldTypes.DATE) {
-      data[field.key] = field.dateValue ?? null
-      continue
-    }
-
+    // Handle select - extract values from options array
     if (field.type === SectionFieldTypes.SELECT) {
-      const options = field.selectOptions ?? []
-      const values: string[] = []
-      for (const opt of options) {
-        values.push(opt.value)
-      }
-      data[field.key] = values
+      data[field.key] = (field.selectOptions ?? []).map((opt) => opt.value)
       continue
     }
 
-    if (field.type === SectionFieldTypes.MEDIA) {
-      data[field.key] = field.mediaValue ?? null
-      continue
-    }
-
-    if (field.type === SectionFieldTypes.LINK) {
-      data[field.key] = field.linkValue ?? null
-      continue
-    }
-
+    // Handle array - extract value or media based on item type
     if (field.type === SectionFieldTypes.ARRAY) {
-      const items = field.arrayValue ?? []
-      const values: unknown[] = []
-      for (const item of items) {
-        if (item.type === SectionFieldTypes.MEDIA) {
-          values.push(item.media)
-        } else {
-          values.push(item.value)
-        }
-      }
-      data[field.key] = values
+      data[field.key] = (field.arrayValue ?? []).map((item) =>
+        item.type === SectionFieldTypes.MEDIA ? item.media : item.value,
+      )
       continue
     }
   }

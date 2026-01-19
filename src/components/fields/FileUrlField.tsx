@@ -1,5 +1,6 @@
 'use client'
 
+import type { DefaultCellComponentProps } from 'payload'
 import { useDocumentInfo, FieldLabel, CopyToClipboard } from '@payloadcms/ui'
 
 export const FileUrlField = () => {
@@ -42,5 +43,25 @@ export const FileUrlField = () => {
         )}
       </div>
     </div>
+  )
+}
+
+export const FileUrlCell = ({ rowData }: DefaultCellComponentProps) => {
+  const url = rowData?.url as string | undefined
+
+  if (!url) {
+    return <span style={{ color: 'var(--theme-elevation-400)' }}>—</span>
+  }
+
+  return (
+    <code
+      style={{
+        fontSize: '12px',
+        wordBreak: 'break-all',
+        fontFamily: 'var(--font-mono)',
+      }}
+    >
+      {url}
+    </code>
   )
 }

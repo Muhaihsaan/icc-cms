@@ -7,6 +7,7 @@ import {
   getTenantAllowPublicRead,
   getTenantFromReq,
   normalizeTenantId,
+  isCollectionAllowed,
 } from '@/access/helpers'
 import { isTopLevelUser } from '@/access/role-checks'
 import type { TenantManagedCollection } from '@/config'
@@ -31,33 +32,31 @@ export const isTenantCollectionAllowed = async ({
   req: AccessArgs['req']
   collection: TenantManagedCollection
 }): Promise<boolean> => {
-  const tenantId = normalizeTenantId(getTenantFromReq(req))
+  const tenantData = getUserTenantData(req)
+
+  // Guest writers can only access Posts
+  if (tenantData.hasGuestWriterRole) return collection === Collections.POSTS
+
+  // Resolve tenant ID
+  let tenantId = normalizeTenantId(getTenantFromReq(req))
 
   // Top-level users must select a tenant first
   if (isTopLevelUser(req.user)) {
     if (!tenantId) return false
     const allowedCollections = await getTenantAllowedCollections(req, tenantId)
-    // Tenant not found or no allowed collections configured
-    if (!allowedCollections || allowedCollections.length === 0) return false
-    return allowedCollections.includes(collection)
+    return isCollectionAllowed(allowedCollections, collection)
   }
 
-  const tenantData = getUserTenantData(req)
-  if (tenantData.hasGuestWriterRole) return collection === Collections.POSTS
-
-  let resolvedTenantId = tenantId
-  if (!resolvedTenantId && tenantData.allTenantIds.length === 1) {
-    resolvedTenantId = tenantData.allTenantIds[0]
+  // For tenant users without cookie, resolve from their assigned tenant
+  if (!tenantId && tenantData.allTenantIds.length === 1) {
+    tenantId = tenantData.allTenantIds[0]
   }
 
-  // Only allow if user is authenticated and has tenant assignments
-  if (!resolvedTenantId) return Boolean(req.user && tenantData.allTenantIds.length > 0)
+  // No tenant resolved - allow if user is authenticated with tenant assignments
+  if (!tenantId) return Boolean(req.user && tenantData.allTenantIds.length > 0)
 
-  const allowedCollections = await getTenantAllowedCollections(req, resolvedTenantId)
-  // Tenant not found or no allowed collections configured
-  if (!allowedCollections || allowedCollections.length === 0) return false
-
-  return allowedCollections.includes(collection)
+  const allowedCollections = await getTenantAllowedCollections(req, tenantId)
+  return isCollectionAllowed(allowedCollections, collection)
 }
 
 // Wrap an access function with tenant collection checks.
@@ -74,25 +73,23 @@ export const withTenantCollectionAccess = (
 }
 
 // Allow admin UI access based on allowed collections.
-// This controls permissions for tenant-scoped collections.
 // Note: Dashboard visibility is controlled by admin.hidden using shouldHideCollection().
 export const tenantCollectionAdminAccess =
   (collection: TenantManagedCollection) =>
   async ({ req }: { req: AccessArgs['req'] }) => {
-    // Get tenant ID from cookie or user's tenants array
-    let tenantId = normalizeTenantId(getTenantFromReq(req))
-
-    // For tenant users without cookie, resolve from their assigned tenant
     const tenantData = getUserTenantData(req)
-    if (!tenantId && !isTopLevelUser(req.user)) {
-      if (tenantData.allTenantIds.length === 1) {
-        tenantId = tenantData.allTenantIds[0]
-      }
-    }
 
     // Guest writers can only access Posts collection
     if (tenantData.hasGuestWriterRole) {
       return collection === Collections.POSTS
+    }
+
+    // Get tenant ID from cookie or user's tenants array
+    let tenantId = normalizeTenantId(getTenantFromReq(req))
+
+    // For tenant users without cookie, resolve from their assigned tenant
+    if (!tenantId && !isTopLevelUser(req.user) && tenantData.allTenantIds.length === 1) {
+      tenantId = tenantData.allTenantIds[0]
     }
 
     // Top-level users with NO tenant selected = show all (top-level mode)
@@ -100,21 +97,12 @@ export const tenantCollectionAdminAccess =
       return true
     }
 
-    // If we have a tenant ID, check allowedCollections
-    if (tenantId) {
-      const allowedCollections = await getTenantAllowedCollections(req, tenantId)
-      // undefined = tenant not found, deny access
-      if (allowedCollections === undefined) return false
-      // null = not configured, allow all collections (fail open)
-      if (allowedCollections === null) return true
-      // empty array = explicitly set to none, deny all
-      if (allowedCollections.length === 0) return false
-      // check if collection is in allowed list
-      return allowedCollections.includes(collection)
-    }
-
     // No tenant resolved = deny access
-    return false
+    if (!tenantId) return false
+
+    // Check allowedCollections
+    const allowedCollections = await getTenantAllowedCollections(req, tenantId)
+    return isCollectionAllowed(allowedCollections, collection)
   }
 
 // Allow read access to tenant-scoped documents for tenant members.

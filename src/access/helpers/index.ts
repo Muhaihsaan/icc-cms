@@ -1,25 +1,23 @@
 import type { AccessArgs } from 'payload'
-import { z } from 'zod'
 
-import { Roles } from '@/access/roles'
+import { Roles } from './roles'
 import type { TenantManagedCollection } from '@/config'
 import { Collections } from '@/config'
+import {
+  tenantsWithRolesSchema,
+  userWithTenantsSchema,
+  userWithTenantRolesSchema,
+  reqWithTenantSchema,
+  normalizeTenantId,
+  isTopLevelUserSchema,
+} from './zod-schema'
+
+// Re-export roles and zod-schema
+export { Roles } from './roles'
+export type { Role } from './roles'
+export * from './zod-schema'
 
 const TENANT_COOKIE_NAME = 'payload-tenant'
-
-// Schema for data with tenants array containing roles
-const tenantsWithRolesSchema = z.object({
-  tenants: z
-    .array(
-      z
-        .object({
-          roles: z.array(z.string()).nullable().optional(),
-        })
-        .nullable(),
-    )
-    .nullable()
-    .optional(),
-})
 
 /**
  * Check if a user or data object has the guest writer role in any tenant.
@@ -37,35 +35,6 @@ export const hasGuestWriterRole = (data: unknown): boolean => {
     if (entry.roles.includes(Roles.guestWriter)) return true
   }
   return false
-}
-
-const tenantIdSchema = z.union([z.string(), z.number()])
-const tenantIdObjectSchema = z.object({ id: tenantIdSchema })
-
-const reqWithTenantSchema = z.object({ tenant: z.unknown() })
-
-// Schema for user with tenants array (needed for cookie validation)
-const userWithTenantsSchema = z.object({
-  tenants: z
-    .array(
-      z
-        .object({
-          tenant: z.unknown(),
-        })
-        .nullable(),
-    )
-    .nullable()
-    .optional(),
-})
-
-// Schema to check if user is top-level (inline to avoid circular dependency)
-const topLevelUserSchema = z.object({
-  roles: z.enum([Roles.superAdmin, Roles.superEditor]),
-})
-
-// Helper to check if user is top-level (super-admin or super-editor)
-const isTopLevelUserInline = (user: unknown): boolean => {
-  return topLevelUserSchema.safeParse(user).success
 }
 
 // Helper to get tenant IDs from user's tenants array
@@ -120,7 +89,7 @@ export const getTenantFromReq = (req: AccessArgs['req']): unknown => {
   if (!user) return cookieTenantId
 
   // Top-level users have access to all tenants
-  if (isTopLevelUserInline(user)) return cookieTenantId
+  if (isTopLevelUserSchema(user)) return cookieTenantId
 
   // Tenant-level users: validate cookie tenant is in their assigned tenants
   const userTenantIds = getUserTenantIds(user)
@@ -132,34 +101,6 @@ export const getTenantFromReq = (req: AccessArgs['req']): unknown => {
 
   // Cookie tenant not in user's tenants - ignore it
   return undefined
-}
-
-// Schema that converts numeric strings to numbers
-const numericStringSchema = z.string().transform((val) => {
-  const num = Number(val)
-  if (Number.isNaN(num) || !Number.isFinite(num)) return val
-  return num
-})
-
-// Schema for normalizing tenant ID - converts numeric strings to numbers
-const normalizedTenantIdSchema = z.union([
-  z.number(),
-  numericStringSchema,
-  tenantIdObjectSchema.transform((obj) => {
-    const id = obj.id
-    const numParsed = z.number().safeParse(id)
-    if (numParsed.success) return numParsed.data
-    const strParsed = numericStringSchema.safeParse(id)
-    if (strParsed.success) return strParsed.data
-    return id
-  }),
-])
-
-// Normalize tenant value to number ID (or string if non-numeric) using Zod schema validation
-export const normalizeTenantId = (value: unknown): string | number | undefined => {
-  const result = normalizedTenantIdSchema.safeParse(value)
-  if (!result.success) return undefined
-  return result.data
 }
 
 // Get the first tenant ID from a user object (for field filtering)
@@ -185,21 +126,6 @@ export type UserTenantData = {
   hasGuestWriterRole: boolean
   hasAnyRole: boolean
 }
-
-// Schema for user with tenants containing roles
-const userWithTenantRolesSchema = z.object({
-  tenants: z
-    .array(
-      z
-        .object({
-          tenant: z.unknown(),
-          roles: z.array(z.string()).nullable().optional(),
-        })
-        .nullable(),
-    )
-    .nullable()
-    .optional(),
-})
 
 // Compute user tenant data from request
 export const getUserTenantData = (req: AccessArgs['req']): UserTenantData => {
@@ -296,7 +222,7 @@ export const getTenantAllowPublicRead = async ({
  */
 export const getEffectiveTenant = (req: AccessArgs['req']): string | number | undefined => {
   // Non-top-level users: always use cookie-based tenant
-  if (!isTopLevelUserInline(req.user)) {
+  if (!isTopLevelUserSchema(req.user)) {
     return normalizeTenantId(getTenantFromReq(req))
   }
 

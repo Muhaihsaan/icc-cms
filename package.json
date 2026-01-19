@@ -9,7 +9,7 @@
     "postbuild": "next-sitemap --config next-sitemap.config.cjs",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "dev:prod": "cross-env NODE_OPTIONS=--no-deprecation rm -rf .next && pnpm build && pnpm start",
-    "docker:down": "sh -c \"command -v docker-compose >/dev/null 2>&1 && docker-compose down || docker compose down\"",
+    "docker:down": "sh -c \"command -v docker-compose >/dev/null 2>&1 && docker-compose down -v || docker compose down -v\"",
     "docker:up": "sh -c \"command -v docker-compose >/dev/null 2>&1 && docker-compose up -d || docker compose up -d\"",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",

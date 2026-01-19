@@ -6,7 +6,11 @@ import { Collections } from '@/config'
 type UserId = User['id']
 type AuthorData = { id: UserId; name: User['name'] }
 
-const authorIdSchema = z.union([z.number(), z.object({ id: z.number() }).transform((obj) => obj.id)])
+const authorIdSchema = z.union([
+  z.string(),
+  z.number(),
+  z.object({ id: z.union([z.string(), z.number()]) }).transform((obj) => obj.id),
+])
 
 // Per-request cache for author data to avoid N+1 queries when loading multiple posts
 const AUTHOR_CACHE_KEY = Symbol('authorCache')

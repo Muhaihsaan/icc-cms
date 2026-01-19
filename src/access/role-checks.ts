@@ -3,7 +3,7 @@ import type { AccessArgs } from 'payload'
 
 import type { User } from '@/payload-types'
 import { getUserTenantData, hasGuestWriterRole } from '@/access/helpers'
-import { Roles } from '@/access/roles'
+import { Roles } from '@/access/helpers'
 import { Collections } from '@/config'
 
 // Check whether a user has the super-admin role.

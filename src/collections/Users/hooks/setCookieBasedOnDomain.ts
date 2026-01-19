@@ -2,7 +2,7 @@ import type { CollectionAfterLoginHook } from 'payload'
 import { mergeHeaders, generateCookie, getCookieExpiration } from 'payload'
 import { z } from 'zod'
 import { Collections } from '@/config'
-import { Roles } from '@/access/roles'
+import { Roles } from '@/access/helpers'
 
 const TOP_LEVEL_COOKIE = 'icc-top-level'
 
