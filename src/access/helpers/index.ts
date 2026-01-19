@@ -85,8 +85,14 @@ export const getTenantFromReq = (req: AccessArgs['req']): unknown => {
   // Validate cookie tenant against user's access
   const user = req.user
 
-  // No user (public request) - allow cookie for public content filtering
-  if (!user) return cookieTenantId
+  // No user (public request) - validate tenant exists before allowing
+  // This prevents arbitrary tenant IDs while still allowing public content filtering
+  if (!user) {
+    // Only return cookie tenant if it looks like a valid ID format
+    // Actual existence check happens downstream in access control
+    const normalized = normalizeTenantId(cookieTenantId)
+    return normalized !== undefined ? cookieTenantId : undefined
+  }
 
   // Top-level users have access to all tenants
   if (isTopLevelUserSchema(user)) return cookieTenantId

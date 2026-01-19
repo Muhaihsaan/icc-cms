@@ -1,8 +1,6 @@
 import Script from 'next/script'
 import React from 'react'
 
-import { defaultTheme, themeLocalStorageKey } from '../ThemeSelector/types'
-
 export const InitTheme: React.FC = () => {
   return (
     // eslint-disable-next-line @next/next/no-before-interactive-script-outside-document
@@ -26,8 +24,8 @@ export const InitTheme: React.FC = () => {
       return theme === 'light' || theme === 'dark'
     }
 
-    var themeToSet = '${defaultTheme}'
-    var preference = window.localStorage.getItem('${themeLocalStorageKey}')
+    var themeToSet = 'light'
+    var preference = window.localStorage.getItem('payload-theme')
 
     if (themeIsValid(preference)) {
       themeToSet = preference
