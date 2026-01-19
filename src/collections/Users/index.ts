@@ -119,6 +119,7 @@ export const Users: CollectionConfig = {
     {
       name: 'guestWriterPostLimit',
       type: 'number',
+      min: 0,
       access: {
         create: isSuperAdminFieldAccess,
         update: isSuperAdminFieldAccess,

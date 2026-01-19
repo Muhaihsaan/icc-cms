@@ -78,6 +78,9 @@ export const Tenants: CollectionConfig = {
       admin: {
         description: 'Select which collections this tenant can access.',
         position: 'sidebar',
+        components: {
+          Label: '@/components/SelectAllLabel#AllowedCollectionsLabel',
+        },
       },
       hasMany: true,
       options: tenantManagedCollections.map((collection) => ({
@@ -93,9 +96,10 @@ export const Tenants: CollectionConfig = {
       admin: {
         description: 'Select which collections are publicly readable.',
         position: 'sidebar',
-        // Only show when allowedCollections has selections
-        condition: (data) => Array.isArray(data?.allowedCollections) && data.allowedCollections.length > 0,
+        condition: (data) =>
+          Array.isArray(data?.allowedCollections) && data.allowedCollections.length > 0,
         components: {
+          Label: '@/components/SelectAllLabel#AllowPublicReadLabel',
           Field: '@/components/AllowPublicReadField#AllowPublicReadField',
         },
       },

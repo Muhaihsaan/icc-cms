@@ -190,6 +190,7 @@ export const getTenantAllowedCollections = async (
 
     if (!tenant) return undefined
     if (!Array.isArray(tenant.allowedCollections)) return null
+
     return tenant.allowedCollections as TenantManagedCollection[]
   } catch {
     return undefined
@@ -212,10 +213,10 @@ export const getTenantAllowPublicRead = async ({
       overrideAccess: true,
     })
 
-    if (tenant && Array.isArray(tenant.allowPublicRead)) {
-      return tenant.allowPublicRead
-    }
-    return null
+    if (!tenant) return null
+    if (!Array.isArray(tenant.allowPublicRead)) return null
+
+    return tenant.allowPublicRead
   } catch {
     return null
   }

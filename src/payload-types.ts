@@ -192,7 +192,6 @@ export interface Media {
     };
     [k: string]: unknown;
   } | null;
-  fileUrl?: string | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1165,7 +1164,6 @@ export interface MediaSelect<T extends boolean = true> {
   tenant?: T;
   alt?: T;
   caption?: T;
-  fileUrl?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;

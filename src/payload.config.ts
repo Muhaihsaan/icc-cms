@@ -60,6 +60,9 @@ export default buildConfig({
     },
   },
   admin: {
+    avatar: {
+      Component: '@/components/EmptyAvatar#EmptyAvatar',
+    },
     components: {
       providers: [
         '@/components/HideTrashProvider#HideTrashProvider',

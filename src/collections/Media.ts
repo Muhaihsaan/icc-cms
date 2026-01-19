@@ -52,19 +52,13 @@ export const Media: CollectionConfig = {
     },
     {
       name: 'fileUrl',
-      type: 'text',
+      type: 'ui',
       label: 'File URL',
       admin: {
         position: 'sidebar',
-        readOnly: true,
-      },
-      hooks: {
-        beforeChange: [
-          ({ siblingData }) => {
-            // Payload auto-generates 'url' for upload collections
-            return siblingData?.url || undefined
-          },
-        ],
+        components: {
+          Field: '@/components/fields/FileUrlField#FileUrlField',
+        },
       },
     },
   ],

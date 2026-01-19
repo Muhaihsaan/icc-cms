@@ -1,3 +1,5 @@
+import { AllowedCollectionsLabel as AllowedCollectionsLabel_ad14d6e18799242bba5777e774af1963 } from '@/components/SelectAllLabel'
+import { AllowPublicReadLabel as AllowPublicReadLabel_ad14d6e18799242bba5777e774af1963 } from '@/components/SelectAllLabel'
 import { AllowPublicReadField as AllowPublicReadField_a7e72a28c40e86a60dd40029508e1330 } from '@/components/AllowPublicReadField'
 import { WatchTenantCollection as WatchTenantCollection_1d0591e3cf4f332c83a86da13a0de59a } from '@payloadcms/plugin-multi-tenant/client'
 import { TenantsListRedirect as TenantsListRedirect_e492b13f42d5d2362a883498aba56fe3 } from '@/components/TenantsListRedirect'
@@ -24,9 +26,11 @@ import { UploadFeatureClient as UploadFeatureClient_e70f5e05f09f93e00b997edb1ef0
 import { BlocksFeatureClient as BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { HeadingFeatureClient as HeadingFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { GuestWriterLimitDescription as GuestWriterLimitDescription_60b6d604682c51fbc8805f1e9938ebae } from '@/components/GuestWriterLimitDescription'
+import { FileUrlField as FileUrlField_858edecec237b8fea6a838eaef6e64be } from '@/components/fields/FileUrlField'
 import { RowLabel as RowLabel_d4655109717a6f5707cd0a6520a4fd9e } from '@/components/RowLabel'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
+import { EmptyAvatar as EmptyAvatar_c87a1d704a99576b448f9a1736027d09 } from '@/components/EmptyAvatar'
 import { TenantSelector as TenantSelector_9d7720c4b50db35595dfefa592fabd33 } from '@/components/TenantSelector'
 import { TenantSelector as TenantSelector_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
 import { HideTrashProvider as HideTrashProvider_d35e7dcff6de773700154b87506fb6cf } from '@/components/HideTrashProvider'
@@ -35,6 +39,8 @@ import { TenantSelectionProvider as TenantSelectionProvider_d6d5f193a167989e2ee7
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 
 export const importMap = {
+  "@/components/SelectAllLabel#AllowedCollectionsLabel": AllowedCollectionsLabel_ad14d6e18799242bba5777e774af1963,
+  "@/components/SelectAllLabel#AllowPublicReadLabel": AllowPublicReadLabel_ad14d6e18799242bba5777e774af1963,
   "@/components/AllowPublicReadField#AllowPublicReadField": AllowPublicReadField_a7e72a28c40e86a60dd40029508e1330,
   "@payloadcms/plugin-multi-tenant/client#WatchTenantCollection": WatchTenantCollection_1d0591e3cf4f332c83a86da13a0de59a,
   "@/components/TenantsListRedirect#TenantsListRedirect": TenantsListRedirect_e492b13f42d5d2362a883498aba56fe3,
@@ -61,9 +67,11 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#BlocksFeatureClient": BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#HeadingFeatureClient": HeadingFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/components/GuestWriterLimitDescription#GuestWriterLimitDescription": GuestWriterLimitDescription_60b6d604682c51fbc8805f1e9938ebae,
+  "@/components/fields/FileUrlField#FileUrlField": FileUrlField_858edecec237b8fea6a838eaef6e64be,
   "@/components/RowLabel#RowLabel": RowLabel_d4655109717a6f5707cd0a6520a4fd9e,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
+  "@/components/EmptyAvatar#EmptyAvatar": EmptyAvatar_c87a1d704a99576b448f9a1736027d09,
   "@/components/TenantSelector#TenantSelector": TenantSelector_9d7720c4b50db35595dfefa592fabd33,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelector": TenantSelector_d6d5f193a167989e2ee7d14202901e62,
   "@/components/HideTrashProvider#HideTrashProvider": HideTrashProvider_d35e7dcff6de773700154b87506fb6cf,
