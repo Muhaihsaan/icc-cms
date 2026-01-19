@@ -49,6 +49,8 @@ export const tenantManagedCollections = [
   Collections.CATEGORIES,
   Collections.HEADER,
   Collections.FOOTER,
+  Collections.FORMS,
+  Collections.FORM_SUBMISSIONS,
 ] as const
 
 export type TenantManagedCollection = (typeof tenantManagedCollections)[number]

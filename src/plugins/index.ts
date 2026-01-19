@@ -43,21 +43,6 @@ export const plugins: Plugin[] = [
       admin: {
         hidden: true,
       },
-      // @ts-expect-error - This is a valid override, mapped fields don't resolve to the same type
-      fields: ({ defaultFields }) => {
-        return defaultFields.map((field) => {
-          const result = namedFieldSchema.safeParse(field)
-          if (result.success && result.data.name === 'from') {
-            return {
-              ...field,
-              admin: {
-                description: 'You will need to rebuild the website when changing this field.',
-              },
-            }
-          }
-          return field
-        })
-      },
       hooks: {
         afterChange: [revalidateRedirects],
       },
@@ -70,14 +55,18 @@ export const plugins: Plugin[] = [
   formBuilderPlugin({
     fields: {
       payment: false,
+      country: false,
+      state: false,
     },
     formOverrides: {
       admin: {
-        hidden: true,
+        group: 'Forms',
+        description: 'Create forms that can be embedded on external frontends',
       },
       fields: ({ defaultFields }) => {
         return defaultFields.map((field) => {
           const result = namedFieldSchema.safeParse(field)
+          // Customize confirmationMessage editor
           if (result.success && result.data.name === 'confirmationMessage') {
             return {
               ...field,
@@ -92,13 +81,64 @@ export const plugins: Plugin[] = [
               }),
             }
           }
+          // Replace redirect text field with flexible link (internal page or custom URL)
+          if (result.success && result.data.name === 'redirect') {
+            return {
+              name: 'redirect',
+              type: 'group',
+              label: 'Redirect',
+              admin: {
+                condition: (_: unknown, siblingData: Record<string, unknown>) =>
+                  siblingData?.confirmationType === 'redirect',
+              },
+              fields: [
+                {
+                  name: 'type',
+                  type: 'radio',
+                  defaultValue: 'page',
+                  options: [
+                    { label: 'Internal Page', value: 'page' },
+                    { label: 'Custom URL', value: 'custom' },
+                  ],
+                },
+                {
+                  name: 'page',
+                  type: 'relationship',
+                  relationTo: Collections.PAGES,
+                  label: 'Select Page',
+                  admin: {
+                    allowCreate: false,
+                    condition: (_: unknown, siblingData: Record<string, unknown>) =>
+                      siblingData?.type === 'page',
+                  },
+                },
+                {
+                  name: 'url',
+                  type: 'text',
+                  label: 'Custom URL',
+                  admin: {
+                    condition: (_: unknown, siblingData: Record<string, unknown>) =>
+                      siblingData?.type === 'custom',
+                  },
+                },
+              ],
+            }
+          }
           return field
         })
       },
     },
     formSubmissionOverrides: {
       admin: {
-        hidden: true,
+        group: 'Forms',
+        description: 'View submissions received from external frontends',
+        hideAPIURL: true,
+        useAsTitle: 'form',
+        defaultColumns: ['form', 'createdAt'],
+      },
+      access: {
+        create: () => false,
+        update: () => false,
       },
     },
   }),
@@ -145,6 +185,12 @@ export const plugins: Plugin[] = [
         tenantFieldOverrides: { admin: { readOnly: true } },
       },
       [Collections.REDIRECTS]: {
+        tenantFieldOverrides: { admin: { readOnly: true } },
+      },
+      [Collections.FORMS]: {
+        tenantFieldOverrides: { admin: { readOnly: true } },
+      },
+      [Collections.FORM_SUBMISSIONS]: {
         tenantFieldOverrides: { admin: { readOnly: true } },
       },
       [Collections.USERS]: {

@@ -160,11 +160,22 @@ export interface Tenant {
   /**
    * Select which collections this tenant can access.
    */
-  allowedCollections: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[];
+  allowedCollections: (
+    | 'pages'
+    | 'posts'
+    | 'media'
+    | 'categories'
+    | 'header'
+    | 'footer'
+    | 'forms'
+    | 'form-submissions'
+  )[];
   /**
    * Select which collections are publicly readable.
    */
-  allowPublicRead?: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[] | null;
+  allowPublicRead?:
+    | ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer' | 'forms' | 'form-submissions')[]
+    | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -562,9 +573,6 @@ export interface Footer {
 export interface Redirect {
   id: string;
   tenant?: (string | null) | Tenant;
-  /**
-   * You will need to rebuild the website when changing this field.
-   */
   from: string;
   to?: {
     type?: ('reference' | 'custom') | null;
@@ -583,11 +591,14 @@ export interface Redirect {
   createdAt: string;
 }
 /**
+ * Create forms that can be embedded on external frontends
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms".
  */
 export interface Form {
   id: string;
+  tenant?: (string | null) | Tenant;
   title: string;
   fields?:
     | (
@@ -600,15 +611,6 @@ export interface Form {
             id?: string | null;
             blockName?: string | null;
             blockType: 'checkbox';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'country';
           }
         | {
             name: string;
@@ -671,15 +673,6 @@ export interface Form {
             name: string;
             label?: string | null;
             width?: number | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'state';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
             defaultValue?: string | null;
             required?: boolean | null;
             id?: string | null;
@@ -719,7 +712,9 @@ export interface Form {
     [k: string]: unknown;
   } | null;
   redirect?: {
-    url: string;
+    type?: ('page' | 'custom') | null;
+    page?: (string | null) | Page;
+    url?: string | null;
   };
   /**
    * Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email.
@@ -757,11 +752,14 @@ export interface Form {
   createdAt: string;
 }
 /**
+ * View submissions received from external frontends
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
   id: string;
+  tenant?: (string | null) | Tenant;
   form: string | Form;
   submissionData?:
     | {
@@ -1323,6 +1321,7 @@ export interface RedirectsSelect<T extends boolean = true> {
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
+  tenant?: T;
   title?: T;
   fields?:
     | T
@@ -1335,16 +1334,6 @@ export interface FormsSelect<T extends boolean = true> {
               width?: T;
               required?: T;
               defaultValue?: T;
-              id?: T;
-              blockName?: T;
-            };
-        country?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              width?: T;
-              required?: T;
               id?: T;
               blockName?: T;
             };
@@ -1395,16 +1384,6 @@ export interface FormsSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        state?:
-          | T
-          | {
-              name?: T;
-              label?: T;
-              width?: T;
-              required?: T;
-              id?: T;
-              blockName?: T;
-            };
         text?:
           | T
           | {
@@ -1434,6 +1413,8 @@ export interface FormsSelect<T extends boolean = true> {
   redirect?:
     | T
     | {
+        type?: T;
+        page?: T;
         url?: T;
       };
   emails?:
@@ -1456,6 +1437,7 @@ export interface FormsSelect<T extends boolean = true> {
  * via the `definition` "form-submissions_select".
  */
 export interface FormSubmissionsSelect<T extends boolean = true> {
+  tenant?: T;
   form?: T;
   submissionData?:
     | T

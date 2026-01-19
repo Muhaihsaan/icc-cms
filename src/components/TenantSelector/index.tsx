@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 import { isTopLevelUser } from '@/access/client-checks'
 import { useTopLevelMode } from './TopLevelModeContext'
-import { tenantManagedCollections } from '@/config'
+import { tenantScopedDashboardCollections } from '@/config'
 import {
   useIsMounted,
   injectStyle,
@@ -30,6 +30,7 @@ const tenantResponseSchema = z.object({
 const collectionGroups: Record<string, string[]> = {
   'Site Content': ['pages', 'categories', 'posts', 'media'],
   'Global Site Content': ['header', 'footer'],
+  'Forms': ['forms', 'form-submissions'],
 }
 
 const allGroups = Object.keys(collectionGroups)
@@ -103,9 +104,9 @@ export function TenantSelector(): React.ReactElement | null {
 
     let collectionsToHide: string[] = []
     if (inTopLevelMode) {
-      collectionsToHide = [...tenantManagedCollections]
+      collectionsToHide = [...tenantScopedDashboardCollections]
     } else if (isTopLevel && selectedTenantId && allowedCollections) {
-      collectionsToHide = tenantManagedCollections.filter((c) => !allowedCollections.includes(c))
+      collectionsToHide = tenantScopedDashboardCollections.filter((c) => !allowedCollections.includes(c))
     }
 
     if (collectionsToHide.length === 0) return

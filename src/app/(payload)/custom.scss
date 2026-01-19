@@ -1,0 +1,41 @@
+// Hide width field from form builder blocks
+// Width is handled by the external frontend
+.field-type.number:has(label[for$="__width"]) {
+  display: none !important;
+}
+
+// Form Submissions - read-only (hide create/save buttons)
+// Hide "Create New" button in list view
+[class*="form-submissions"] .list-controls__buttons a[href*="create"],
+a[href="/admin/collections/form-submissions/create"] {
+  display: none !important;
+}
+
+// Hide save button in edit view
+body:has([href*="form-submissions"]:not([href*="forms"])) .doc-controls__save,
+body:has(form[action*="form-submissions"]) button[type="submit"] {
+  display: none !important;
+}
+
+// Allowed Collections & Allow Public Read - move indicators to top right, disable search
+#field-allowedCollections,
+#field-allowPublicRead {
+  .rs__control {
+    position: relative;
+  }
+
+  .rs__indicators {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+
+  .rs__value-container {
+    padding-right: 50px;
+  }
+
+  .rs__input-container {
+    display: none !important;
+  }
+}
+
