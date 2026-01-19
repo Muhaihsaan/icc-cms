@@ -25,6 +25,7 @@ export const Media: CollectionConfig = {
   trash: true,
   lockDocuments: false,
   admin: {
+    group: 'Site Content',
     hidden: shouldHideCollection('media'),
   },
   access: {

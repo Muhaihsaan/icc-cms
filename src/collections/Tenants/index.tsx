@@ -25,6 +25,7 @@ export const Tenants: CollectionConfig = {
     update: tenantsUpdateAccess,
   },
   admin: {
+    group: 'Administrative',
     useAsTitle: 'name',
     hidden: ({ user }) => {
       const parsed = userRolesSchema.safeParse(user)

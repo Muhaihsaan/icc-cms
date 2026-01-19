@@ -15,6 +15,7 @@ export const Header: CollectionConfig = {
   slug: 'header',
   trash: true,
   admin: {
+    group: 'Global Site Content',
     hidden: shouldHideCollection('header'),
   },
   access: {

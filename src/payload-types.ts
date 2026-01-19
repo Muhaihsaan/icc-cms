@@ -67,15 +67,14 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    tenants: Tenant;
+    users: User;
     pages: Page;
+    categories: Category;
     posts: Post;
     media: Media;
-    categories: Category;
-    users: User;
-    tenants: Tenant;
     header: Header;
     footer: Footer;
-    sections: Section;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -87,15 +86,14 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
+    tenants: TenantsSelect<false> | TenantsSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
+    categories: CategoriesSelect<false> | CategoriesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
-    categories: CategoriesSelect<false> | CategoriesSelect<true>;
-    users: UsersSelect<false> | UsersSelect<true>;
-    tenants: TenantsSelect<false> | TenantsSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
-    sections: SectionsSelect<false> | SectionsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -145,31 +143,6 @@ export interface UserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "pages".
- */
-export interface Page {
-  id: number;
-  tenant?: (number | null) | Tenant;
-  title: string;
-  slug?: string | null;
-  slugLock?: boolean | null;
-  meta?: {
-    title?: string | null;
-    /**
-     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
-     */
-    image?: (number | null) | Media;
-    description?: string | null;
-  };
-  tenantDomain?: string | null;
-  publishedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-  _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "tenants".
  */
 export interface Tenant {
@@ -187,11 +160,11 @@ export interface Tenant {
   /**
    * Select which collections this tenant can access.
    */
-  allowedCollections: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer' | 'sections')[];
+  allowedCollections: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[];
   /**
    * Select which collections are publicly readable.
    */
-  allowPublicRead?: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer' | 'sections')[] | null;
+  allowPublicRead?: ('pages' | 'posts' | 'media' | 'categories' | 'header' | 'footer')[] | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -292,6 +265,148 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  roles?: ('super-admin' | 'super-editor') | null;
+  name?: string | null;
+  /**
+   * Maximum number of posts a guest-writer can create.
+   */
+  guestWriterPostLimit?: number | null;
+  tenants?:
+    | {
+        tenant?: (number | null) | Tenant;
+        roles?: ('tenant-admin' | 'tenant-user' | 'guest-writer')[] | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title: string;
+  slug?: string | null;
+  slugLock?: boolean | null;
+  /**
+   * Add content sections to this page
+   */
+  sections?:
+    | {
+        /**
+         * Section name (e.g., "Hero", "Features")
+         */
+        name: string;
+        /**
+         * Optional slug for anchor links (e.g., "hero" for #hero)
+         */
+        slug?: string | null;
+        /**
+         * Define the fields for this section
+         */
+        fields?:
+          | {
+              type: 'text' | 'textarea' | 'richText' | 'number' | 'date' | 'select' | 'media' | 'link' | 'array';
+              /**
+               * Field key (e.g., "title", "description")
+               */
+              key: string;
+              textValue?: string | null;
+              textareaValue?: string | null;
+              richTextValue?: {
+                root: {
+                  type: string;
+                  children: {
+                    type: string;
+                    version: number;
+                    [k: string]: unknown;
+                  }[];
+                  direction: ('ltr' | 'rtl') | null;
+                  format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                  indent: number;
+                  version: number;
+                };
+                [k: string]: unknown;
+              } | null;
+              numberValue?: number | null;
+              dateValue?: string | null;
+              /**
+               * Define options for the select field
+               */
+              selectOptions?:
+                | {
+                    value: string;
+                    id?: string | null;
+                  }[]
+                | null;
+              mediaValue?: (number | null) | Media;
+              /**
+               * Link to an internal Page or Post. For external URLs, use Text type.
+               */
+              linkValue?:
+                | ({
+                    relationTo: 'pages';
+                    value: number | Page;
+                  } | null)
+                | ({
+                    relationTo: 'posts';
+                    value: number | Post;
+                  } | null);
+              arrayValue?:
+                | {
+                    type: 'text' | 'media';
+                    value?: string | null;
+                    media?: (number | null) | Media;
+                    id?: string | null;
+                  }[]
+                | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  meta?: {
+    title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+    description?: string | null;
+  };
+  tenantDomain?: string | null;
+  publishedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "posts".
  */
 export interface Post {
@@ -353,6 +468,8 @@ export interface Post {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Organize your posts by topic. Assign categories to posts in the Post editor under the Meta tab.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "categories".
  */
@@ -362,57 +479,17 @@ export interface Category {
   title: string;
   slug?: string | null;
   slugLock?: boolean | null;
-  parent?: (number | null) | Category;
-  breadcrumbs?:
-    | {
-        doc?: (number | null) | Category;
-        url?: string | null;
-        label?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
-  tenant?: (number | null) | Tenant;
-  roles?: ('super-admin' | 'super-editor') | null;
-  name?: string | null;
   /**
-   * Maximum number of posts a guest-writer can create.
+   * Optional parent category for nesting
    */
-  guestWriterPostLimit?: number | null;
-  tenants?:
-    | {
-        tenant?: (number | null) | Tenant;
-        roles?: ('tenant-admin' | 'tenant-user' | 'guest-writer')[] | null;
-        id?: string | null;
-      }[]
-    | null;
+  parent?: (number | null) | Category;
+  /**
+   * Full URL path (auto-generated)
+   */
+  fullUrl?: string | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -475,83 +552,6 @@ export interface Footer {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "sections".
- */
-export interface Section {
-  id: number;
-  tenant?: (number | null) | Tenant;
-  name: string;
-  slug?: string | null;
-  slugLock?: boolean | null;
-  /**
-   * Link this section to a page (optional)
-   */
-  page?: (number | null) | Page;
-  /**
-   * Define the fields for this section
-   */
-  fields: {
-    type: 'text' | 'textarea' | 'richText' | 'number' | 'date' | 'select' | 'media' | 'link' | 'array';
-    /**
-     * Field key (e.g., "title", "description")
-     */
-    key: string;
-    textValue?: string | null;
-    textareaValue?: string | null;
-    richTextValue?: {
-      root: {
-        type: string;
-        children: {
-          type: string;
-          version: number;
-          [k: string]: unknown;
-        }[];
-        direction: ('ltr' | 'rtl') | null;
-        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-        indent: number;
-        version: number;
-      };
-      [k: string]: unknown;
-    } | null;
-    numberValue?: number | null;
-    dateValue?: string | null;
-    /**
-     * Define options for the select field
-     */
-    selectOptions?:
-      | {
-          value: string;
-          id?: string | null;
-        }[]
-      | null;
-    mediaValue?: (number | null) | Media;
-    /**
-     * Link to an internal Page or Post. For external URLs, use Text type.
-     */
-    linkValue?:
-      | ({
-          relationTo: 'pages';
-          value: number | Page;
-        } | null)
-      | ({
-          relationTo: 'posts';
-          value: number | Post;
-        } | null);
-    arrayValue?:
-      | {
-          type: 'text' | 'media';
-          value?: string | null;
-          media?: (number | null) | Media;
-          id?: string | null;
-        }[]
-      | null;
-    id?: string | null;
-  }[];
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -902,8 +902,20 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
+        relationTo: 'tenants';
+        value: number | Tenant;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: number | User;
+      } | null)
+    | ({
         relationTo: 'pages';
         value: number | Page;
+      } | null)
+    | ({
+        relationTo: 'categories';
+        value: number | Category;
       } | null)
     | ({
         relationTo: 'posts';
@@ -914,28 +926,12 @@ export interface PayloadLockedDocument {
         value: number | Media;
       } | null)
     | ({
-        relationTo: 'categories';
-        value: number | Category;
-      } | null)
-    | ({
-        relationTo: 'users';
-        value: number | User;
-      } | null)
-    | ({
-        relationTo: 'tenants';
-        value: number | Tenant;
-      } | null)
-    | ({
         relationTo: 'header';
         value: number | Header;
       } | null)
     | ({
         relationTo: 'footer';
         value: number | Footer;
-      } | null)
-    | ({
-        relationTo: 'sections';
-        value: number | Section;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1001,6 +997,55 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tenants_select".
+ */
+export interface TenantsSelect<T extends boolean = true> {
+  name?: T;
+  domain?: T;
+  slug?: T;
+  logo?: T;
+  allowedCollections?: T;
+  allowPublicRead?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users_select".
+ */
+export interface UsersSelect<T extends boolean = true> {
+  tenant?: T;
+  roles?: T;
+  name?: T;
+  guestWriterPostLimit?: T;
+  tenants?:
+    | T
+    | {
+        tenant?: T;
+        roles?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "pages_select".
  */
 export interface PagesSelect<T extends boolean = true> {
@@ -1008,6 +1053,41 @@ export interface PagesSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   slugLock?: T;
+  sections?:
+    | T
+    | {
+        name?: T;
+        slug?: T;
+        fields?:
+          | T
+          | {
+              type?: T;
+              key?: T;
+              textValue?: T;
+              textareaValue?: T;
+              richTextValue?: T;
+              numberValue?: T;
+              dateValue?: T;
+              selectOptions?:
+                | T
+                | {
+                    value?: T;
+                    id?: T;
+                  };
+              mediaValue?: T;
+              linkValue?: T;
+              arrayValue?:
+                | T
+                | {
+                    type?: T;
+                    value?: T;
+                    media?: T;
+                    id?: T;
+                  };
+              id?: T;
+            };
+        id?: T;
+      };
   meta?:
     | T
     | {
@@ -1021,6 +1101,21 @@ export interface PagesSelect<T extends boolean = true> {
   createdAt?: T;
   deletedAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  slug?: T;
+  slugLock?: T;
+  parent?: T;
+  fullUrl?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1156,77 +1251,6 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "categories_select".
- */
-export interface CategoriesSelect<T extends boolean = true> {
-  tenant?: T;
-  title?: T;
-  slug?: T;
-  slugLock?: T;
-  parent?: T;
-  breadcrumbs?:
-    | T
-    | {
-        doc?: T;
-        url?: T;
-        label?: T;
-        id?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-  deletedAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
- */
-export interface UsersSelect<T extends boolean = true> {
-  tenant?: T;
-  roles?: T;
-  name?: T;
-  guestWriterPostLimit?: T;
-  tenants?:
-    | T
-    | {
-        tenant?: T;
-        roles?: T;
-        id?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-  deletedAt?: T;
-  email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
-  hash?: T;
-  loginAttempts?: T;
-  lockUntil?: T;
-  sessions?:
-    | T
-    | {
-        id?: T;
-        createdAt?: T;
-        expiresAt?: T;
-      };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "tenants_select".
- */
-export interface TenantsSelect<T extends boolean = true> {
-  name?: T;
-  domain?: T;
-  slug?: T;
-  logo?: T;
-  allowedCollections?: T;
-  allowPublicRead?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  deletedAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -1272,47 +1296,6 @@ export interface FooterSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "sections_select".
- */
-export interface SectionsSelect<T extends boolean = true> {
-  tenant?: T;
-  name?: T;
-  slug?: T;
-  slugLock?: T;
-  page?: T;
-  fields?:
-    | T
-    | {
-        type?: T;
-        key?: T;
-        textValue?: T;
-        textareaValue?: T;
-        richTextValue?: T;
-        numberValue?: T;
-        dateValue?: T;
-        selectOptions?:
-          | T
-          | {
-              value?: T;
-              id?: T;
-            };
-        mediaValue?: T;
-        linkValue?: T;
-        arrayValue?:
-          | T
-          | {
-              type?: T;
-              value?: T;
-              media?: T;
-              id?: T;
-            };
-        id?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

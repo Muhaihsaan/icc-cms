@@ -15,6 +15,7 @@ export const Footer: CollectionConfig = {
   slug: 'footer',
   trash: true,
   admin: {
+    group: 'Global Site Content',
     hidden: shouldHideCollection('footer'),
   },
   access: {

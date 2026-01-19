@@ -26,17 +26,18 @@ const sectionFieldSchema = z.object({
   arrayValue: z.array(arrayItemSchema).nullish(),
 })
 
-const fieldsArraySchema = z.array(sectionFieldSchema)
+const sectionSchema = z.object({
+  name: z.string(),
+  slug: z.string().optional(),
+  fields: z.array(sectionFieldSchema),
+})
 
-export const computeSectionDataHook: CollectionAfterReadHook = ({ doc }) => {
-  if (!doc) return doc
+const sectionsArraySchema = z.array(sectionSchema)
 
-  const fieldsParsed = fieldsArraySchema.safeParse(doc.fields)
-  if (!fieldsParsed.success) return doc
-
+function computeSectionData(fields: z.infer<typeof sectionFieldSchema>[]): Record<string, unknown> {
   const data: Record<string, unknown> = {}
 
-  for (const field of fieldsParsed.data) {
+  for (const field of fields) {
     if (!field.key) continue
 
     if (field.type === SectionFieldTypes.TEXT) {
@@ -99,6 +100,24 @@ export const computeSectionDataHook: CollectionAfterReadHook = ({ doc }) => {
     }
   }
 
-  doc.data = data
+  return data
+}
+
+export const computeSectionsDataHook: CollectionAfterReadHook = ({ doc }) => {
+  if (!doc) return doc
+  if (!doc.sections) return doc
+
+  const sectionsParsed = sectionsArraySchema.safeParse(doc.sections)
+  if (!sectionsParsed.success) return doc
+
+  const sectionsWithData = []
+  for (const section of sectionsParsed.data) {
+    sectionsWithData.push({
+      ...section,
+      data: computeSectionData(section.fields),
+    })
+  }
+
+  doc.sections = sectionsWithData
   return doc
 }

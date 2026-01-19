@@ -8,6 +8,13 @@ import { z } from 'zod'
 import { isTopLevelUser } from '@/access/client-checks'
 import { useTopLevelMode } from './TopLevelModeContext'
 import { tenantManagedCollections } from '@/config'
+import {
+  useIsMounted,
+  injectStyle,
+  observeDOM,
+  markElementsByText,
+  removeClassFromAll,
+} from './utils/dom-utils'
 
 const optionSchema = z.object({
   label: z.string(),
@@ -15,35 +22,36 @@ const optionSchema = z.object({
 })
 const optionsArraySchema = z.array(optionSchema)
 
-// Schema for tenant API response
 const tenantResponseSchema = z.object({
   allowedCollections: z.array(z.string()).nullable().optional(),
 })
+
+// Define which collections belong to which group
+const collectionGroups: Record<string, string[]> = {
+  'Site Content': ['pages', 'categories', 'posts', 'media'],
+  'Global Site Content': ['header', 'footer'],
+}
+
+const allGroups = Object.keys(collectionGroups)
 
 export function TenantSelector(): React.ReactElement | null {
   const { user } = useAuth()
   const tenantSelection = useTenantSelection()
   const { isTopLevelMode, setTopLevelMode, isHydrated } = useTopLevelMode()
+  const isMounted = useIsMounted()
 
   const isTopLevel = isTopLevelUser(user)
-
-  // Track selected tenant's allowedCollections for filtering
   const [allowedCollections, setAllowedCollections] = useState<string[] | null>(null)
 
-  // Parse options from plugin
+  // Parse tenant options
   const optionsParsed = optionsArraySchema.safeParse(tenantSelection?.options)
   const tenantOptions = optionsParsed.success ? optionsParsed.data : []
 
-  const selectedTenantIdSchema = z.union([z.string(), z.number()]).optional()
-  const selectedTenantIdParsed = selectedTenantIdSchema.safeParse(tenantSelection?.selectedTenantID)
+  const selectedTenantIdParsed = z.union([z.string(), z.number()]).optional().safeParse(tenantSelection?.selectedTenantID)
   const pluginTenantId = selectedTenantIdParsed.success ? selectedTenantIdParsed.data : undefined
-
   const setTenant = tenantSelection?.setTenant
 
-  // The effective tenant ID: undefined if in top-level mode, otherwise plugin's value
   const selectedTenantId = isTopLevelMode ? undefined : pluginTenantId
-
-  // Top Level = explicitly in top-level mode
   const isTopLevelSelected = isTopLevelMode
 
   const handleTopLevelSelect = () => {
@@ -72,11 +80,7 @@ export function TenantSelector(): React.ReactElement | null {
         }
         const data: unknown = await res.json()
         const parsed = tenantResponseSchema.safeParse(data)
-        if (parsed.success && parsed.data.allowedCollections) {
-          setAllowedCollections(parsed.data.allowedCollections)
-        } else {
-          setAllowedCollections(null)
-        }
+        setAllowedCollections(parsed.success && parsed.data.allowedCollections ? parsed.data.allowedCollections : null)
       } catch {
         setAllowedCollections(null)
       }
@@ -85,89 +89,77 @@ export function TenantSelector(): React.ReactElement | null {
     void fetchAllowed()
   }, [isTopLevel, isTopLevelMode, selectedTenantId])
 
-  // Hide sidebar tenant selector for top-level users (they use the dashboard selector)
+  // Hide sidebar tenant selector for top-level users
   useEffect(() => {
-    if (!isTopLevel) return
+    if (!isMounted || !isTopLevel) return
+    return injectStyle('hide-sidebar-tenant', `.tenant-selector { display: none !important; }`)
+  }, [isMounted, isTopLevel])
 
-    const style = document.createElement('style')
-    style.id = 'hide-sidebar-tenant'
-    style.textContent = `.tenant-selector { display: none !important; }`
-    document.head.appendChild(style)
-
-    return () => {
-      document.getElementById('hide-sidebar-tenant')?.remove()
-    }
-  }, [isTopLevel])
-
-  // Hide collections based on mode:
-  // - Top-level mode: hide all tenant-managed collections
-  // - Tenant selected: hide collections not in allowedCollections
+  // Hide collections based on mode
   useEffect(() => {
-    // Wait for hydration to complete before applying styles
-    if (!isHydrated) return
+    if (!isMounted || !isHydrated) return
 
-    const styleId = 'hide-top-level-collections'
-    const existing = document.getElementById(styleId)
-    if (existing) existing.remove()
-
-    // Use state values (which are now synced with localStorage after hydration)
     const inTopLevelMode = isTopLevel && isTopLevelSelected
 
-    // Determine which collections to hide
     let collectionsToHide: string[] = []
-
     if (inTopLevelMode) {
-      // In top-level mode: hide all tenant-managed collections
       collectionsToHide = [...tenantManagedCollections]
     } else if (isTopLevel && selectedTenantId && allowedCollections) {
-      // Top-level user with tenant selected: hide collections not in allowedCollections
-      collectionsToHide = tenantManagedCollections.filter(
-        (c) => !allowedCollections.includes(c),
-      )
+      collectionsToHide = tenantManagedCollections.filter((c) => !allowedCollections.includes(c))
     }
 
     if (collectionsToHide.length === 0) return
 
-    // Generate CSS to hide dashboard cards and nav links
     const cardSelectors = collectionsToHide.map((c) => `#card-${c}`).join(', ')
-    const navSelectors = collectionsToHide
-      .map((c) => `nav a[href*="/collections/${c}"]`)
-      .join(', ')
+    const navSelectors = collectionsToHide.map((c) => `nav a[href*="/collections/${c}"]`).join(', ')
 
-    const style = document.createElement('style')
-    style.id = styleId
-    style.textContent = `
-      /* Hide filtered collections */
+    return injectStyle('hide-top-level-collections', `
       ${cardSelectors} { display: none !important; }
       ${navSelectors} { display: none !important; }
-      /* Fix grid layout to reflow remaining cards */
-      .dashboard__card-list {
-        display: flex !important;
-        flex-wrap: wrap !important;
-        gap: 24px !important;
-      }
-      .dashboard__card-list > li {
-        flex: 0 0 calc(50% - 12px) !important;
-        max-width: calc(50% - 12px) !important;
-      }
-      @media (max-width: 768px) {
-        .dashboard__card-list > li {
-          flex: 0 0 100% !important;
-          max-width: 100% !important;
-        }
-      }
-    `
-    document.head.appendChild(style)
+    `)
+  }, [isMounted, isHydrated, isTopLevel, isTopLevelSelected, selectedTenantId, allowedCollections])
 
-    return () => {
-      document.getElementById(styleId)?.remove()
+  // Hide nav groups in sidebar and dashboard
+  useEffect(() => {
+    if (!isMounted || !isHydrated) return
+
+    const inTopLevelMode = isTopLevel && isTopLevelSelected
+    const hideClass = 'hide-dashboard-group'
+
+    // Determine which groups to hide
+    let groupsToHide: string[] = []
+    if (inTopLevelMode) {
+      groupsToHide = [...allGroups]
+    } else if (isTopLevel && selectedTenantId && allowedCollections) {
+      groupsToHide = allGroups.filter((group) => {
+        const groupCollections = collectionGroups[group] || []
+        return !groupCollections.some((c) => allowedCollections.includes(c))
+      })
     }
-  }, [isHydrated, isTopLevel, isTopLevelSelected, selectedTenantId, allowedCollections])
 
-  // Only show for top-level users
+    // Clear previous state
+    removeClassFromAll(hideClass)
+
+    if (groupsToHide.length === 0) {
+      injectStyle('hide-tenant-groups-style', '')
+      return
+    }
+
+    // CSS for sidebar nav groups and dashboard labels
+    const navGroupSelectors = groupsToHide.map((g) => `[id="nav-group-${g}"]`).join(', ')
+    injectStyle('hide-tenant-groups-style', `
+      ${navGroupSelectors} { display: none !important; }
+      .${hideClass} { display: none !important; }
+    `)
+
+    // Mark dashboard labels with observer
+    return observeDOM(() => {
+      markElementsByText('h2, h3, h4, p', groupsToHide, hideClass)
+    })
+  }, [isMounted, isHydrated, isTopLevel, isTopLevelSelected, selectedTenantId, allowedCollections])
+
   if (!isTopLevel) return null
 
-  // Description based on selection
   const description = isTopLevelSelected
     ? 'Managing top-level users and tenants.'
     : 'Use the sidebar Tenant selector to switch tenants.'
@@ -197,9 +189,7 @@ export function TenantSelector(): React.ReactElement | null {
             padding: '0.5rem 1rem',
             borderRadius: '4px',
             border: 'none',
-            backgroundColor: isTopLevelSelected
-              ? 'var(--theme-success-500)'
-              : 'var(--theme-elevation-200)',
+            backgroundColor: isTopLevelSelected ? 'var(--theme-success-500)' : 'var(--theme-elevation-200)',
             color: isTopLevelSelected ? 'white' : 'inherit',
             cursor: 'pointer',
             fontWeight: isTopLevelSelected ? 600 : 400,
@@ -214,23 +204,15 @@ export function TenantSelector(): React.ReactElement | null {
           onChange={(e) => {
             const val = e.target.value
             if (!val) return
-
-            // Parse as number if numeric, otherwise keep as string
-            const numSchema = z.coerce.number()
-            const numParsed = numSchema.safeParse(val)
-            const id = numParsed.success ? numParsed.data : val
-            handleTenantSelect(id)
+            const numParsed = z.coerce.number().safeParse(val)
+            handleTenantSelect(numParsed.success ? numParsed.data : val)
           }}
           className="tenant-selector-select"
           style={{
             padding: '0.5rem 1rem',
             borderRadius: '4px',
-            border: selectedTenantId
-              ? '2px solid var(--theme-success-500)'
-              : '1px solid var(--theme-elevation-200)',
-            backgroundColor: selectedTenantId
-              ? 'var(--theme-success-100)'
-              : 'var(--theme-elevation-0)',
+            border: selectedTenantId ? '2px solid var(--theme-success-500)' : '1px solid var(--theme-elevation-200)',
+            backgroundColor: selectedTenantId ? 'var(--theme-success-100)' : 'var(--theme-elevation-0)',
             cursor: 'pointer',
             minWidth: '180px',
           }}

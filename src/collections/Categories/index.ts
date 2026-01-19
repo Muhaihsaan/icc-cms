@@ -9,6 +9,7 @@ import {
 } from '@/access'
 import { Collections } from '@/config'
 import { slugField } from '@/fields/slug'
+import { computeFullUrlHook, computeFullUrlAfterReadHook } from './hooks/compute-full-url'
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
@@ -21,8 +22,10 @@ export const Categories: CollectionConfig = {
     update: withTenantCollectionAccess(Collections.CATEGORIES, tenantAdminUpdateAccess),
   },
   admin: {
+    group: 'Site Content',
     hidden: shouldHideCollection('categories'),
     useAsTitle: 'title',
+    description: 'Organize your posts by topic. Assign categories to posts in the Post editor under the Meta tab.',
   },
   fields: [
     {
@@ -31,5 +34,31 @@ export const Categories: CollectionConfig = {
       required: true,
     },
     ...slugField(),
+    {
+      name: 'parent',
+      type: 'relationship',
+      relationTo: Collections.CATEGORIES,
+      admin: {
+        position: 'sidebar',
+        description: 'Optional parent category for nesting',
+      },
+      filterOptions: ({ id }) => {
+        // Prevent selecting self as parent
+        if (!id) return true
+        return { id: { not_equals: id } }
+      },
+    },
+    {
+      name: 'fullUrl',
+      type: 'text',
+      admin: {
+        readOnly: true,
+        description: 'Full URL path (auto-generated)',
+      },
+    },
   ],
+  hooks: {
+    beforeChange: [computeFullUrlHook],
+    afterRead: [computeFullUrlAfterReadHook],
+  },
 }

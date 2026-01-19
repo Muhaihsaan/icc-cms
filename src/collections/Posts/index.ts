@@ -65,6 +65,7 @@ export const Posts: CollectionConfig<'posts'> = {
     },
   },
   admin: {
+    group: 'Site Content',
     hidden: shouldHideCollection('posts'),
     components: {
       Description: '@/components/GuestWriterLimitDescription#GuestWriterLimitDescription',

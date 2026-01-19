@@ -358,25 +358,25 @@ After deployment, update each tenant's `domain` to the real hostname.
 | `/api/tenant` | List all tenants |
 | `/api/tenant/[slug]/posts` | Get posts for a tenant |
 | `/api/tenant/[slug]/posts/[postSlug]` | Get single post |
-| `/api/tenant/[slug]/page/[pageSlug]` | Get single page |
-| `/api/tenant/[slug]/sections` | Get all sections for a tenant |
+| `/api/tenant/[slug]/page/[pageSlug]` | Get single page (includes sections) |
 
-## Dynamic Sections
+## Page Sections
 
-Sections allow you to create flexible, structured content without code changes. Each section defines its own fields and data inline.
+Sections are embedded directly within Pages, allowing you to create flexible, structured content without code changes. Each page can have multiple sections, and each section defines its own fields and data.
 
-### Creating a Section
+### Creating Sections
 
-1. Go to **Sections** in the admin panel
-2. Click **Create New**
-3. Fill in:
-   - **Name**: Display name (e.g., "Homepage Hero")
-   - **Slug**: Auto-generated URL identifier
-4. Add **Fields** using the available types:
+1. Go to **Pages** in the admin panel
+2. Open or create a Page
+3. In the **Sections** array, click **Add Section**
+4. Fill in:
+   - **Name**: Section name (e.g., "Hero", "Features")
+   - **Slug**: Optional anchor link slug (e.g., "hero" for #hero)
+5. Add **Fields** using the available types:
 
 | Type | Description | Stored Value |
 |------|-------------|--------------|
-| `Text` | Single/multi-line text | `"string"` |
+| `Text` | Single-line text | `"string"` |
 | `Textarea` | Multi-line text with line breaks | `"string"` |
 | `Rich Text` | Formatted content editor | `{ lexical JSON }` |
 | `Number` | Numeric values | `123` |
@@ -386,34 +386,31 @@ Sections allow you to create flexible, structured content without code changes. 
 | `Internal Link` | Link to Page/Post | `{ id, slug, title }` |
 | `Array` | List of text or media | `[...]` |
 
-### Fetching Sections
+### Fetching Pages with Sections
 
 ```ts
-// Fetch all sections for a tenant
-const res = await fetch('/api/tenant/acme/sections')
-const { docs: sections } = await res.json()
+// Fetch a page - sections are included automatically
+const page = await fetch('/api/tenant/acme/page/home').then(r => r.json())
 
-// Find specific section by slug
-const hero = sections.find(s => s.slug === 'homepage-hero')
-
-// Access the computed data object
-console.log(hero.data)
-// {
-//   title: "Welcome to Our Site",
-//   description: "The best solution...",
-//   heroImage: { url: "/media/hero.jpg", alt: "Hero" }
-// }
+// Page includes sections with computed data
+console.log(page.sections)
+// [
+//   { name: "Hero", slug: "hero", data: { title: "Welcome", heroImage: {...} } },
+//   { name: "Features", slug: "features", data: { items: [...] } }
+// ]
 ```
 
 ### API Response Structure
 
 ```json
 {
-  "docs": [
+  "id": 1,
+  "title": "Homepage",
+  "slug": "home",
+  "sections": [
     {
-      "id": 1,
-      "name": "Homepage Hero",
-      "slug": "homepage-hero",
+      "name": "Hero",
+      "slug": "hero",
       "fields": [
         { "type": "text", "key": "title", "textValue": "Welcome" },
         { "type": "media", "key": "heroImage", "mediaValue": { "url": "..." } }
@@ -423,7 +420,11 @@ console.log(hero.data)
         "heroImage": { "url": "..." }
       }
     }
-  ]
+  ],
+  "meta": {
+    "title": "Homepage | Acme",
+    "description": "..."
+  }
 }
 ```
 
@@ -432,19 +433,180 @@ The `data` object is auto-computed from `fields` for easier frontend access.
 ### Frontend Usage
 
 ```tsx
-const { docs: sections } = await fetch('/api/tenant/acme/sections').then(r => r.json())
+const page = await fetch('/api/tenant/acme/page/home').then(r => r.json())
 
-return sections.map(section => (
-  <section key={section.id} id={section.slug}>
-    {section.data.title && <h1>{section.data.title}</h1>}
-    {section.data.description && (
-      <p style={{ whiteSpace: 'pre-line' }}>{section.data.description}</p>
-    )}
-    {section.data.heroImage && (
-      <img src={section.data.heroImage.url} alt={section.data.heroImage.alt} />
-    )}
-  </section>
-))
+return (
+  <>
+    <head>
+      <title>{page.meta.title}</title>
+      <meta name="description" content={page.meta.description} />
+    </head>
+    <main>
+      {page.sections?.map(section => (
+        <section key={section.name} id={section.slug}>
+          {section.data.title && <h1>{section.data.title}</h1>}
+          {section.data.description && (
+            <p style={{ whiteSpace: 'pre-line' }}>{section.data.description}</p>
+          )}
+          {section.data.heroImage && (
+            <img src={section.data.heroImage.url} alt={section.data.heroImage.alt} />
+          )}
+        </section>
+      ))}
+    </main>
+  </>
+)
+```
+
+## Categories
+
+Categories organize posts by topic. Each tenant has their own categories, and categories can be nested using the parent field.
+
+### Creating Categories
+
+1. Go to **Categories** in the sidebar
+2. Click **Create New**
+3. Fill in:
+   - **Title**: Display name (e.g., "Technology")
+   - **Slug**: Auto-generated from title, or customize it
+   - **Parent**: (Optional) Select a parent category for nesting
+4. Click **Save**
+5. The **Full URL** will be auto-generated (e.g., `/technology` or `/parent/technology`)
+
+**Example: Creating Nested Categories**
+
+```
+1. Create "SEO" category (no parent)
+   → Full URL: /seo
+
+2. Create "SEO Tips" category (parent: SEO)
+   → Full URL: /seo/seo-tips
+
+3. Create "Technical SEO" category (parent: SEO)
+   → Full URL: /seo/technical-seo
+```
+
+### Creating a Post with Categories
+
+1. Go to **Posts** in the sidebar
+2. Click **Create New**
+3. Fill in the **Content** tab:
+   - **Title**: Post title
+   - **Hero Image**: (Optional) Featured image
+   - **Content**: Write your post content
+4. Click the **Meta** tab
+5. In the **Categories** field:
+   - Click the dropdown or **+** button
+   - Select one or more categories
+6. Fill in the **SEO** tab (optional but recommended)
+7. Click **Save Draft** or **Publish**
+
+**Tips:**
+- You can assign multiple categories to a single post
+- For nested categories, typically assign only the most specific one (e.g., "SEO Tips" not both "SEO" and "SEO Tips")
+- Categories are tenant-specific - each tenant has their own set
+
+### Category Structure
+
+| Field | Description |
+|-------|-------------|
+| `title` | Display name (e.g., "SEO Tips") |
+| `slug` | URL identifier (e.g., "seo-tips") |
+| `parent` | Optional parent category for nesting |
+| `fullUrl` | Auto-computed full path (e.g., "/seo/seo-tips") |
+
+### Assigning Categories to Posts
+
+1. Go to **Posts** → Edit a post
+2. Click the **Meta** tab
+3. Select categories in the **Categories** field
+4. Save the post
+
+### Category Archive Pages
+
+Categories and posts have **separate URLs**:
+
+| URL Pattern | Purpose |
+|-------------|---------|
+| `/blog/my-post-slug` | Single post page |
+| `/blog/category/seo` | Category archive (list posts in "seo") |
+| `/blog/category/seo/seo-tips` | Nested category archive |
+
+### Fetching Category and Posts
+
+**Step 1: Get category by fullUrl**
+
+```ts
+// Frontend route: /blog/category/[...slug]
+// URL: /blog/category/seo/seo-tips
+// categoryPath = "/seo/seo-tips"
+
+const categoryRes = await fetch(
+  `${API_URL}/api/categories?where[fullUrl][equals]=${categoryPath}&where[tenant][equals]=${tenantId}`
+)
+const category = categoryRes.docs[0]
+```
+
+**Step 2: Get posts in that category**
+
+```ts
+const postsRes = await fetch(
+  `${API_URL}/api/posts?where[categories][contains]=${category.id}&where[tenant][equals]=${tenantId}`
+)
+const posts = postsRes.docs
+```
+
+**Using Payload Local API (Next.js Server)**
+
+```ts
+// In your Next.js page or API route
+const category = await payload.find({
+  collection: 'categories',
+  where: {
+    fullUrl: { equals: '/seo/seo-tips' },
+    tenant: { equals: tenantId },
+  },
+  limit: 1,
+})
+
+const posts = await payload.find({
+  collection: 'posts',
+  where: {
+    categories: { contains: category.docs[0].id },
+    tenant: { equals: tenantId },
+    _status: { equals: 'published' },
+  },
+})
+```
+
+### Including Child Categories
+
+To get posts from a category AND all its children:
+
+```ts
+// Get the parent category and all children
+const allCategories = await payload.find({
+  collection: 'categories',
+  where: {
+    or: [
+      { fullUrl: { equals: '/seo' } },           // Parent
+      { fullUrl: { like: '/seo/%' } },           // Children (starts with /seo/)
+    ],
+    tenant: { equals: tenantId },
+  },
+})
+
+const categoryIds = allCategories.docs.map(c => c.id)
+
+// Get posts in any of these categories
+const posts = await payload.find({
+  collection: 'posts',
+  where: {
+    categories: { in: categoryIds },
+    tenant: { equals: tenantId },
+    _status: { equals: 'published' },
+  },
+})
 ```
 
 ## Troubleshooting

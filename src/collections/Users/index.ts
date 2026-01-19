@@ -60,6 +60,7 @@ export const Users: CollectionConfig = {
     read: usersReadAccess,
   },
   admin: {
+    group: 'Administrative',
     // Hide Users collection from guest writers (they can access admin but shouldn't see Users)
     hidden: shouldHideUsersCollection,
     defaultColumns: ['name', 'email', 'roles'],
