@@ -106,8 +106,12 @@ export interface Config {
   db: {
     defaultIDType: string;
   };
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'site-settings': SiteSetting;
+  };
+  globalsSelect: {
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+  };
   locale: null;
   user: User & {
     collection: 'users';
@@ -157,6 +161,10 @@ export interface Tenant {
    */
   slug: string;
   logo?: (string | null) | Media;
+  /**
+   * Industry category for this tenant
+   */
+  industry?: string | null;
   /**
    * External frontend preview endpoint (e.g., https://my-frontend.com/api/preview)
    */
@@ -1011,6 +1019,7 @@ export interface TenantsSelect<T extends boolean = true> {
   domain?: T;
   slug?: T;
   logo?: T;
+  industry?: T;
   previewUrl?: T;
   previewSecret?: T;
   allowedCollections?: T;
@@ -1549,6 +1558,41 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: string;
+  /**
+   * Define industries that can be assigned to tenants
+   */
+  industries?:
+    | {
+        label: string;
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  industries?:
+    | T
+    | {
+        label?: T;
+        value?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

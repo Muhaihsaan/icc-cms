@@ -14,6 +14,7 @@ import { Users } from './collections/Users'
 import { Tenants } from './collections/Tenants/tenants'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
+import { SiteSettings } from './globals/SiteSettings'
 import { plugins } from './plugins'
 import { getStoragePlugin } from './plugins/storage'
 import { defaultLexical } from '@/fields/default-lexical'
@@ -108,6 +109,7 @@ export default buildConfig({
     },
   }),
   collections: [Tenants, Users, Pages, Categories, Posts, Media, Header, Footer],
+  globals: [SiteSettings],
   cors: [getServerSideURL()].filter(Boolean),
   plugins: [...plugins, ...(storagePlugin ? [storagePlugin] : [])],
   secret: process.env.PAYLOAD_SECRET,

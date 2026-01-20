@@ -1,3 +1,4 @@
+import { IndustrySelectField as IndustrySelectField_1c171a28178fd1989d7ed482b85b61c0 } from '@/components/IndustrySelectField/industry-select-field'
 import { AllowedCollectionsLabel as AllowedCollectionsLabel_c5a7820c9928f0bc37c020e06692dc67 } from '@/components/SelectAllLabel/select-all-label'
 import { AllowPublicReadLabel as AllowPublicReadLabel_c5a7820c9928f0bc37c020e06692dc67 } from '@/components/SelectAllLabel/select-all-label'
 import { AllowPublicReadField as AllowPublicReadField_277c877cf6b88794802cce22b89f765b } from '@/components/AllowPublicReadField/allow-public-read-field'
@@ -41,6 +42,7 @@ import { TenantSelectionProvider as TenantSelectionProvider_d6d5f193a167989e2ee7
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 
 export const importMap = {
+  "@/components/IndustrySelectField/industry-select-field#IndustrySelectField": IndustrySelectField_1c171a28178fd1989d7ed482b85b61c0,
   "@/components/SelectAllLabel/select-all-label#AllowedCollectionsLabel": AllowedCollectionsLabel_c5a7820c9928f0bc37c020e06692dc67,
   "@/components/SelectAllLabel/select-all-label#AllowPublicReadLabel": AllowPublicReadLabel_c5a7820c9928f0bc37c020e06692dc67,
   "@/components/AllowPublicReadField/allow-public-read-field#AllowPublicReadField": AllowPublicReadField_277c877cf6b88794802cce22b89f765b,

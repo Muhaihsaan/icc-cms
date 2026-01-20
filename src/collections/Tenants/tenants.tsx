@@ -27,6 +27,7 @@ export const Tenants: CollectionConfig = {
   admin: {
     group: 'Administrative',
     useAsTitle: 'name',
+    defaultColumns: ['name', 'domain', 'slug', 'industry'],
     hidden: ({ user }) => {
       const parsed = userRolesSchema.safeParse(user)
       if (!parsed.success) return true
@@ -65,6 +66,16 @@ export const Tenants: CollectionConfig = {
       name: 'logo',
       type: 'upload',
       relationTo: Collections.MEDIA,
+    },
+    {
+      name: 'industry',
+      type: 'text',
+      admin: {
+        description: 'Industry category for this tenant',
+        components: {
+          Field: '@/components/IndustrySelectField/industry-select-field#IndustrySelectField',
+        },
+      },
     },
     {
       name: 'previewUrl',
