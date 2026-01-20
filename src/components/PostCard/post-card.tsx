@@ -2,14 +2,12 @@
 import { cn } from '@/utilities/ui'
 import { useClickableCard } from '@/utilities/hooks/use-clickable-card'
 import Link from 'next/link'
-import React, { Fragment, memo, useMemo } from 'react'
+import React, { memo, useMemo } from 'react'
 import { z } from 'zod'
 
 import type { Post } from '@/payload-types'
 
 import { Media } from '@/components/Media/media'
-
-const categoriesArraySchema = z.array(z.unknown())
 
 const categoryObjectSchema = z.object({
   id: z.union([z.string(), z.number()]),
@@ -21,7 +19,7 @@ const mediaObjectSchema = z.object({
   url: z.string().nullable().optional(),
 })
 
-export type CardPostData = Pick<Post, 'slug' | 'categories' | 'meta' | 'title'>
+export type CardPostData = Pick<Post, 'slug' | 'category' | 'meta' | 'title'>
 
 export const PostCard: React.FC<{
   alignItems?: 'center'
@@ -34,17 +32,14 @@ export const PostCard: React.FC<{
   const { card, link } = useClickableCard({})
   const { className, doc, relationTo, showCategories, title: titleFromProps } = props
 
-  const { slug, categories, meta, title } = doc || {}
+  const { slug, category, meta, title } = doc || {}
   const { description, image: metaImage } = meta || {}
 
-  const categoriesParsed = useMemo(
-    () => categoriesArraySchema.safeParse(categories),
-    [categories]
-  )
-  const hasCategories = categoriesParsed.success && categoriesParsed.data.length > 0
+  const categoryParsed = useMemo(() => categoryObjectSchema.safeParse(category), [category])
+  const hasCategory = categoryParsed.success
   const isValidMediaImage = useMemo(
     () => mediaObjectSchema.safeParse(metaImage).success,
-    [metaImage]
+    [metaImage],
   )
   const titleToUse = titleFromProps || title
   const sanitizedDescription = useMemo(
@@ -66,30 +61,9 @@ export const PostCard: React.FC<{
         {isValidMediaImage && <Media resource={metaImage} size="33vw" />}
       </div>
       <div className="p-4">
-        {showCategories && hasCategories && (
+        {showCategories && hasCategory && (
           <div className="uppercase text-sm mb-4">
-            <div>
-              {(() => {
-                if (!categoriesParsed.success) return null
-                const elements: React.ReactNode[] = []
-                for (let i = 0; i < categoriesParsed.data.length; i++) {
-                  const category = categoriesParsed.data[i]
-                  const parsed = categoryObjectSchema.safeParse(category)
-                  if (!parsed.success) continue
-
-                  const categoryTitle = parsed.data.title || 'Untitled category'
-                  const isLast = i === categoriesParsed.data.length - 1
-
-                  elements.push(
-                    <Fragment key={parsed.data.id}>
-                      {categoryTitle}
-                      {!isLast && <Fragment>, &nbsp;</Fragment>}
-                    </Fragment>
-                  )
-                }
-                return elements
-              })()}
-            </div>
+            {categoryParsed.data.title || 'Untitled category'}
           </div>
         )}
         {titleToUse && (

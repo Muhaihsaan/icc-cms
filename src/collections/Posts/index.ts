@@ -7,6 +7,8 @@ import {
   HorizontalRuleFeature,
   InlineToolbarFeature,
   lexicalEditor,
+  OrderedListFeature,
+  UnorderedListFeature,
   UploadFeature,
 } from '@payloadcms/richtext-lexical'
 
@@ -62,7 +64,7 @@ export const Posts: CollectionConfig<'posts'> = {
   defaultPopulate: {
     title: true,
     slug: true,
-    categories: true,
+    category: true,
     meta: {
       image: true,
       description: true,
@@ -129,6 +131,8 @@ export const Posts: CollectionConfig<'posts'> = {
                     FixedToolbarFeature(),
                     InlineToolbarFeature(),
                     HorizontalRuleFeature(),
+                    UnorderedListFeature(),
+                    OrderedListFeature(),
                   ]
                 },
               }),
@@ -145,6 +149,7 @@ export const Posts: CollectionConfig<'posts'> = {
               type: 'relationship',
               admin: {
                 position: 'sidebar',
+                allowCreate: false,
               },
               filterOptions: ({ id }) => {
                 return {
@@ -157,16 +162,13 @@ export const Posts: CollectionConfig<'posts'> = {
               relationTo: Collections.POSTS,
             },
             {
-              name: 'categories',
+              name: 'category',
               type: 'relationship',
               admin: {
                 position: 'sidebar',
+                allowCreate: false,
               },
-              hasMany: true,
               relationTo: Collections.CATEGORIES,
-              filterOptions: {
-                parent: { exists: true },
-              },
             },
           ],
           label: 'Meta',

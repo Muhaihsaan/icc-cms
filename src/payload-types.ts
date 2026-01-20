@@ -158,6 +158,14 @@ export interface Tenant {
   slug: string;
   logo?: (string | null) | Media;
   /**
+   * External frontend preview endpoint (e.g., https://my-frontend.com/api/preview)
+   */
+  previewUrl?: string | null;
+  /**
+   * Secret token for validating preview requests
+   */
+  previewSecret?: string | null;
+  /**
    * Select which collections this tenant can access.
    */
   allowedCollections: (
@@ -441,7 +449,7 @@ export interface Post {
     [k: string]: unknown;
   };
   relatedPosts?: (string | Post)[] | null;
-  categories?: (string | Category)[] | null;
+  category?: (string | null) | Category;
   meta?: {
     title?: string | null;
     /**
@@ -490,10 +498,6 @@ export interface Category {
   title: string;
   slug?: string | null;
   slugLock?: boolean | null;
-  /**
-   * Optional parent category for nesting
-   */
-  parent?: (string | null) | Category;
   /**
    * Full URL path (auto-generated)
    */
@@ -1007,6 +1011,8 @@ export interface TenantsSelect<T extends boolean = true> {
   domain?: T;
   slug?: T;
   logo?: T;
+  previewUrl?: T;
+  previewSecret?: T;
   allowedCollections?: T;
   allowPublicRead?: T;
   updatedAt?: T;
@@ -1114,7 +1120,6 @@ export interface CategoriesSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   slugLock?: T;
-  parent?: T;
   fullUrl?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1130,7 +1135,7 @@ export interface PostsSelect<T extends boolean = true> {
   heroImage?: T;
   content?: T;
   relatedPosts?: T;
-  categories?: T;
+  category?: T;
   meta?:
     | T
     | {

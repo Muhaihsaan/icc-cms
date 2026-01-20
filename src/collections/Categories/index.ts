@@ -10,11 +10,14 @@ import {
 } from '@/access'
 import { Collections } from '@/config'
 import { slugField } from '@/fields/slug'
-import { computeFullUrlHook, computeFullUrlAfterReadHook } from './hooks/compute-full-url'
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
   trash: true,
+  defaultPopulate: {
+    title: true,
+    slug: true,
+  },
   access: {
     admin: tenantCollectionAdminAccess(Collections.CATEGORIES),
     create: withTenantCollectionAccess(Collections.CATEGORIES, tenantAdminCreateAccess),
@@ -27,6 +30,7 @@ export const Categories: CollectionConfig = {
     hidden: shouldHideCollection('categories'),
     useAsTitle: 'title',
     description: 'Organize your posts by topic. Assign categories to posts in the Post editor under the Meta tab.',
+    defaultColumns: ['title', 'slug'],
   },
   fields: [
     {
@@ -36,30 +40,24 @@ export const Categories: CollectionConfig = {
     },
     ...slugField(),
     {
-      name: 'parent',
-      type: 'relationship',
-      relationTo: Collections.CATEGORIES,
-      admin: {
-        position: 'sidebar',
-        description: 'Optional parent category for nesting',
-      },
-      filterOptions: ({ id }) => {
-        // Prevent selecting self as parent
-        if (!id) return true
-        return { id: { not_equals: id } }
-      },
-    },
-    {
       name: 'fullUrl',
       type: 'text',
       admin: {
+        position: 'sidebar',
         readOnly: true,
         description: 'Full URL path (auto-generated)',
       },
     },
   ],
   hooks: {
-    beforeChange: [computeFullUrlHook],
-    afterRead: [computeFullUrlAfterReadHook],
+    beforeChange: [
+      ({ data }) => {
+        if (!data) return data
+        if (data.slug) {
+          data.fullUrl = `/${data.slug}`
+        }
+        return data
+      },
+    ],
   },
 }
