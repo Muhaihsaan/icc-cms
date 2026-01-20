@@ -74,15 +74,6 @@ export const hasAdminPanelAccess = ({ req }: AccessArgs): boolean => {
   return tenantData.hasAdminRole || tenantData.hasGuestWriterRole
 }
 
-// Control visibility of Users collection in admin.
-// Guest-writers should NOT see Users collection.
-export const usersCollectionAdminAccess = ({ req }: AccessArgs): boolean => {
-  if (isSuperAdmin(req.user)) return true
-  if (isSuperEditor(req.user)) return true
-  const tenantData = getUserTenantData(req)
-  return tenantData.hasAdminRole
-}
-
 // Allow field access for super-admins, super-editors, or tenant admins.
 export const isSuperAdminOrEditorFieldAccess: FieldAccess = ({ req }): boolean => {
   if (isSuperAdmin(req.user)) return true
@@ -96,4 +87,9 @@ export const notGuestWriterFieldAccess: FieldAccess = ({ req }) => {
   const user = req.user
   if (!user) return false
   return !hasGuestWriterRole(user)
+}
+
+// Field access for top-level users only (super-admin, super-editor)
+export const topLevelUserFieldAccess: FieldAccess = ({ req }) => {
+  return isTopLevelUser(req.user)
 }

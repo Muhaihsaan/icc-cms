@@ -2,12 +2,12 @@ import type { StaticImageData } from 'next/image'
 
 import { cn } from '@/utilities/ui'
 import React from 'react'
-import RichText from '@/components/RichText'
+import RichText from '@/components/RichText/rich-text'
 import { z } from 'zod'
 
 import type { MediaBlock as MediaBlockProps } from '@/payload-types'
 
-import { Media } from '../../components/Media'
+import { Media } from '@/components/Media/media'
 
 const mediaObjectSchema = z.object({
   id: z.union([z.string(), z.number()]),

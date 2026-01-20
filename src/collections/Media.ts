@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url'
 import {
   tenantPublicReadAccess,
   tenantAdminUpdateAccess,
+  tenantAdminCreateAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
   shouldHideCollection,
@@ -27,15 +28,24 @@ export const Media: CollectionConfig = {
   admin: {
     group: 'Site Content',
     hidden: shouldHideCollection('media'),
+    defaultColumns: ['filename', 'alt', 'caption', 'createdAt'],
   },
   access: {
     admin: tenantCollectionAdminAccess(Collections.MEDIA),
-    create: withTenantCollectionAccess(Collections.MEDIA, tenantAdminUpdateAccess),
+    create: withTenantCollectionAccess(Collections.MEDIA, tenantAdminCreateAccess),
     delete: tenantAdminUpdateAccess, // Both admins can soft-delete (Trash tab hidden for tenant-admin)
     read: withTenantCollectionAccess(Collections.MEDIA, tenantPublicReadAccess(Collections.MEDIA)),
     update: withTenantCollectionAccess(Collections.MEDIA, tenantAdminUpdateAccess),
   },
   fields: [
+    {
+      name: 'createdAt',
+      type: 'date',
+      label: 'Added at',
+      admin: {
+        readOnly: true,
+      },
+    },
     {
       name: 'alt',
       type: 'text',

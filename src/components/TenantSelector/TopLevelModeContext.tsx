@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import { useAuth } from '@payloadcms/ui'
 
-import { isTopLevelUser } from '@/access/client-checks'
+import { validateTopLevelUser } from '@/access/client-checks'
 
 const TOP_LEVEL_KEY = 'icc-top-level'
 
@@ -30,7 +30,7 @@ const TopLevelModeContext = createContext<TopLevelModeContextType | null>(null)
 
 export function TopLevelModeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
-  const isTopLevel = isTopLevelUser(user)
+  const isTopLevel = validateTopLevelUser(user)
 
   // Initialize with server-safe default (false), sync with localStorage after mount
   const [isTopLevelMode, setIsTopLevelMode] = useState(false)

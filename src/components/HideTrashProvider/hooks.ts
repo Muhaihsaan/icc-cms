@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import type { ClientUser } from 'payload'
-import { isSuperAdmin, hasGuestWriterRole } from '@/access/client-checks'
+import { validateSuperAdmin, hasGuestWriterRole } from '@/access/client-checks'
 
 /**
  * Hides trash-related UI elements for non-super-admin users.
@@ -17,7 +17,7 @@ import { isSuperAdmin, hasGuestWriterRole } from '@/access/client-checks'
  */
 export function useHideTrash(user: ClientUser | null | undefined): void {
   useEffect(() => {
-    if (isSuperAdmin(user)) {
+    if (validateSuperAdmin(user)) {
       const existingStyle = document.getElementById('hide-trash-style')
       if (existingStyle) existingStyle.remove()
       return
@@ -64,7 +64,7 @@ export function useHideSelection(user: ClientUser | null | undefined, pathname: 
     const isPostsCollection = pathname?.includes('/collections/posts')
 
     // Non-super-admins can't bulk select on users/tenants
-    const hideForNonSuperAdmin = !isSuperAdmin(user) && (isUsersCollection || isTenantsCollection)
+    const hideForNonSuperAdmin = !validateSuperAdmin(user) && (isUsersCollection || isTenantsCollection)
 
     // Guest writers can't bulk select on posts (no delete access)
     const hideForGuestWriter = hasGuestWriterRole(user) && isPostsCollection
@@ -172,6 +172,33 @@ export function useHidePublish(user: ClientUser | null | undefined): void {
       if (existingStyle) existingStyle.remove()
     }
   }, [user])
+}
+
+/**
+ * Hides the Columns and Filters dropdowns for all users.
+ *
+ * This simplifies the UI experience by using predefined default columns.
+ */
+export function useHideListControls(): void {
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.id = 'hide-list-controls-style'
+    style.textContent = `
+      /* Hide Columns and Filters dropdowns for all users */
+      #toggle-list-columns,
+      .list-controls__toggle-columns,
+      #toggle-list-filters,
+      .list-controls__toggle-where {
+        display: none !important;
+      }
+    `
+    document.head.appendChild(style)
+
+    return () => {
+      const existingStyle = document.getElementById('hide-list-controls-style')
+      if (existingStyle) existingStyle.remove()
+    }
+  }, [])
 }
 
 /**

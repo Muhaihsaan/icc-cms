@@ -18,7 +18,8 @@ import {
   postsReadAccess,
   withTenantCollectionAccess,
   shouldHideCollection,
-  notGuestWriterFieldAccess,
+  topLevelUserFieldAccess,
+  isTopLevelUser,
 } from '@/access'
 import { Collections } from '@/config'
 import { hasGuestWriterRole } from '@/access/helpers'
@@ -42,7 +43,7 @@ import {
   PreviewField,
 } from '@payloadcms/plugin-seo/fields'
 import { slugField } from '@/fields/slug'
-import { populateTenantDomain } from '@/hooks/populate-tenant-domain'
+import { populateTenantDomain } from '@/payload-hooks/populate-tenant-domain'
 
 export const Posts: CollectionConfig<'posts'> = {
   slug: 'posts',
@@ -73,7 +74,7 @@ export const Posts: CollectionConfig<'posts'> = {
     components: {
       Description: '@/components/GuestWriterLimitDescription#GuestWriterLimitDescription',
     },
-    defaultColumns: ['title', 'slug', 'updatedAt'],
+    defaultColumns: ['title', 'slug', '_status', 'publishedAt'],
     livePreview: {
       url: ({ data, req }) => {
         const path = generatePreviewPath({
@@ -163,6 +164,9 @@ export const Posts: CollectionConfig<'posts'> = {
               },
               hasMany: true,
               relationTo: Collections.CATEGORIES,
+              filterOptions: {
+                parent: { exists: true },
+              },
             },
           ],
           label: 'Meta',
@@ -192,7 +196,8 @@ export const Posts: CollectionConfig<'posts'> = {
               name: 'canonicalUrl',
               type: 'text',
               admin: {
-                description: 'Override the default URL if this content exists elsewhere (leave empty to use default)',
+                description:
+                  'Override the default URL if this content exists elsewhere (leave empty to use default)',
               },
             },
             {
@@ -245,12 +250,14 @@ export const Posts: CollectionConfig<'posts'> = {
       index: true,
       admin: {
         position: 'sidebar',
+        allowCreate: false,
       },
       access: {
-        update: notGuestWriterFieldAccess,
+        update: topLevelUserFieldAccess,
       },
       defaultValue: ({ req }) => {
-        if (hasGuestWriterRole(req.user)) return [req.user?.id].filter(Boolean)
+        // Auto-assign current user for tenant-level users (tenant-admin, guest-writer)
+        if (!isTopLevelUser(req.user)) return [req.user?.id].filter(Boolean)
         return undefined
       },
       hasMany: true,
@@ -285,7 +292,12 @@ export const Posts: CollectionConfig<'posts'> = {
     ...slugField(),
   ],
   hooks: {
-    beforeChange: [assignGuestWriterAuthor, preventGuestWriterPublish, populateTenantDomain, calculateReadingTimeHook],
+    beforeChange: [
+      assignGuestWriterAuthor,
+      preventGuestWriterPublish,
+      populateTenantDomain,
+      calculateReadingTimeHook,
+    ],
     afterChange: [revalidatePost],
     afterRead: [populateAuthors],
     afterDelete: [revalidateDelete],
@@ -293,7 +305,7 @@ export const Posts: CollectionConfig<'posts'> = {
   versions: {
     drafts: {
       autosave: {
-        interval: 100, // We set this interval for optimal live preview
+        interval: 3000,
       },
       schedulePublish: true,
     },

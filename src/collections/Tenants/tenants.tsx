@@ -35,7 +35,7 @@ export const Tenants: CollectionConfig = {
       return roles !== Roles.superAdmin && roles !== Roles.superEditor
     },
     components: {
-      beforeList: ['@/components/TenantsListRedirect#TenantsListRedirect'],
+      beforeList: ['@/components/TenantsListRedirect/tenants-list-redirect#TenantsListRedirect'],
     },
   },
   fields: [
@@ -79,7 +79,7 @@ export const Tenants: CollectionConfig = {
         description: 'Select which collections this tenant can access.',
         position: 'sidebar',
         components: {
-          Label: '@/components/SelectAllLabel#AllowedCollectionsLabel',
+          Label: '@/components/SelectAllLabel/select-all-label#AllowedCollectionsLabel',
         },
       },
       hasMany: true,
@@ -99,8 +99,8 @@ export const Tenants: CollectionConfig = {
         condition: (data) =>
           Array.isArray(data?.allowedCollections) && data.allowedCollections.length > 0,
         components: {
-          Label: '@/components/SelectAllLabel#AllowPublicReadLabel',
-          Field: '@/components/AllowPublicReadField#AllowPublicReadField',
+          Label: '@/components/SelectAllLabel/select-all-label#AllowPublicReadLabel',
+          Field: '@/components/AllowPublicReadField/allow-public-read-field#AllowPublicReadField',
         },
       },
       defaultValue: [],

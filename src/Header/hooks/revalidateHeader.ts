@@ -1,4 +1,4 @@
-import { createTagRevalidationHook } from '@/hooks/revalidation-service'
+import { createTagRevalidationHook } from '@/payload-hooks/revalidation-service'
 
 export const revalidateHeader = createTagRevalidationHook({
   tag: 'global_header',

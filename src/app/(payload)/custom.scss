@@ -17,6 +17,13 @@ body:has(form[action*="form-submissions"]) button[type="submit"] {
   display: none !important;
 }
 
+// Hide default value and placeholder fields for form builder blocks
+// Only target fields within the forms collection blocks array
+.blocks-field .field-type.text:has(> label[for$="__defaultValue"]),
+.blocks-field .field-type.text:has(> label[for$="__placeholder"]) {
+  display: none !important;
+}
+
 // Allowed Collections & Allow Public Read - move indicators to top right, disable search
 #field-allowedCollections,
 #field-allowPublicRead {
@@ -34,8 +41,5 @@ body:has(form[action*="form-submissions"]) button[type="submit"] {
     padding-right: 50px;
   }
 
-  .rs__input-container {
-    display: none !important;
-  }
 }
 

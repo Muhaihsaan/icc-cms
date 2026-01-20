@@ -19,6 +19,19 @@ export * from './zod-schema'
 
 const TENANT_COOKIE_NAME = 'payload-tenant'
 
+// Request-level cache symbols (using Symbol prevents key collisions)
+const CACHE_USER_TENANT_DATA = Symbol('userTenantData')
+const CACHE_TENANT_FROM_REQ = Symbol('tenantFromReq')
+const CACHE_ALLOWED_COLLECTIONS = Symbol('allowedCollections')
+const CACHE_PUBLIC_READ = Symbol('publicRead')
+
+type ReqWithCache = AccessArgs['req'] & {
+  [CACHE_USER_TENANT_DATA]?: UserTenantData
+  [CACHE_TENANT_FROM_REQ]?: { value: unknown }
+  [CACHE_ALLOWED_COLLECTIONS]?: Map<string | number, TenantManagedCollection[] | null | undefined>
+  [CACHE_PUBLIC_READ]?: Map<string | number, string[] | null>
+}
+
 /**
  * Check if a user or data object has the guest writer role in any tenant.
  * Works with both User objects and form data objects.
@@ -52,9 +65,16 @@ const getUserTenantIds = (user: unknown): Array<string | number> => {
 }
 
 export const getTenantFromReq = (req: AccessArgs['req']): unknown => {
+  // Check request-level cache first
+  const cachedReq = req as ReqWithCache
+  if (cachedReq[CACHE_TENANT_FROM_REQ] !== undefined) {
+    return cachedReq[CACHE_TENANT_FROM_REQ].value
+  }
+
   // First try to get from req.tenant (set by multi-tenant plugin) - trusted source
   const result = reqWithTenantSchema.safeParse(req)
   if (result.success && result.data.tenant !== undefined && result.data.tenant !== null) {
+    cachedReq[CACHE_TENANT_FROM_REQ] = { value: result.data.tenant }
     return result.data.tenant
   }
 
@@ -80,7 +100,10 @@ export const getTenantFromReq = (req: AccessArgs['req']): unknown => {
     // Ignore cookie parsing errors
   }
 
-  if (!cookieTenantId) return undefined
+  if (!cookieTenantId) {
+    cachedReq[CACHE_TENANT_FROM_REQ] = { value: undefined }
+    return undefined
+  }
 
   // Validate cookie tenant against user's access
   const user = req.user
@@ -91,21 +114,28 @@ export const getTenantFromReq = (req: AccessArgs['req']): unknown => {
     // Only return cookie tenant if it looks like a valid ID format
     // Actual existence check happens downstream in access control
     const normalized = normalizeTenantId(cookieTenantId)
-    return normalized !== undefined ? cookieTenantId : undefined
+    const value = normalized !== undefined ? cookieTenantId : undefined
+    cachedReq[CACHE_TENANT_FROM_REQ] = { value }
+    return value
   }
 
   // Top-level users have access to all tenants
-  if (isTopLevelUserSchema(user)) return cookieTenantId
+  if (isTopLevelUserSchema(user)) {
+    cachedReq[CACHE_TENANT_FROM_REQ] = { value: cookieTenantId }
+    return cookieTenantId
+  }
 
   // Tenant-level users: validate cookie tenant is in their assigned tenants
   const userTenantIds = getUserTenantIds(user)
   const normalizedCookieId = normalizeTenantId(cookieTenantId)
 
   if (normalizedCookieId !== undefined && userTenantIds.includes(normalizedCookieId)) {
+    cachedReq[CACHE_TENANT_FROM_REQ] = { value: cookieTenantId }
     return cookieTenantId
   }
 
   // Cookie tenant not in user's tenants - ignore it
+  cachedReq[CACHE_TENANT_FROM_REQ] = { value: undefined }
   return undefined
 }
 
@@ -133,8 +163,14 @@ export type UserTenantData = {
   hasAnyRole: boolean
 }
 
-// Compute user tenant data from request
+// Compute user tenant data from request (cached per request)
 export const getUserTenantData = (req: AccessArgs['req']): UserTenantData => {
+  // Check request-level cache first
+  const cachedReq = req as ReqWithCache
+  if (cachedReq[CACHE_USER_TENANT_DATA] !== undefined) {
+    return cachedReq[CACHE_USER_TENANT_DATA]
+  }
+
   const result: UserTenantData = {
     allTenantIds: [],
     adminTenantIds: [],
@@ -146,6 +182,7 @@ export const getUserTenantData = (req: AccessArgs['req']): UserTenantData => {
 
   const parsed = userWithTenantRolesSchema.safeParse(req.user)
   if (!parsed.success || !parsed.data.tenants) {
+    cachedReq[CACHE_USER_TENANT_DATA] = result
     return result
   }
 
@@ -160,26 +197,40 @@ export const getUserTenantData = (req: AccessArgs['req']): UserTenantData => {
     if (!Array.isArray(entry.roles)) continue
     if (entry.roles.length > 0) result.hasAnyRole = true
 
-    if (entry.roles.includes(Roles.tenantAdmin)) {
+    // Use Set for O(1) lookups instead of multiple includes() calls
+    const rolesSet = new Set(entry.roles)
+
+    if (rolesSet.has(Roles.tenantAdmin)) {
       result.hasAdminRole = true
       if (tenantId !== undefined) result.adminTenantIds.push(tenantId)
     }
-    if (entry.roles.includes(Roles.tenantUser)) {
+    if (rolesSet.has(Roles.tenantUser)) {
       result.hasTenantUserRole = true
     }
-    if (entry.roles.includes(Roles.guestWriter)) {
+    if (rolesSet.has(Roles.guestWriter)) {
       result.hasGuestWriterRole = true
     }
   }
 
+  cachedReq[CACHE_USER_TENANT_DATA] = result
   return result
 }
 
-// Fetch allowed collections for a tenant
+// Fetch allowed collections for a tenant (cached per request)
 export const getTenantAllowedCollections = async (
   req: AccessArgs['req'],
   tenantId: string | number,
 ): Promise<TenantManagedCollection[] | null | undefined> => {
+  // Check request-level cache first
+  const cachedReq = req as ReqWithCache
+  if (!cachedReq[CACHE_ALLOWED_COLLECTIONS]) {
+    cachedReq[CACHE_ALLOWED_COLLECTIONS] = new Map()
+  }
+
+  if (cachedReq[CACHE_ALLOWED_COLLECTIONS].has(tenantId)) {
+    return cachedReq[CACHE_ALLOWED_COLLECTIONS].get(tenantId)
+  }
+
   try {
     const tenant = await req.payload.findByID({
       collection: Collections.TENANTS,
@@ -188,16 +239,25 @@ export const getTenantAllowedCollections = async (
       overrideAccess: true,
     })
 
-    if (!tenant) return undefined
-    if (!Array.isArray(tenant.allowedCollections)) return null
+    if (!tenant) {
+      cachedReq[CACHE_ALLOWED_COLLECTIONS].set(tenantId, undefined)
+      return undefined
+    }
+    if (!Array.isArray(tenant.allowedCollections)) {
+      cachedReq[CACHE_ALLOWED_COLLECTIONS].set(tenantId, null)
+      return null
+    }
 
-    return tenant.allowedCollections as TenantManagedCollection[]
+    const result = tenant.allowedCollections as TenantManagedCollection[]
+    cachedReq[CACHE_ALLOWED_COLLECTIONS].set(tenantId, result)
+    return result
   } catch {
+    cachedReq[CACHE_ALLOWED_COLLECTIONS].set(tenantId, undefined)
     return undefined
   }
 }
 
-// Fetch which collections allow public read for a tenant
+// Fetch which collections allow public read for a tenant (cached per request)
 export const getTenantAllowPublicRead = async ({
   req,
   tenantId,
@@ -205,6 +265,16 @@ export const getTenantAllowPublicRead = async ({
   req: AccessArgs['req']
   tenantId: string | number
 }): Promise<string[] | null> => {
+  // Check request-level cache first
+  const cachedReq = req as ReqWithCache
+  if (!cachedReq[CACHE_PUBLIC_READ]) {
+    cachedReq[CACHE_PUBLIC_READ] = new Map()
+  }
+
+  if (cachedReq[CACHE_PUBLIC_READ].has(tenantId)) {
+    return cachedReq[CACHE_PUBLIC_READ].get(tenantId) ?? null
+  }
+
   try {
     const tenant = await req.payload.findByID({
       collection: Collections.TENANTS,
@@ -213,11 +283,19 @@ export const getTenantAllowPublicRead = async ({
       overrideAccess: true,
     })
 
-    if (!tenant) return null
-    if (!Array.isArray(tenant.allowPublicRead)) return null
+    if (!tenant) {
+      cachedReq[CACHE_PUBLIC_READ].set(tenantId, null)
+      return null
+    }
+    if (!Array.isArray(tenant.allowPublicRead)) {
+      cachedReq[CACHE_PUBLIC_READ].set(tenantId, null)
+      return null
+    }
 
+    cachedReq[CACHE_PUBLIC_READ].set(tenantId, tenant.allowPublicRead)
     return tenant.allowPublicRead
   } catch {
+    cachedReq[CACHE_PUBLIC_READ].set(tenantId, null)
     return null
   }
 }

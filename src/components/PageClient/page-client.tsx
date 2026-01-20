@@ -1,5 +1,5 @@
 'use client'
-import { useHeaderTheme } from '@/providers/HeaderTheme'
+import { useHeaderTheme } from '@/providers/HeaderTheme/header-theme'
 import React, { useEffect } from 'react'
 
 type Props = {

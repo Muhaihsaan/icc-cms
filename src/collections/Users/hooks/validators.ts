@@ -2,7 +2,7 @@ import type { AccessArgs, Validate } from 'payload'
 import { z } from 'zod'
 
 import { isSuperAdmin, Roles } from '@/access'
-import { isSuperAdmin as isSuperAdminClient } from '@/access/client-checks'
+import { validateSuperAdmin as validateSuperAdminClient } from '@/access/client-checks'
 import { Collections } from '@/config'
 
 type TenantsValidateArgs = {
@@ -47,7 +47,7 @@ export const showGuestWriterPostLimit = (
   _siblingData: Record<string, unknown>,
   { user }: { user: unknown },
 ): boolean => {
-  if (!isSuperAdminClient(user)) return false
+  if (!validateSuperAdminClient(user)) return false
   // Check if the user being edited has guest-writer role
   const tenants = data?.tenants
   if (!Array.isArray(tenants) || tenants.length === 0) return false

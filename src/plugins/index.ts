@@ -5,7 +5,7 @@ import { seoPlugin } from '@payloadcms/plugin-seo'
 import { searchPlugin } from '@payloadcms/plugin-search'
 import { Plugin } from 'payload'
 import { z } from 'zod'
-import { revalidateRedirects } from '@/hooks/revalidateRedirects'
+import { revalidateRedirects } from '@/payload-hooks/revalidateRedirects'
 import { GenerateTitle, GenerateURL } from '@payloadcms/plugin-seo/types'
 import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
 import { searchFields } from '@/search/searchIndexFields'
@@ -14,9 +14,11 @@ import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
 import type { Config, Page, Post } from '@/payload-types'
 import type { PayloadRequest } from 'payload'
 import { isSuperAdmin, isSuperEditor } from '@/access'
+import { hasGuestWriterRole } from '@/access/helpers'
 import { Collections } from '@/config'
 
 import { getServerSideURL } from '@/utilities/getURL'
+import { formatSlugHook } from '@/fields/slug/formatSlug'
 
 const namedFieldSchema = z.object({ name: z.string() })
 
@@ -62,9 +64,55 @@ export const plugins: Plugin[] = [
       admin: {
         group: 'Forms',
         description: 'Create forms that can be embedded on external frontends',
+        hidden: ({ user }) => hasGuestWriterRole(user),
+        defaultColumns: ['title', 'fields', 'confirmationType'],
+        useAsTitle: 'title',
+      },
+      access: {
+        admin: ({ req }) => !hasGuestWriterRole(req.user),
+        read: ({ req }) => !hasGuestWriterRole(req.user),
+        create: ({ req }) => !hasGuestWriterRole(req.user),
+        update: ({ req }) => !hasGuestWriterRole(req.user),
+        delete: ({ req }) => !hasGuestWriterRole(req.user),
       },
       fields: ({ defaultFields }) => {
-        return defaultFields.map((field) => {
+        const slugLockField = {
+          name: 'slugLock',
+          // 'as const' narrows type from string to literal 'checkbox' - required for Payload's Field union type
+          type: 'checkbox' as const,
+          defaultValue: true,
+          admin: {
+            hidden: true,
+            // 'as const' narrows to literal 'sidebar' for Payload's position union type
+            position: 'sidebar' as const,
+          },
+        }
+
+        const slugField = {
+          name: 'slug',
+          // 'as const' - same reason: Payload needs literal type, not string
+          type: 'text' as const,
+          label: 'Slug',
+          unique: true,
+          index: true,
+          hooks: {
+            beforeValidate: [formatSlugHook('title')],
+          },
+          admin: {
+            position: 'sidebar' as const, // literal type for Payload
+            components: {
+              Field: {
+                path: '@/fields/slug/SlugComponent#SlugComponent',
+                clientProps: {
+                  fieldToUse: 'title',
+                  checkboxFieldPath: 'slugLock',
+                },
+              },
+            },
+          },
+        }
+
+        const modifiedFields = defaultFields.map((field) => {
           const result = namedFieldSchema.safeParse(field)
           // Customize confirmationMessage editor
           if (result.success && result.data.name === 'confirmationMessage') {
@@ -85,7 +133,8 @@ export const plugins: Plugin[] = [
           if (result.success && result.data.name === 'redirect') {
             return {
               name: 'redirect',
-              type: 'group',
+              type: 'group' as const, // literal type for Payload
+
               label: 'Redirect',
               admin: {
                 condition: (_: unknown, siblingData: Record<string, unknown>) =>
@@ -94,7 +143,7 @@ export const plugins: Plugin[] = [
               fields: [
                 {
                   name: 'type',
-                  type: 'radio',
+                  type: 'radio' as const, // literal type for Payload
                   defaultValue: 'page',
                   options: [
                     { label: 'Internal Page', value: 'page' },
@@ -103,7 +152,7 @@ export const plugins: Plugin[] = [
                 },
                 {
                   name: 'page',
-                  type: 'relationship',
+                  type: 'relationship' as const, // literal type for Payload
                   relationTo: Collections.PAGES,
                   label: 'Select Page',
                   admin: {
@@ -114,7 +163,7 @@ export const plugins: Plugin[] = [
                 },
                 {
                   name: 'url',
-                  type: 'text',
+                  type: 'text' as const, // literal type for Payload
                   label: 'Custom URL',
                   admin: {
                     condition: (_: unknown, siblingData: Record<string, unknown>) =>
@@ -126,6 +175,8 @@ export const plugins: Plugin[] = [
           }
           return field
         })
+
+        return [slugField, slugLockField, ...modifiedFields]
       },
     },
     formSubmissionOverrides: {
@@ -133,13 +184,40 @@ export const plugins: Plugin[] = [
         group: 'Forms',
         description: 'View submissions received from external frontends',
         hideAPIURL: true,
-        useAsTitle: 'form',
+        useAsTitle: 'formTitle',
         defaultColumns: ['form', 'createdAt'],
+        hidden: ({ user }) => hasGuestWriterRole(user),
       },
       access: {
+        admin: ({ req }) => !hasGuestWriterRole(req.user),
+        read: ({ req }) => !hasGuestWriterRole(req.user),
         create: () => false,
         update: () => false,
       },
+      fields: ({ defaultFields }) => [
+        ...defaultFields,
+        {
+          name: 'formTitle',
+          type: 'text' as const, // literal type for Payload
+          admin: { hidden: true },
+          hooks: {
+            afterRead: [
+              async ({ data, req }) => {
+                if (!data?.form) return null
+                const formIdSchema = z.string()
+                const formId = formIdSchema.safeParse(data.form)
+                if (!formId.success) return null
+                const form = await req.payload.findByID({
+                  collection: 'forms',
+                  id: formId.data,
+                  depth: 0,
+                })
+                return form?.title ?? null
+              },
+            ],
+          },
+        },
+      ],
     },
   }),
   searchPlugin({

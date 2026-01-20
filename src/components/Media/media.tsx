@@ -3,8 +3,8 @@ import { z } from 'zod'
 
 import type { Props } from './types'
 
-import { ImageMedia } from './ImageMedia'
-import { VideoMedia } from './VideoMedia'
+import { ImageMedia } from './ImageMedia/image-media'
+import { VideoMedia } from './VideoMedia/video-media'
 
 const videoResourceSchema = z.object({
   mimeType: z.string(),

@@ -187,6 +187,7 @@ export interface Tenant {
 export interface Media {
   id: string;
   tenant?: (string | null) | Tenant;
+  createdAt: string;
   alt?: string | null;
   caption?: {
     root: {
@@ -204,7 +205,6 @@ export interface Media {
     [k: string]: unknown;
   } | null;
   updatedAt: string;
-  createdAt: string;
   deletedAt?: string | null;
   url?: string | null;
   thumbnailURL?: string | null;
@@ -599,6 +599,8 @@ export interface Redirect {
 export interface Form {
   id: string;
   tenant?: (string | null) | Tenant;
+  slug?: string | null;
+  slugLock?: boolean | null;
   title: string;
   fields?:
     | (
@@ -768,6 +770,7 @@ export interface FormSubmission {
         id?: string | null;
       }[]
     | null;
+  formTitle?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1160,10 +1163,10 @@ export interface PostsSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   tenant?: T;
+  createdAt?: T;
   alt?: T;
   caption?: T;
   updatedAt?: T;
-  createdAt?: T;
   deletedAt?: T;
   url?: T;
   thumbnailURL?: T;
@@ -1322,6 +1325,8 @@ export interface RedirectsSelect<T extends boolean = true> {
  */
 export interface FormsSelect<T extends boolean = true> {
   tenant?: T;
+  slug?: T;
+  slugLock?: T;
   title?: T;
   fields?:
     | T
@@ -1446,6 +1451,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
+  formTitle?: T;
   updatedAt?: T;
   createdAt?: T;
 }

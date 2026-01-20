@@ -11,7 +11,7 @@ import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
-import { Tenants } from './collections/Tenants'
+import { Tenants } from './collections/Tenants/tenants'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
@@ -61,14 +61,14 @@ export default buildConfig({
   },
   admin: {
     avatar: {
-      Component: '@/components/EmptyAvatar#EmptyAvatar',
+      Component: '@/components/EmptyAvatar/empty-avatar#EmptyAvatar',
     },
     components: {
       providers: [
-        '@/components/HideTrashProvider#HideTrashProvider',
+        '@/components/HideTrashProvider/hide-trash-provider#HideTrashProvider',
         '@/components/TenantSelector/TopLevelModeContext#TopLevelModeProvider',
       ],
-      beforeDashboard: ['@/components/TenantSelector#TenantSelector'],
+      beforeDashboard: ['@/components/TenantSelector/tenant-selector#TenantSelector'],
     },
     importMap: {
       baseDir: path.resolve(dirname),

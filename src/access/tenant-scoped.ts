@@ -143,6 +143,20 @@ export const tenantAdminUpdateAccess: Access = ({ req }) => {
   return false
 }
 
+// Allow create access to tenant-scoped documents for tenant admins and top-level users.
+// Returns boolean (not WHERE clause) since CREATE doesn't filter existing documents.
+export const tenantAdminCreateAccess: Access = ({ req }) => {
+  const { user } = req
+  if (!user) return false
+
+  // Top-level users can create in any tenant (tenant assigned via hook)
+  if (isTopLevelUser(user)) return true
+
+  // Tenant admins can create documents
+  const tenantData = getUserTenantData(req)
+  return tenantData.hasAdminRole
+}
+
 // Allow public read for tenant content when the tenant allows it for the specific collection.
 export const tenantPublicReadAccess =
   (

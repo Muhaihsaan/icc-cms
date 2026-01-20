@@ -98,5 +98,3 @@ export function useClickableCard<T extends HTMLElement>({
     },
   }
 }
-
-export default useClickableCard

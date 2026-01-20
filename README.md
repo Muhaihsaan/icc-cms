@@ -609,6 +609,141 @@ const posts = await payload.find({
 })
 ```
 
+## Forms
+
+Forms allow you to define form structures in the CMS and receive submissions from external frontends. Each form belongs to a tenant and submissions are stored for viewing in the admin panel.
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         CMS (Payload)                       │
+├─────────────────────────────────────────────────────────────┤
+│  1. Define Form              4. View Submissions            │
+│     - Add fields                - Filter by form            │
+│     - Set confirmation          - Read-only display         │
+└──────────────┬─────────────────────────────▲────────────────┘
+               │                             │
+               │ 2. FE fetches form          │ 3. FE submits data
+               │    GET /api/forms/:id       │    POST /api/form-submissions
+               ▼                             │
+┌─────────────────────────────────────────────────────────────┐
+│                      External Frontend                      │
+├─────────────────────────────────────────────────────────────┤
+│  - Renders form based on definition                         │
+│  - Handles validation                                       │
+│  - Sends submission to CMS                                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Creating a Form
+
+1. Go to **Forms** in the sidebar
+2. Click **Create New**
+3. Fill in:
+   - **Title**: Form name (e.g., "Contact Form")
+   - **Fields**: Add fields using available types
+   - **Submit Button Label**: Button text (e.g., "Send Message")
+   - **Confirmation Type**: Message or Redirect
+4. Save the form
+
+### Available Field Types
+
+| Type | Description |
+|------|-------------|
+| `Text` | Single-line text input |
+| `Textarea` | Multi-line text input |
+| `Email` | Email input with validation |
+| `Number` | Numeric input |
+| `Select` | Dropdown selection |
+| `Checkbox` | Boolean checkbox |
+| `Message` | Display-only text (instructions) |
+
+### Confirmation Types
+
+| Type | Description |
+|------|-------------|
+| **Message** | Show a confirmation message after submit |
+| **Redirect** | Redirect to an internal page or custom URL |
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/forms` | GET | List all forms |
+| `/api/forms/:id` | GET | Get form definition |
+| `/api/form-submissions` | POST | Submit form data |
+
+### Submitting Form Data
+
+Send a POST request to `/api/form-submissions`:
+
+```json
+{
+  "form": "uuid-of-form",
+  "submissionData": [
+    { "field": "name", "value": "John Doe" },
+    { "field": "email", "value": "john@example.com" },
+    { "field": "message", "value": "Hello!" }
+  ]
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "message": "Submission received",
+  "id": "uuid-of-submission"
+}
+```
+
+### External Frontend Example (TanStack)
+
+```tsx
+import { useQuery, useMutation } from '@tanstack/react-query'
+
+const CMS_URL = 'https://your-cms.com'
+
+// Fetch form definition
+const { data: form } = useQuery({
+  queryKey: ['form', formId],
+  queryFn: () => fetch(`${CMS_URL}/api/forms/${formId}`).then(r => r.json())
+})
+
+// Submit form
+const mutation = useMutation({
+  mutationFn: async (data: Record<string, string>) => {
+    const response = await fetch(`${CMS_URL}/api/form-submissions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        form: formId,
+        submissionData: Object.entries(data).map(([field, value]) => ({
+          field,
+          value,
+        })),
+      }),
+    })
+    if (!response.ok) throw new Error('Submission failed')
+    return response.json()
+  },
+  onSuccess: () => {
+    // Handle confirmation (message or redirect)
+    if (form.confirmationType === 'redirect') {
+      window.location.href = form.redirect?.url || form.redirect?.page?.slug
+    }
+  },
+})
+```
+
+### Viewing Submissions
+
+1. Go to **Form Submissions** in the sidebar
+2. Use the **Filters** dropdown to filter by form
+3. Click a submission to view details
+
+**Note:** Form Submissions are read-only. They can only be created via the API from external frontends.
+
 ## Troubleshooting
 
 ### Database connection issues

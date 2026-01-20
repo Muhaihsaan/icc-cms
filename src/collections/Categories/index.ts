@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import {
   tenantPublicReadAccess,
   tenantAdminUpdateAccess,
+  tenantAdminCreateAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
   shouldHideCollection,
@@ -16,7 +17,7 @@ export const Categories: CollectionConfig = {
   trash: true,
   access: {
     admin: tenantCollectionAdminAccess(Collections.CATEGORIES),
-    create: withTenantCollectionAccess(Collections.CATEGORIES, tenantAdminUpdateAccess),
+    create: withTenantCollectionAccess(Collections.CATEGORIES, tenantAdminCreateAccess),
     delete: withTenantCollectionAccess(Collections.CATEGORIES, tenantAdminUpdateAccess),
     read: withTenantCollectionAccess(Collections.CATEGORIES, tenantPublicReadAccess(Collections.CATEGORIES)),
     update: withTenantCollectionAccess(Collections.CATEGORIES, tenantAdminUpdateAccess),

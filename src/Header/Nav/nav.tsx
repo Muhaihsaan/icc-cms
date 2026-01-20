@@ -4,7 +4,7 @@ import React from 'react'
 
 import type { Header as HeaderType, Tenant } from '@/payload-types'
 
-import { CMSLink } from '@/components/Link'
+import { CMSLink } from '@/components/Link/link'
 import Link from 'next/link'
 import { SearchIcon } from 'lucide-react'
 

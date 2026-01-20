@@ -1,13 +1,13 @@
 'use client'
 import { cn } from '@/utilities/ui'
-import useClickableCard from '@/utilities/hooks/useClickableCard'
+import { useClickableCard } from '@/utilities/hooks/useClickableCard'
 import Link from 'next/link'
 import React, { Fragment, memo, useMemo } from 'react'
 import { z } from 'zod'
 
 import type { Post } from '@/payload-types'
 
-import { Media } from '@/components/Media'
+import { Media } from '@/components/Media/media'
 
 const categoriesArraySchema = z.array(z.unknown())
 
@@ -23,14 +23,14 @@ const mediaObjectSchema = z.object({
 
 export type CardPostData = Pick<Post, 'slug' | 'categories' | 'meta' | 'title'>
 
-export const Card: React.FC<{
+export const PostCard: React.FC<{
   alignItems?: 'center'
   className?: string
   doc?: CardPostData
   relationTo?: 'posts'
   showCategories?: boolean
   title?: string
-}> = memo(function Card(props) {
+}> = memo(function PostCard(props) {
   const { card, link } = useClickableCard({})
   const { className, doc, relationTo, showCategories, title: titleFromProps } = props
 

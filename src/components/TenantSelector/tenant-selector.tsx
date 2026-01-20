@@ -5,7 +5,7 @@ import { useTenantSelection } from '@payloadcms/plugin-multi-tenant/client'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
-import { isTopLevelUser } from '@/access/client-checks'
+import { validateTopLevelUser } from '@/access/client-checks'
 import { useTopLevelMode } from './TopLevelModeContext'
 import { tenantScopedDashboardCollections } from '@/config'
 import {
@@ -41,7 +41,7 @@ export function TenantSelector(): React.ReactElement | null {
   const { isTopLevelMode, setTopLevelMode, isHydrated } = useTopLevelMode()
   const isMounted = useIsMounted()
 
-  const isTopLevel = isTopLevelUser(user)
+  const isTopLevel = validateTopLevelUser(user)
   const [allowedCollections, setAllowedCollections] = useState<string[] | null>(null)
 
   // Parse tenant options
@@ -109,14 +109,23 @@ export function TenantSelector(): React.ReactElement | null {
       collectionsToHide = tenantScopedDashboardCollections.filter((c) => !allowedCollections.includes(c))
     }
 
-    if (collectionsToHide.length === 0) return
+    if (collectionsToHide.length === 0) {
+      // Clear any previous hiding styles when all collections are allowed
+      injectStyle('hide-top-level-collections', '')
+      return
+    }
 
+    // Use CSS to hide cards and their parent <li> elements (so they can be restored when switching tenants)
     const cardSelectors = collectionsToHide.map((c) => `#card-${c}`).join(', ')
+    const liSelectors = collectionsToHide.map((c) => `.dashboard__card-list li:has(#card-${c})`).join(', ')
     const navSelectors = collectionsToHide.map((c) => `nav a[href*="/collections/${c}"]`).join(', ')
 
     return injectStyle('hide-top-level-collections', `
-      ${cardSelectors} { display: none !important; }
-      ${navSelectors} { display: none !important; }
+      ${cardSelectors},
+      ${liSelectors},
+      ${navSelectors} {
+        display: none !important;
+      }
     `)
   }, [isMounted, isHydrated, isTopLevel, isTopLevelSelected, selectedTenantId, allowedCollections])
 

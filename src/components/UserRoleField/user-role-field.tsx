@@ -7,7 +7,7 @@ import { useEffect } from 'react'
 import { z } from 'zod'
 
 import { Roles } from '@/access'
-import { isSuperAdmin } from '@/access/client-checks'
+import { validateSuperAdmin } from '@/access/client-checks'
 import { useTopLevelMode } from '@/components/TenantSelector/TopLevelModeContext'
 
 const TOP_LEVEL_ROLES = [
@@ -36,7 +36,7 @@ const UserRoleField: FieldClientComponent = () => {
   const selectedTenantId = isTopLevelMode ? undefined : pluginTenantId
 
   // Only super-admin can create top-level users
-  const canCreateTopLevelUsers = isSuperAdmin(user)
+  const canCreateTopLevelUsers = validateSuperAdmin(user)
   // Top-level mode from context
   const isTopLevel = isTopLevelMode && canCreateTopLevelUsers
 

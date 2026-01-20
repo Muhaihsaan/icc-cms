@@ -3,7 +3,7 @@
 import { useAuth } from '@payloadcms/ui'
 import { usePathname } from 'next/navigation'
 
-import { useHideTrash, useHideSelection, useHideVersions, useHidePublish, useHideTenantSelector } from './hooks'
+import { useHideTrash, useHideSelection, useHideVersions, useHidePublish, useHideTenantSelector, useHideListControls } from './hooks'
 
 /**
  * Provider component that manages admin UI visibility based on user roles and current page.
@@ -15,6 +15,7 @@ import { useHideTrash, useHideSelection, useHideVersions, useHidePublish, useHid
  * - useHideVersions: Hides versions tab for guest writers
  * - useHidePublish: Hides publish button and status controls for guest writers
  * - useHideTenantSelector: Hides tenant selector on collection pages
+ * - useHideListControls: Hides Columns and Filters dropdowns for all users
  *
  * @note Named HideTrashProvider for backwards compatibility, but handles multiple UI concerns.
  * Consider renaming to AdminUIProvider in future refactors.
@@ -28,6 +29,7 @@ export function HideTrashProvider({ children }: { children: React.ReactNode }): 
   useHideVersions(user)
   useHidePublish(user)
   useHideTenantSelector(pathname)
+  useHideListControls()
 
   return <>{children}</>
 }

@@ -5,6 +5,12 @@ import { normalizeTenantId } from '@/access/helpers'
 
 const rolesArraySchema = z.array(z.string())
 
+const tenantEntrySchema = z.object({
+  tenant: z.union([z.string(), z.number(), z.object({ id: z.union([z.string(), z.number()]) })]),
+  roles: z.array(z.string()).optional(),
+})
+const tenantsArraySchema = z.array(tenantEntrySchema)
+
 type AssignUsersToOneTenantArgs = {
   req: AccessArgs['req'] & { tenant?: { id?: string } }
   value?: unknown
@@ -28,5 +34,12 @@ export const assignUsersToOneTenant = ({ req, value }: AssignUsersToOneTenantArg
 
   if (!currentTenant) return value
 
-  return [{ tenant: currentTenant, roles: [Roles.tenantUser] }]
+  // Preserve roles from the incoming value, default to tenantUser if not provided
+  const valueParsed = tenantsArraySchema.safeParse(value)
+  const incomingRoles =
+    valueParsed.success && valueParsed.data[0]?.roles?.length
+      ? valueParsed.data[0].roles
+      : [Roles.tenantUser]
+
+  return [{ tenant: currentTenant, roles: incomingRoles }]
 }

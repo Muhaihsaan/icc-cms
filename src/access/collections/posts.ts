@@ -1,4 +1,5 @@
 import type { Access, Where } from 'payload'
+import type { AccessArgs } from 'payload'
 import { z } from 'zod'
 
 import { getUserTenantData, getTenantFromReq, getTenantAllowPublicRead, normalizeTenantId } from '@/access/helpers'
@@ -11,6 +12,13 @@ import type { TenantManagedCollection } from '@/config'
 const guestWriterLimitSchema = z.object({
   guestWriterPostLimit: z.number(),
 })
+
+// Request-level cache for guest writer post count
+const CACHE_GW_POST_COUNT = Symbol('guestWriterPostCount')
+
+type ReqWithPostCountCache = AccessArgs['req'] & {
+  [CACHE_GW_POST_COUNT]?: Map<string | number, number>
+}
 
 // Allow tenant admins and guest writers to create posts with limits.
 // Top-level users must select a tenant first.
@@ -56,21 +64,25 @@ export const postsCreateAccess: Access = async ({ req }) => {
 
   if (limit <= 0) return false
 
-  const where: Where = {
-    and: [
-      { authors: { contains: user.id } },
-      {
-        or: [{ _status: { equals: DocStatus.PUBLISHED } }, { publishedAt: { exists: true } }],
-      },
-    ],
+  // Count ALL posts by this user (including drafts) - cached per request
+  const cachedReq = req as ReqWithPostCountCache
+  if (!cachedReq[CACHE_GW_POST_COUNT]) {
+    cachedReq[CACHE_GW_POST_COUNT] = new Map()
   }
 
-  const { totalDocs } = await req.payload.count({
-    collection: Collections.POSTS,
-    overrideAccess: true,
-    req: undefined,
-    where,
-  })
+  let totalDocs: number
+  if (cachedReq[CACHE_GW_POST_COUNT].has(user.id)) {
+    totalDocs = cachedReq[CACHE_GW_POST_COUNT].get(user.id)!
+  } else {
+    const result = await req.payload.count({
+      collection: Collections.POSTS,
+      overrideAccess: true,
+      req: undefined,
+      where: { authors: { contains: user.id } },
+    })
+    totalDocs = result.totalDocs
+    cachedReq[CACHE_GW_POST_COUNT].set(user.id, totalDocs)
+  }
 
   return totalDocs < limit
 }
@@ -94,12 +106,13 @@ export const postsUpdateAccess: Access = ({ req }) => {
 
   if (!tenantData.hasGuestWriterRole) return false
 
-  // Guest writers can only update posts they authored within their tenant(s)
+  // Guest writers can only update their own draft posts (not published ones)
   const where: Where = {
     and: [
       { authors: { contains: user.id } },
       { tenant: { in: tenantData.allTenantIds } },
       { deletedAt: { exists: false } },
+      { _status: { not_equals: DocStatus.PUBLISHED } },
     ],
   }
   return where

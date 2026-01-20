@@ -8,8 +8,7 @@ type AuthorData = { id: UserId; name: User['name'] }
 
 const authorIdSchema = z.union([
   z.string(),
-  z.number(),
-  z.object({ id: z.union([z.string(), z.number()]) }).transform((obj) => obj.id),
+  z.object({ id: z.string() }).transform((obj) => obj.id),
 ])
 
 // Per-request cache for author data to avoid N+1 queries when loading multiple posts

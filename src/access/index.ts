@@ -20,8 +20,8 @@ export {
   isSuperAdminOrEditor,
   isSuperAdminOrEditorFieldAccess,
   hasAdminPanelAccess,
-  usersCollectionAdminAccess,
   notGuestWriterFieldAccess,
+  topLevelUserFieldAccess,
 } from '@/access/role-checks'
 
 // Client-side checks (for admin.hidden)
@@ -39,6 +39,7 @@ export {
   tenantCollectionAdminAccess,
   tenantMemberReadAccess,
   tenantAdminUpdateAccess,
+  tenantAdminCreateAccess,
   tenantPublicReadAccess,
 } from '@/access/tenant-scoped'
 

@@ -1,20 +1,19 @@
-import type { TextField } from '@payloadcms/plugin-form-builder/types'
+import type { EmailField } from '@payloadcms/plugin-form-builder/types'
 import type { FieldErrorsImpl, FieldValues, UseFormRegister } from 'react-hook-form'
 
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea as TextAreaComponent } from '@/components/ui/textarea'
 import React from 'react'
 
-import { Error } from '../Error'
-import { Width } from '../Width'
+import { Error } from '../Error/error'
+import { Width } from '../Width/width'
 
-export const Textarea: React.FC<
-  TextField & {
+export const Email: React.FC<
+  EmailField & {
     errors: Partial<FieldErrorsImpl>
     register: UseFormRegister<FieldValues>
-    rows?: number
   }
-> = ({ name, defaultValue, errors, label, register, required, rows = 3, width }) => {
+> = ({ name, defaultValue, errors, label, register, required, width }) => {
   return (
     <Width width={width}>
       <Label htmlFor={name}>
@@ -26,12 +25,11 @@ export const Textarea: React.FC<
           </span>
         )}
       </Label>
-
-      <TextAreaComponent
+      <Input
         defaultValue={defaultValue}
         id={name}
-        rows={rows}
-        {...register(name, { required: required })}
+        type="text"
+        {...register(name, { pattern: /^\S[^\s@]*@\S+$/, required })}
       />
 
       {errors[name] && <Error name={name} />}

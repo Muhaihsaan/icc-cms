@@ -12,8 +12,8 @@ import {
 import React from 'react'
 import { Controller } from 'react-hook-form'
 
-import { Error } from '../Error'
-import { Width } from '../Width'
+import { Error } from '../Error/error'
+import { Width } from '../Width/width'
 import { stateOptions } from './options'
 
 export const State: React.FC<

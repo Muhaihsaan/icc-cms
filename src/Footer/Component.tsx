@@ -2,8 +2,8 @@ import Link from 'next/link'
 import React from 'react'
 import { z } from 'zod'
 
-import { ThemeSelector } from '@/providers/Theme/ThemeSelector'
-import { CMSLink } from '@/components/Link'
+import { ThemeSelector } from '@/providers/Theme/ThemeSelector/theme-selector'
+import { CMSLink } from '@/components/Link/link'
 import { Logo } from '@/components/Logo/Logo'
 import { getTenantCachedGlobal } from '@/utilities/tenant/getTenantGlobals'
 

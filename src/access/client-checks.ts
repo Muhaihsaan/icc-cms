@@ -14,10 +14,13 @@ import {
 // Re-export for convenience
 export { hasGuestWriterRole }
 
-// Re-export Zod-based role checks for client-side use
-export const isSuperAdmin = isSuperAdminSchema
-export const isSuperEditor = isSuperEditorSchema
-export const isTopLevelUser = isTopLevelUserSchema
+// Zod-based role validators for client-side use (accepts unknown input)
+// Named differently from role-checks.ts to avoid confusion:
+// - role-checks.ts: isSuperAdmin(user: User | null) - typed, server-side
+// - client-checks.ts: validateSuperAdmin(user: unknown) - Zod-based, client-side
+export const validateSuperAdmin = isSuperAdminSchema
+export const validateSuperEditor = isSuperEditorSchema
+export const validateTopLevelUser = isTopLevelUserSchema
 
 const TOP_LEVEL_STORAGE_KEY = 'icc-top-level'
 
@@ -27,7 +30,7 @@ const TOP_LEVEL_STORAGE_KEY = 'icc-top-level'
  */
 export const shouldHideForTopLevelMode = (user: unknown): boolean => {
   // Non-top-level users always see tenant-scoped collections
-  if (!isTopLevelUser(user)) return false
+  if (!validateTopLevelUser(user)) return false
   // Server-side: can't check localStorage, don't hide
   if (typeof window === 'undefined') return false
   // Client-side: check localStorage for top-level mode
@@ -66,7 +69,7 @@ export const shouldHideUsersCollection = (args: unknown): boolean => {
   const user = argsResult.success ? argsResult.data.user : args
 
   // Top-level users always see Users
-  if (isTopLevelUser(user)) return false
+  if (validateTopLevelUser(user)) return false
 
   // Guest writers should NOT see Users collection
   if (hasGuestWriterRole(user)) return true
@@ -88,7 +91,7 @@ export const shouldHideCollection = (collection: string) => (args: unknown): boo
   const user = argsResult.success ? argsResult.data.user : args
 
   // Top-level users: use existing top-level mode logic (CSS filtering in TenantSelector)
-  if (isTopLevelUser(user)) {
+  if (validateTopLevelUser(user)) {
     return shouldHideForTopLevelMode(user)
   }
 

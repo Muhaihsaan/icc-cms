@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import {
   tenantPublicReadAccess,
   tenantAdminUpdateAccess,
+  tenantAdminCreateAccess,
   tenantCollectionAdminAccess,
   withTenantCollectionAccess,
   shouldHideCollection,
@@ -21,7 +22,7 @@ export const Footer: CollectionConfig = {
   },
   access: {
     admin: tenantCollectionAdminAccess(Collections.FOOTER),
-    create: withTenantCollectionAccess(Collections.FOOTER, tenantAdminUpdateAccess),
+    create: withTenantCollectionAccess(Collections.FOOTER, tenantAdminCreateAccess),
     delete: withTenantCollectionAccess(Collections.FOOTER, tenantAdminUpdateAccess),
     read: withTenantCollectionAccess(Collections.FOOTER, tenantPublicReadAccess(Collections.FOOTER)),
     update: withTenantCollectionAccess(Collections.FOOTER, tenantAdminUpdateAccess),
@@ -44,7 +45,7 @@ export const Footer: CollectionConfig = {
       admin: {
         initCollapsed: true,
         components: {
-          RowLabel: '@/components/RowLabel#RowLabel',
+          RowLabel: '@/components/RowLabel/row-label#RowLabel',
         },
       },
     },

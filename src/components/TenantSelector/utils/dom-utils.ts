@@ -98,3 +98,34 @@ export function removeClassFromAll(className: string): void {
     el.classList.remove(className)
   }
 }
+
+/**
+ * Removes elements from DOM and returns a cleanup function to restore them.
+ * This is better than display:none for grid layouts as it actually removes the element.
+ */
+export function removeElementsFromDOM(selectors: string[]): () => void {
+  const removedElements: { element: Element; parent: Node; nextSibling: Node | null }[] = []
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector)
+    if (element && element.parentNode) {
+      removedElements.push({
+        element,
+        parent: element.parentNode,
+        nextSibling: element.nextSibling,
+      })
+      element.remove()
+    }
+  }
+
+  return () => {
+    // Restore elements in reverse order
+    for (const { element, parent, nextSibling } of removedElements.reverse()) {
+      if (nextSibling) {
+        parent.insertBefore(element, nextSibling)
+      } else {
+        parent.appendChild(element)
+      }
+    }
+  }
+}

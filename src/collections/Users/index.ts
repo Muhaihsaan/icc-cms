@@ -21,6 +21,7 @@ import { setCookieBasedOnDomain } from './hooks/setCookieBasedOnDomain'
 import { populateTenantAllowedCollections } from './hooks/populateTenantAllowedCollections'
 import { ensureFirstUserSuperAdmin } from './hooks/ensureFirstUserSuperAdmin'
 import { preventLastSuperAdminDelete } from './hooks/preventLastSuperAdminDelete'
+import { verifyOnlySuperAdmin } from './hooks/verifyOnlySuperAdmin'
 import { validateTenantsField, showGuestWriterPostLimit } from './hooks/validators'
 
 // Define tenants field manually to control validation during bootstrap
@@ -90,7 +91,7 @@ export const Users: CollectionConfig = {
         position: 'sidebar',
         condition: (_data, _siblingData, { user }) => isTopLevelUser(user),
         components: {
-          Field: '@/components/UserRoleField',
+          Field: '@/components/UserRoleField/user-role-field',
         },
       },
     },
@@ -158,6 +159,7 @@ export const Users: CollectionConfig = {
   timestamps: true,
   hooks: {
     beforeChange: [ensureFirstUserSuperAdmin],
+    afterChange: [verifyOnlySuperAdmin],
     beforeDelete: [preventLastSuperAdminDelete],
     afterLogin: [setCookieBasedOnDomain],
     afterRead: [populateTenantAllowedCollections],
