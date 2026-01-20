@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { getTenantContext } from '@/app/(payload)/api/tenant/_lib/tenantContext'
+import { getTenantContext } from '@/app/(payload)/api/tenant/_lib/tenant-context'
 import { Collections } from '@/config'
 import { DocStatus } from '@/config'
 

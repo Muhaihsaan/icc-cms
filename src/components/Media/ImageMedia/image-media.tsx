@@ -10,7 +10,7 @@ import { z } from 'zod'
 import type { Props as MediaProps } from '../types'
 
 import { cssVariables } from '@/cssVariables'
-import { getMediaUrl } from '@/utilities/getMediaUrl'
+import { getMediaUrl } from '@/utilities/get-media-url'
 
 const { breakpoints } = cssVariables
 

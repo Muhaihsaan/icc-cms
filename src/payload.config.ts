@@ -16,8 +16,8 @@ import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
 import { getStoragePlugin } from './plugins/storage'
-import { defaultLexical } from '@/fields/defaultLexical'
-import { getServerSideURL } from './utilities/getURL'
+import { defaultLexical } from '@/fields/default-lexical'
+import { getServerSideURL } from './utilities/get-url'
 
 // Get storage plugin based on environment
 const storagePlugin = getStoragePlugin()
@@ -66,7 +66,7 @@ export default buildConfig({
     components: {
       providers: [
         '@/components/HideTrashProvider/hide-trash-provider#HideTrashProvider',
-        '@/components/TenantSelector/TopLevelModeContext#TopLevelModeProvider',
+        '@/components/TenantSelector/top-level-mode-context#TopLevelModeProvider',
       ],
       beforeDashboard: ['@/components/TenantSelector/tenant-selector#TenantSelector'],
     },

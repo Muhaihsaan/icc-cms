@@ -10,7 +10,7 @@ import {
   tenantsUpdateAccess,
 } from '@/access'
 import { Collections } from '@/config'
-import { cleanAllowPublicRead } from './hooks/cleanAllowPublicRead'
+import { cleanAllowPublicRead } from './hooks/clean-allow-public-read'
 import { validateAllowPublicRead, validateAllowedCollections } from './hooks/validators'
 
 const userRolesSchema = z.object({ roles: z.string().nullable() }).nullable()
@@ -65,6 +65,20 @@ export const Tenants: CollectionConfig = {
       name: 'logo',
       type: 'upload',
       relationTo: Collections.MEDIA,
+    },
+    {
+      name: 'previewUrl',
+      type: 'text',
+      admin: {
+        description: 'External frontend preview endpoint (e.g., https://my-frontend.com/api/preview)',
+      },
+    },
+    {
+      name: 'previewSecret',
+      type: 'text',
+      admin: {
+        description: 'Secret token for validating preview requests',
+      },
     },
     {
       name: 'allowedCollections',

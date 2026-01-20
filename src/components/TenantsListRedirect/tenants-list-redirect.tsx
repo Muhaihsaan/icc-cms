@@ -7,7 +7,7 @@ import { useEffect } from 'react'
 import { z } from 'zod'
 
 import { getTenantAdminTenantId } from '@/access/client-checks'
-import { useTopLevelMode } from '@/components/TenantSelector/TopLevelModeContext'
+import { useTopLevelMode } from '@/components/TenantSelector/top-level-mode-context'
 
 // Only redirects when on tenant-level (tenant selected or tenant-admin user)
 // Top-level users in top-level mode see the full tenants list

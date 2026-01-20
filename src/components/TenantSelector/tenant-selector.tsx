@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import { validateTopLevelUser } from '@/access/client-checks'
-import { useTopLevelMode } from './TopLevelModeContext'
+import { useTopLevelMode } from './top-level-mode-context'
 import { tenantScopedDashboardCollections } from '@/config'
 import {
   useIsMounted,

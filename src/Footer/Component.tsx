@@ -4,8 +4,8 @@ import { z } from 'zod'
 
 import { ThemeSelector } from '@/providers/Theme/ThemeSelector/theme-selector'
 import { CMSLink } from '@/components/Link/link'
-import { Logo } from '@/components/Logo/Logo'
-import { getTenantCachedGlobal } from '@/utilities/tenant/getTenantGlobals'
+import { Logo } from '@/components/Logo/logo'
+import { getTenantCachedGlobal } from '@/utilities/tenant/get-tenant-globals'
 
 import type { Tenant, Footer } from '@/payload-types'
 

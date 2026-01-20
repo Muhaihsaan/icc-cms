@@ -1,6 +1,6 @@
 import type { CheckboxField, Field, TextField } from 'payload'
 
-import { formatSlugHook } from './formatSlug'
+import { formatSlugHook } from './format-slug'
 
 export const slugField = (fieldToUse = 'title'): [Field, Field] => {
   const checkBoxField: CheckboxField = {
@@ -25,7 +25,7 @@ export const slugField = (fieldToUse = 'title'): [Field, Field] => {
       position: 'sidebar',
       components: {
         Field: {
-          path: '@/fields/slug/SlugComponent#SlugComponent',
+          path: '@/fields/slug/slug-component#SlugComponent',
           clientProps: {
             fieldToUse,
             checkboxFieldPath: checkBoxField.name,

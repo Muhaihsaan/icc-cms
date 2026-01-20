@@ -2,7 +2,7 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import React, { useState, useEffect } from 'react'
-import { useDebounce } from '@/utilities/hooks/useDebounce'
+import { useDebounce } from '@/utilities/hooks/use-debounce'
 import { useRouter } from 'next/navigation'
 
 export const Search: React.FC<{ tenantDomain: string }> = ({ tenantDomain }) => {

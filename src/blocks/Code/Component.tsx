@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { Code } from './CodeHighlighter.client'
+import { Code } from './code-highlighter.client'
 
 export type CodeBlockProps = {
   code: string

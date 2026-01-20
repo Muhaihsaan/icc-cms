@@ -5,11 +5,11 @@ import { seoPlugin } from '@payloadcms/plugin-seo'
 import { searchPlugin } from '@payloadcms/plugin-search'
 import { Plugin } from 'payload'
 import { z } from 'zod'
-import { revalidateRedirects } from '@/payload-hooks/revalidateRedirects'
+import { revalidateRedirects } from '@/payload-hooks/revalidate-redirects'
 import { GenerateTitle, GenerateURL } from '@payloadcms/plugin-seo/types'
 import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
-import { searchFields } from '@/search/searchIndexFields'
-import { beforeSyncWithSearch } from '@/search/searchDocumentTransformer'
+import { searchFields } from '@/search/search-index-fields'
+import { beforeSyncWithSearch } from '@/search/search-document-transformer'
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
 import type { Config, Page, Post } from '@/payload-types'
 import type { PayloadRequest } from 'payload'
@@ -17,8 +17,8 @@ import { isSuperAdmin, isSuperEditor } from '@/access'
 import { hasGuestWriterRole } from '@/access/helpers'
 import { Collections } from '@/config'
 
-import { getServerSideURL } from '@/utilities/getURL'
-import { formatSlugHook } from '@/fields/slug/formatSlug'
+import { getServerSideURL } from '@/utilities/get-url'
+import { formatSlugHook } from '@/fields/slug/format-slug'
 
 const namedFieldSchema = z.object({ name: z.string() })
 
@@ -102,7 +102,7 @@ export const plugins: Plugin[] = [
             position: 'sidebar' as const, // literal type for Payload
             components: {
               Field: {
-                path: '@/fields/slug/SlugComponent#SlugComponent',
+                path: '@/fields/slug/slug-component#SlugComponent',
                 clientProps: {
                   fieldToUse: 'title',
                   checkboxFieldPath: 'slugLock',

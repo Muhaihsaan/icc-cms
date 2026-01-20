@@ -1,4 +1,4 @@
-import { MediaBlock } from '@/blocks/MediaBlock/Component'
+import { MediaBlock } from '@/blocks/MediaBlock/component'
 import {
   DefaultNodeTypes,
   SerializedBlockNode,
@@ -13,15 +13,15 @@ import {
 import { z } from 'zod'
 import { Collections } from '@/config'
 
-import { CodeBlock, CodeBlockProps } from '@/blocks/Code/Component'
+import { CodeBlock, CodeBlockProps } from '@/blocks/Code/component'
 
 import type {
   BannerBlock as BannerBlockProps,
   CallToActionBlock as CTABlockProps,
   MediaBlock as MediaBlockProps,
 } from '@/payload-types'
-import { BannerBlock } from '@/blocks/Banner/Component'
-import { CallToActionBlock } from '@/blocks/CallToAction/Component'
+import { BannerBlock } from '@/blocks/Banner/component'
+import { CallToActionBlock } from '@/blocks/CallToAction/component'
 import { cn } from '@/utilities/ui'
 
 type NodeTypes =

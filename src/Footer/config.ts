@@ -10,7 +10,7 @@ import {
 } from '@/access'
 import { Collections } from '@/config'
 import { link } from '@/fields/link'
-import { revalidateFooter } from './hooks/revalidateFooter'
+import { revalidateFooter } from './hooks/revalidate-footer'
 
 export const Footer: CollectionConfig = {
   slug: 'footer',

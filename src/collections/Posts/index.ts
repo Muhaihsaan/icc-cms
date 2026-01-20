@@ -23,16 +23,16 @@ import {
 } from '@/access'
 import { Collections } from '@/config'
 import { hasGuestWriterRole } from '@/access/helpers'
-import { parseSlug } from '@/utilities/parseSlug'
+import { parseSlug } from '@/utilities/parse-slug'
 import { Banner } from '@/blocks/Banner/config'
 import { CallToAction } from '@/blocks/CallToAction/config'
 import { Code } from '@/blocks/Code/config'
 import { MediaBlock } from '@/blocks/MediaBlock/config'
-import { generatePreviewPath } from '@/utilities/generatePreviewPath'
-import { populateAuthors } from './hooks/populateAuthors'
-import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
-import { assignGuestWriterAuthor, preventGuestWriterPublish } from './hooks/guestWriter'
-import { autoPublishDate } from './hooks/autoPublishDate'
+import { generatePreviewPath } from '@/utilities/generate-preview-path'
+import { populateAuthors } from './hooks/populate-authors'
+import { revalidateDelete, revalidatePost } from './hooks/revalidate-post'
+import { assignGuestWriterAuthor, preventGuestWriterPublish } from './hooks/guest-writer'
+import { autoPublishDate } from './hooks/auto-publish-date'
 import { calculateReadingTimeHook } from './hooks/calculate-reading-time'
 
 import {
@@ -72,24 +72,24 @@ export const Posts: CollectionConfig<'posts'> = {
     group: 'Site Content',
     hidden: shouldHideCollection('posts'),
     components: {
-      Description: '@/components/GuestWriterLimitDescription#GuestWriterLimitDescription',
+      Description: '@/components/guest-writer-limit-description#GuestWriterLimitDescription',
     },
     defaultColumns: ['title', 'slug', '_status', 'publishedAt'],
     livePreview: {
-      url: ({ data, req }) => {
-        const path = generatePreviewPath({
+      url: async ({ data, req }) => {
+        return generatePreviewPath({
           slug: parseSlug(data),
           collection: Collections.POSTS,
+          data,
           req,
         })
-
-        return path
       },
     },
     preview: (data, { req }) =>
       generatePreviewPath({
         slug: parseSlug(data),
         collection: Collections.POSTS,
+        data,
         req,
       }),
     useAsTitle: 'title',

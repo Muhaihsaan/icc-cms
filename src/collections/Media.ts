@@ -67,7 +67,7 @@ export const Media: CollectionConfig = {
       admin: {
         position: 'sidebar',
         components: {
-          Field: '@/components/fields/FileUrlField#FileUrlField',
+          Field: '@/components/fields/file-url-field#FileUrlField',
         },
       },
     },

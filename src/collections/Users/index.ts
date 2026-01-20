@@ -16,12 +16,12 @@ import {
   shouldHideUsersCollection,
 } from '@/access'
 import { Collections } from '@/config'
-import { assignUsersToOneTenant } from './hooks/assignUsersToOneTenant'
-import { setCookieBasedOnDomain } from './hooks/setCookieBasedOnDomain'
-import { populateTenantAllowedCollections } from './hooks/populateTenantAllowedCollections'
-import { ensureFirstUserSuperAdmin } from './hooks/ensureFirstUserSuperAdmin'
-import { preventLastSuperAdminDelete } from './hooks/preventLastSuperAdminDelete'
-import { verifyOnlySuperAdmin } from './hooks/verifyOnlySuperAdmin'
+import { assignUsersToOneTenant } from './hooks/assign-users-to-one-tenant'
+import { setCookieBasedOnDomain } from './hooks/set-cookie-based-on-domain'
+import { populateTenantAllowedCollections } from './hooks/populate-tenant-allowed-collections'
+import { ensureFirstUserSuperAdmin } from './hooks/ensure-first-user-super-admin'
+import { preventLastSuperAdminDelete } from './hooks/prevent-last-super-admin-delete'
+import { verifyOnlySuperAdmin } from './hooks/verify-only-super-admin'
 import { validateTenantsField, showGuestWriterPostLimit } from './hooks/validators'
 
 // Define tenants field manually to control validation during bootstrap

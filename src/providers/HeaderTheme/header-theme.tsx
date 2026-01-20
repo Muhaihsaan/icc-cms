@@ -5,7 +5,7 @@ import type { Theme } from '@/providers/Theme/types'
 import React, { createContext, useCallback, use, useState } from 'react'
 import { z } from 'zod'
 
-import canUseDOM from '@/utilities/canUseDOM'
+import canUseDOM from '@/utilities/can-use-dom'
 
 const themeSchema = z.enum(['dark', 'light'])
 

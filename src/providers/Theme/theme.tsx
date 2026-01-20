@@ -5,7 +5,7 @@ import React, { createContext, useCallback, use, useEffect, useState } from 'rea
 import type { Theme, ThemeContextType } from './types'
 import { themeSchema } from './types'
 
-import canUseDOM from '@/utilities/canUseDOM'
+import canUseDOM from '@/utilities/can-use-dom'
 import { defaultTheme, getImplicitPreference, themeLocalStorageKey } from './shared'
 
 const getInitialTheme = (): Theme | undefined => {

@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 import { useField, Button, TextInput, FieldLabel, useFormFields, useForm } from '@payloadcms/ui'
 
-import { formatSlug } from './formatSlug'
+import { formatSlug } from './format-slug'
 import './index.scss'
 
 const booleanSchema = z.boolean()

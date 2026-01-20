@@ -76,9 +76,13 @@ function computeSectionData(fields: z.infer<typeof sectionFieldSchema>[]): Recor
   return data
 }
 
-export const computeSectionsDataHook: CollectionAfterReadHook = ({ doc }) => {
+export const computeSectionsDataHook: CollectionAfterReadHook = ({ doc, req }) => {
   if (!doc) return doc
   if (!doc.sections) return doc
+
+  // Only compute for REST/GraphQL API requests (frontend consumption)
+  // Skip for local API calls (admin panel) to prevent infinite re-render with autosave
+  if (req.payloadAPI === 'local') return doc
 
   const sectionsParsed = sectionsArraySchema.safeParse(doc.sections)
   if (!sectionsParsed.success) return doc

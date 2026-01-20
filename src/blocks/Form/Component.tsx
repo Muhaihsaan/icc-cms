@@ -10,7 +10,7 @@ import type { DefaultTypedEditorState } from '@payloadcms/richtext-lexical'
 import { z } from 'zod'
 
 import { fields } from './formFieldMap'
-import { getClientSideURL } from '@/utilities/getURL'
+import { getClientSideURL } from '@/utilities/get-url'
 
 const fieldKeySchema = z.object({
   id: z.string().optional(),

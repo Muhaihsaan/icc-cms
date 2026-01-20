@@ -386,20 +386,6 @@ Sections are embedded directly within Pages, allowing you to create flexible, st
 | `Internal Link` | Link to Page/Post | `{ id, slug, title }` |
 | `Array` | List of text or media | `[...]` |
 
-### Fetching Pages with Sections
-
-```ts
-// Fetch a page - sections are included automatically
-const page = await fetch('/api/tenant/acme/page/home').then(r => r.json())
-
-// Page includes sections with computed data
-console.log(page.sections)
-// [
-//   { name: "Hero", slug: "hero", data: { title: "Welcome", heroImage: {...} } },
-//   { name: "Features", slug: "features", data: { items: [...] } }
-// ]
-```
-
 ### API Response Structure
 
 ```json
@@ -428,35 +414,7 @@ console.log(page.sections)
 }
 ```
 
-The `data` object is auto-computed from `fields` for easier frontend access.
-
-### Frontend Usage
-
-```tsx
-const page = await fetch('/api/tenant/acme/page/home').then(r => r.json())
-
-return (
-  <>
-    <head>
-      <title>{page.meta.title}</title>
-      <meta name="description" content={page.meta.description} />
-    </head>
-    <main>
-      {page.sections?.map(section => (
-        <section key={section.name} id={section.slug}>
-          {section.data.title && <h1>{section.data.title}</h1>}
-          {section.data.description && (
-            <p style={{ whiteSpace: 'pre-line' }}>{section.data.description}</p>
-          )}
-          {section.data.heroImage && (
-            <img src={section.data.heroImage.url} alt={section.data.heroImage.alt} />
-          )}
-        </section>
-      ))}
-    </main>
-  </>
-)
-```
+The `data` object is auto-computed from `fields` for easier frontend access. See the [External Front-end Guide](#external-front-end-guide) for usage examples.
 
 ## Categories
 
@@ -522,92 +480,7 @@ Categories organize posts by topic. Each tenant has their own categories, and ca
 3. Select categories in the **Categories** field
 4. Save the post
 
-### Category Archive Pages
-
-Categories and posts have **separate URLs**:
-
-| URL Pattern | Purpose |
-|-------------|---------|
-| `/blog/my-post-slug` | Single post page |
-| `/blog/category/seo` | Category archive (list posts in "seo") |
-| `/blog/category/seo/seo-tips` | Nested category archive |
-
-### Fetching Category and Posts
-
-**Step 1: Get category by fullUrl**
-
-```ts
-// Frontend route: /blog/category/[...slug]
-// URL: /blog/category/seo/seo-tips
-// categoryPath = "/seo/seo-tips"
-
-const categoryRes = await fetch(
-  `${API_URL}/api/categories?where[fullUrl][equals]=${categoryPath}&where[tenant][equals]=${tenantId}`
-)
-const category = categoryRes.docs[0]
-```
-
-**Step 2: Get posts in that category**
-
-```ts
-const postsRes = await fetch(
-  `${API_URL}/api/posts?where[categories][contains]=${category.id}&where[tenant][equals]=${tenantId}`
-)
-const posts = postsRes.docs
-```
-
-**Using Payload Local API (Next.js Server)**
-
-```ts
-// In your Next.js page or API route
-const category = await payload.find({
-  collection: 'categories',
-  where: {
-    fullUrl: { equals: '/seo/seo-tips' },
-    tenant: { equals: tenantId },
-  },
-  limit: 1,
-})
-
-const posts = await payload.find({
-  collection: 'posts',
-  where: {
-    categories: { contains: category.docs[0].id },
-    tenant: { equals: tenantId },
-    _status: { equals: 'published' },
-  },
-})
-```
-
-### Including Child Categories
-
-To get posts from a category AND all its children:
-
-```ts
-// Get the parent category and all children
-const allCategories = await payload.find({
-  collection: 'categories',
-  where: {
-    or: [
-      { fullUrl: { equals: '/seo' } },           // Parent
-      { fullUrl: { like: '/seo/%' } },           // Children (starts with /seo/)
-    ],
-    tenant: { equals: tenantId },
-  },
-})
-
-const categoryIds = allCategories.docs.map(c => c.id)
-
-// Get posts in any of these categories
-const posts = await payload.find({
-  collection: 'posts',
-  where: {
-    categories: { in: categoryIds },
-    tenant: { equals: tenantId },
-    _status: { equals: 'published' },
-  },
-})
-```
+For fetching categories and posts from an external frontend, see the [External Front-end Guide](#fetching-categories-and-posts).
 
 ## Forms
 
@@ -697,44 +570,7 @@ Send a POST request to `/api/form-submissions`:
 }
 ```
 
-### External Frontend Example (TanStack)
-
-```tsx
-import { useQuery, useMutation } from '@tanstack/react-query'
-
-const CMS_URL = 'https://your-cms.com'
-
-// Fetch form definition
-const { data: form } = useQuery({
-  queryKey: ['form', formId],
-  queryFn: () => fetch(`${CMS_URL}/api/forms/${formId}`).then(r => r.json())
-})
-
-// Submit form
-const mutation = useMutation({
-  mutationFn: async (data: Record<string, string>) => {
-    const response = await fetch(`${CMS_URL}/api/form-submissions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        form: formId,
-        submissionData: Object.entries(data).map(([field, value]) => ({
-          field,
-          value,
-        })),
-      }),
-    })
-    if (!response.ok) throw new Error('Submission failed')
-    return response.json()
-  },
-  onSuccess: () => {
-    // Handle confirmation (message or redirect)
-    if (form.confirmationType === 'redirect') {
-      window.location.href = form.redirect?.url || form.redirect?.page?.slug
-    }
-  },
-})
-```
+For frontend implementation examples, see [Form Submissions](#form-submissions) in the External Front-end Guide.
 
 ### Viewing Submissions
 
@@ -784,3 +620,578 @@ pnpm reset
 ## License
 
 MIT
+
+---
+
+# External Front-end Guide
+
+This CMS is designed as a **headless backend**. Your frontend(s) are separate projects that fetch content via API endpoints. This guide covers everything you need to build an external frontend that integrates with this CMS.
+
+## Prerequisites
+
+- Node.js 18+
+- Next.js 14+ (App Router recommended)
+- Your CMS is deployed and accessible
+
+## Getting Started
+
+### 1. Create a New Next.js Project
+
+```bash
+npx create-next-app@latest my-frontend
+cd my-frontend
+```
+
+### 2. Environment Variables
+
+Create `.env.local`:
+
+```env
+# CMS Configuration
+CMS_URL=https://your-cms.com
+TENANT_SLUG=acme
+
+# Preview Mode (get from CMS Tenant settings)
+PREVIEW_SECRET=my-secret-token-123
+
+# Public (accessible in browser)
+NEXT_PUBLIC_CMS_URL=https://your-cms.com
+```
+
+## Fetching Content
+
+### Basic API Calls
+
+```typescript
+// lib/cms.ts
+const CMS_URL = process.env.CMS_URL
+const TENANT_SLUG = process.env.TENANT_SLUG
+
+export async function getPosts() {
+  const res = await fetch(`${CMS_URL}/api/tenant/${TENANT_SLUG}/posts`)
+  if (!res.ok) throw new Error('Failed to fetch posts')
+  return res.json()
+}
+
+export async function getPost(slug: string, draft = false) {
+  const url = `${CMS_URL}/api/tenant/${TENANT_SLUG}/posts/${slug}${draft ? '?draft=true' : ''}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('Failed to fetch post')
+  return res.json()
+}
+
+export async function getPage(slug: string, draft = false) {
+  const url = `${CMS_URL}/api/tenant/${TENANT_SLUG}/page/${slug}${draft ? '?draft=true' : ''}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('Failed to fetch page')
+  return res.json()
+}
+```
+
+### Posts List Page
+
+```typescript
+// app/posts/page.tsx
+import Link from 'next/link'
+import { getPosts } from '@/lib/cms'
+
+export default async function PostsPage() {
+  const { docs: posts } = await getPosts()
+
+  return (
+    <main>
+      <h1>Blog Posts</h1>
+      <ul>
+        {posts.map((post: { id: string; slug: string; title: string }) => (
+          <li key={post.id}>
+            <Link href={`/posts/${post.slug}`}>{post.title}</Link>
+          </li>
+        ))}
+      </ul>
+    </main>
+  )
+}
+```
+
+### Single Post Page
+
+```typescript
+// app/posts/[slug]/page.tsx
+import { draftMode } from 'next/headers'
+import { getPost } from '@/lib/cms'
+import { notFound } from 'next/navigation'
+
+type Props = {
+  params: Promise<{ slug: string }>
+}
+
+export default async function PostPage({ params }: Props) {
+  const { slug } = await params
+  const { isEnabled: isDraft } = await draftMode()
+
+  const post = await getPost(slug, isDraft)
+
+  if (!post) {
+    notFound()
+  }
+
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      {post.heroImage && (
+        <img src={post.heroImage.url} alt={post.heroImage.alt || post.title} />
+      )}
+      <div dangerouslySetInnerHTML={{ __html: post.content_html }} />
+    </article>
+  )
+}
+```
+
+### Dynamic Page with Sections
+
+```typescript
+// app/[slug]/page.tsx
+import { draftMode } from 'next/headers'
+import { getPage } from '@/lib/cms'
+import { notFound } from 'next/navigation'
+
+type Props = {
+  params: Promise<{ slug: string }>
+}
+
+export default async function DynamicPage({ params }: Props) {
+  const { slug } = await params
+  const { isEnabled: isDraft } = await draftMode()
+
+  const page = await getPage(slug, isDraft)
+
+  if (!page) {
+    notFound()
+  }
+
+  return (
+    <main>
+      <h1>{page.title}</h1>
+
+      {page.sections?.map((section: { name: string; slug?: string; data: Record<string, unknown> }) => (
+        <section key={section.name} id={section.slug}>
+          {section.data.title && <h2>{String(section.data.title)}</h2>}
+          {section.data.description && <p>{String(section.data.description)}</p>}
+          {section.data.heroImage && (
+            <img
+              src={(section.data.heroImage as { url: string }).url}
+              alt={(section.data.heroImage as { alt?: string }).alt || ''}
+            />
+          )}
+        </section>
+      ))}
+    </main>
+  )
+}
+```
+
+## Live Preview Setup
+
+Live Preview allows content editors to see changes in real-time within the CMS admin panel.
+
+### Step 1: Configure Tenant in CMS
+
+1. Log in to CMS admin panel
+2. Go to **Tenants** → Edit your tenant
+3. Fill in:
+   - **Preview URL**: `https://your-frontend.com/api/preview`
+   - **Preview Secret**: Generate a secure token (e.g., `openssl rand -hex 32`)
+
+### Step 2: Create Preview API Route
+
+```typescript
+// app/api/preview/route.ts
+import { draftMode } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { z } from 'zod'
+
+const paramsSchema = z.object({
+  path: z.string(),
+  secret: z.string(),
+})
+
+export async function GET(request: Request): Promise<Response> {
+  const { searchParams } = new URL(request.url)
+
+  const parsed = paramsSchema.safeParse({
+    path: searchParams.get('path'),
+    secret: searchParams.get('secret'),
+  })
+
+  if (!parsed.success) {
+    return new Response('Missing parameters', { status: 400 })
+  }
+
+  const { path, secret } = parsed.data
+
+  if (secret !== process.env.PREVIEW_SECRET) {
+    return new Response('Invalid secret', { status: 401 })
+  }
+
+  const draft = await draftMode()
+  draft.enable()
+
+  redirect(path)
+}
+```
+
+### Step 3: Create Exit Preview Route
+
+```typescript
+// app/api/exit-preview/route.ts
+import { draftMode } from 'next/headers'
+import { redirect } from 'next/navigation'
+
+export async function GET(): Promise<Response> {
+  const draft = await draftMode()
+  draft.disable()
+
+  redirect('/')
+}
+```
+
+### Step 4: Allow Iframe Embedding
+
+The CMS shows your frontend in an iframe. Configure headers:
+
+```typescript
+// next.config.ts
+import type { NextConfig } from 'next'
+
+const config: NextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://your-cms.com",
+          },
+        ],
+      },
+    ]
+  },
+}
+
+export default config
+```
+
+### Step 5: Add Live Preview Listener (Optional)
+
+For real-time updates as editors type:
+
+```bash
+pnpm add @payloadcms/live-preview-react
+```
+
+```typescript
+// components/live-preview-listener.tsx
+'use client'
+
+import { RefreshRouteOnSave } from '@payloadcms/live-preview-react'
+import { useRouter } from 'next/navigation'
+
+export function LivePreviewListener() {
+  const router = useRouter()
+
+  return (
+    <RefreshRouteOnSave
+      refresh={router.refresh}
+      serverURL={process.env.NEXT_PUBLIC_CMS_URL || ''}
+    />
+  )
+}
+```
+
+```typescript
+// app/layout.tsx
+import { draftMode } from 'next/headers'
+import { LivePreviewListener } from '@/components/live-preview-listener'
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { isEnabled } = await draftMode()
+
+  return (
+    <html>
+      <body>
+        {isEnabled && <LivePreviewListener />}
+        {children}
+      </body>
+    </html>
+  )
+}
+```
+
+## Preview Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                            CMS Admin Panel                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│  1. Editor clicks "Live Preview"                                         │
+│  2. CMS generates URL:                                                   │
+│     https://my-frontend.com/api/preview?                                 │
+│       slug=my-post&collection=posts&path=/posts/my-post&secret=xxx       │
+│  3. CMS shows iframe with this URL                                       │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         External Frontend                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│  4. /api/preview validates secret, enables draft mode                    │
+│  5. Redirects to /posts/my-post                                          │
+│  6. Page fetches from CMS with draft=true                                │
+│  7. CMS returns draft content                                            │
+│  8. Page renders in iframe, editor sees preview                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## Complete Project Structure
+
+```
+my-frontend/
+├── app/
+│   ├── api/
+│   │   ├── preview/
+│   │   │   └── route.ts          # Enable draft mode
+│   │   └── exit-preview/
+│   │       └── route.ts          # Disable draft mode
+│   ├── posts/
+│   │   ├── [slug]/
+│   │   │   └── page.tsx          # Single post
+│   │   └── page.tsx              # Posts list
+│   ├── [slug]/
+│   │   └── page.tsx              # Dynamic pages
+│   ├── layout.tsx                # Root layout
+│   └── page.tsx                  # Homepage
+├── components/
+│   └── live-preview-listener.tsx # Real-time preview updates
+├── lib/
+│   └── cms.ts                    # CMS API functions
+├── next.config.ts                # CSP headers
+├── .env.local                    # Environment variables
+└── package.json
+```
+
+## Form Submissions
+
+To submit forms from your frontend:
+
+```typescript
+// lib/cms.ts
+export async function submitForm(formId: string, data: Record<string, string>) {
+  const res = await fetch(`${CMS_URL}/api/form-submissions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      form: formId,
+      submissionData: Object.entries(data).map(([field, value]) => ({
+        field,
+        value,
+      })),
+    }),
+  })
+
+  if (!res.ok) throw new Error('Form submission failed')
+  return res.json()
+}
+```
+
+```typescript
+// components/contact-form.tsx
+'use client'
+
+import { useState } from 'react'
+import { submitForm } from '@/lib/cms'
+
+export function ContactForm({ formId }: { formId: string }) {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setStatus('loading')
+
+    const formData = new FormData(e.currentTarget)
+    const data: Record<string, string> = {}
+
+    formData.forEach((value, key) => {
+      data[key] = value.toString()
+    })
+
+    try {
+      await submitForm(formId, data)
+      setStatus('success')
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  if (status === 'success') {
+    return <p>Thank you for your message!</p>
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input name="name" placeholder="Name" required />
+      <input name="email" type="email" placeholder="Email" required />
+      <textarea name="message" placeholder="Message" required />
+      <button type="submit" disabled={status === 'loading'}>
+        {status === 'loading' ? 'Sending...' : 'Send'}
+      </button>
+      {status === 'error' && <p>Something went wrong. Please try again.</p>}
+    </form>
+  )
+}
+```
+
+## Fetching Categories and Posts
+
+Categories and posts have **separate URL patterns**:
+
+| URL Pattern | Purpose |
+|-------------|---------|
+| `/blog/my-post-slug` | Single post page |
+| `/blog/category/seo` | Category archive (list posts in "seo") |
+| `/blog/category/seo/seo-tips` | Nested category archive |
+
+### Get Category by URL Path
+
+```typescript
+// lib/cms.ts
+export async function getCategory(categoryPath: string) {
+  const res = await fetch(
+    `${CMS_URL}/api/categories?where[fullUrl][equals]=${categoryPath}&where[tenant][equals]=${TENANT_ID}`
+  )
+  if (!res.ok) throw new Error('Failed to fetch category')
+  const data = await res.json()
+  return data.docs[0]
+}
+
+export async function getPostsByCategory(categoryId: string) {
+  const res = await fetch(
+    `${CMS_URL}/api/posts?where[categories][contains]=${categoryId}&where[tenant][equals]=${TENANT_ID}`
+  )
+  if (!res.ok) throw new Error('Failed to fetch posts')
+  return res.json()
+}
+```
+
+### Category Archive Page
+
+```typescript
+// app/blog/category/[...slug]/page.tsx
+import { getCategory, getPostsByCategory } from '@/lib/cms'
+import { notFound } from 'next/navigation'
+import Link from 'next/link'
+
+type Props = {
+  params: Promise<{ slug: string[] }>
+}
+
+export default async function CategoryPage({ params }: Props) {
+  const { slug } = await params
+  const categoryPath = `/${slug.join('/')}`
+
+  const category = await getCategory(categoryPath)
+  if (!category) notFound()
+
+  const { docs: posts } = await getPostsByCategory(category.id)
+
+  return (
+    <main>
+      <h1>{category.title}</h1>
+      <ul>
+        {posts.map((post: { id: string; slug: string; title: string }) => (
+          <li key={post.id}>
+            <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+          </li>
+        ))}
+      </ul>
+    </main>
+  )
+}
+```
+
+### Including Child Categories
+
+To get posts from a category AND all its nested children:
+
+```typescript
+// lib/cms.ts
+export async function getCategoryWithChildren(parentPath: string) {
+  // Get parent and all children in one query
+  const res = await fetch(
+    `${CMS_URL}/api/categories?where[or][0][fullUrl][equals]=${parentPath}&where[or][1][fullUrl][like]=${parentPath}/%&where[tenant][equals]=${TENANT_ID}`
+  )
+  if (!res.ok) throw new Error('Failed to fetch categories')
+  return res.json()
+}
+
+export async function getPostsInCategories(categoryIds: string[]) {
+  const idsParam = categoryIds.join(',')
+  const res = await fetch(
+    `${CMS_URL}/api/posts?where[categories][in]=${idsParam}&where[tenant][equals]=${TENANT_ID}`
+  )
+  if (!res.ok) throw new Error('Failed to fetch posts')
+  return res.json()
+}
+```
+
+```typescript
+// Usage: Get all posts in /seo and its children (/seo/tips, /seo/technical, etc.)
+const { docs: categories } = await getCategoryWithChildren('/seo')
+const categoryIds = categories.map((c: { id: string }) => c.id)
+const { docs: posts } = await getPostsInCategories(categoryIds)
+```
+
+## SEO Metadata
+
+```typescript
+// app/posts/[slug]/page.tsx
+import type { Metadata } from 'next'
+import { getPost } from '@/lib/cms'
+
+type Props = {
+  params: Promise<{ slug: string }>
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  const post = await getPost(slug)
+
+  return {
+    title: post.meta?.title || post.title,
+    description: post.meta?.description,
+    openGraph: {
+      title: post.meta?.title || post.title,
+      description: post.meta?.description,
+      images: post.meta?.image ? [{ url: post.meta.image.url }] : [],
+    },
+  }
+}
+```
+
+## Deployment
+
+### Vercel
+
+1. Push your frontend to GitHub
+2. Import in Vercel
+3. Add environment variables:
+   - `CMS_URL`
+   - `TENANT_SLUG`
+   - `PREVIEW_SECRET`
+   - `NEXT_PUBLIC_CMS_URL`
+4. Deploy
+
+### Update CMS Tenant
+
+After deployment, update your tenant in CMS:
+- **Preview URL**: `https://your-frontend.vercel.app/api/preview`

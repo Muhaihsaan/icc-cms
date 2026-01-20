@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 import type { Props as MediaProps } from '../types'
 
-import { getMediaUrl } from '@/utilities/getMediaUrl'
+import { getMediaUrl } from '@/utilities/get-media-url'
 
 const videoResourceSchema = z.object({
   filename: z.string(),

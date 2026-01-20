@@ -1,5 +1,5 @@
 import { HeaderClient } from './Component.client'
-import { getTenantCachedGlobal } from '@/utilities/tenant/getTenantGlobals'
+import { getTenantCachedGlobal } from '@/utilities/tenant/get-tenant-globals'
 import React from 'react'
 import { z } from 'zod'
 

@@ -10,7 +10,7 @@ import {
 } from '@/access'
 import { Collections } from '@/config'
 import { link } from '@/fields/link'
-import { revalidateHeader } from './hooks/revalidateHeader'
+import { revalidateHeader } from './hooks/revalidate-header'
 
 export const Header: CollectionConfig = {
   slug: 'header',

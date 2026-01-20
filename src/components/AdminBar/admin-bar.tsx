@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation'
 
 import './index.scss'
 
-import { getClientSideURL } from '@/utilities/getURL'
+import { getClientSideURL } from '@/utilities/get-url'
 import { Collections } from '@/config'
 
 const baseClass = 'admin-bar'

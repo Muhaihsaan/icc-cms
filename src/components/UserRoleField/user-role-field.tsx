@@ -8,7 +8,7 @@ import { z } from 'zod'
 
 import { Roles } from '@/access'
 import { validateSuperAdmin } from '@/access/client-checks'
-import { useTopLevelMode } from '@/components/TenantSelector/TopLevelModeContext'
+import { useTopLevelMode } from '@/components/TenantSelector/top-level-mode-context'
 
 const TOP_LEVEL_ROLES = [
   { value: Roles.superAdmin, label: 'Super Admin' },

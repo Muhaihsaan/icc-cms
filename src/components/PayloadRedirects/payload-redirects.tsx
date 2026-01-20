@@ -2,8 +2,8 @@ import type React from 'react'
 import type { Page, Post } from '@/payload-types'
 import { z } from 'zod'
 
-import { getCachedDocument } from '@/utilities/tenant/getDocument'
-import { getCachedRedirects } from '@/utilities/tenant/getRedirects'
+import { getCachedDocument } from '@/utilities/tenant/get-document'
+import { getCachedRedirects } from '@/utilities/tenant/get-redirects'
 import { notFound, redirect } from 'next/navigation'
 import { Collections } from '@/config'
 

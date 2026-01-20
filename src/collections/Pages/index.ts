@@ -10,9 +10,9 @@ import {
 } from '@/access'
 import { Collections, SectionFieldTypes } from '@/config'
 import { slugField } from '@/fields/slug'
-import { generatePreviewPath } from '../../utilities/generatePreviewPath'
-import { parseSlug } from '@/utilities/parseSlug'
-import { revalidateDelete, revalidatePage } from './hooks/revalidatePage'
+import { generatePreviewPath } from '../../utilities/generate-preview-path'
+import { parseSlug } from '@/utilities/parse-slug'
+import { revalidateDelete, revalidatePage } from './hooks/revalidate-page'
 import { computeSectionsDataHook } from './hooks/compute-sections-data'
 
 import {
@@ -46,10 +46,11 @@ export const Pages: CollectionConfig<'pages'> = {
     hidden: shouldHideCollection('pages'),
     defaultColumns: ['title', 'slug', 'updatedAt'],
     livePreview: {
-      url: ({ data, req }) =>
+      url: async ({ data, req }) =>
         generatePreviewPath({
           slug: parseSlug(data),
           collection: Collections.PAGES,
+          data,
           req,
         }),
     },
@@ -57,6 +58,7 @@ export const Pages: CollectionConfig<'pages'> = {
       generatePreviewPath({
         slug: parseSlug(data),
         collection: Collections.PAGES,
+        data,
         req,
       }),
     useAsTitle: 'title',
