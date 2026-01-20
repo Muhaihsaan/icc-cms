@@ -418,7 +418,7 @@ The `data` object is auto-computed from `fields` for easier frontend access. See
 
 ## Categories
 
-Categories organize posts by topic. Each tenant has their own categories, and categories can be nested using the parent field.
+Categories organize posts by topic. Each tenant has their own set of categories.
 
 ### Creating Categories
 
@@ -427,60 +427,86 @@ Categories organize posts by topic. Each tenant has their own categories, and ca
 3. Fill in:
    - **Title**: Display name (e.g., "Technology")
    - **Slug**: Auto-generated from title, or customize it
-   - **Parent**: (Optional) Select a parent category for nesting
 4. Click **Save**
-5. The **Full URL** will be auto-generated (e.g., `/technology` or `/parent/technology`)
-
-**Example: Creating Nested Categories**
-
-```
-1. Create "SEO" category (no parent)
-   → Full URL: /seo
-
-2. Create "SEO Tips" category (parent: SEO)
-   → Full URL: /seo/seo-tips
-
-3. Create "Technical SEO" category (parent: SEO)
-   → Full URL: /seo/technical-seo
-```
-
-### Creating a Post with Categories
-
-1. Go to **Posts** in the sidebar
-2. Click **Create New**
-3. Fill in the **Content** tab:
-   - **Title**: Post title
-   - **Hero Image**: (Optional) Featured image
-   - **Content**: Write your post content
-4. Click the **Meta** tab
-5. In the **Categories** field:
-   - Click the dropdown or **+** button
-   - Select one or more categories
-6. Fill in the **SEO** tab (optional but recommended)
-7. Click **Save Draft** or **Publish**
-
-**Tips:**
-- You can assign multiple categories to a single post
-- For nested categories, typically assign only the most specific one (e.g., "SEO Tips" not both "SEO" and "SEO Tips")
-- Categories are tenant-specific - each tenant has their own set
 
 ### Category Structure
 
 | Field | Description |
 |-------|-------------|
-| `title` | Display name (e.g., "SEO Tips") |
-| `slug` | URL identifier (e.g., "seo-tips") |
-| `parent` | Optional parent category for nesting |
-| `fullUrl` | Auto-computed full path (e.g., "/seo/seo-tips") |
+| `title` | Display name (e.g., "Technology") |
+| `slug` | URL identifier (e.g., "technology") |
+| `fullUrl` | Auto-computed URL path (e.g., "/technology") |
 
-### Assigning Categories to Posts
+### Assigning a Category to a Post
 
-1. Go to **Posts** → Edit a post
+1. Go to **Posts** → Edit or create a post
 2. Click the **Meta** tab
-3. Select categories in the **Categories** field
+3. Select a category in the **Category** field
 4. Save the post
 
+**Note:** Each post can only have one category to simplify URL structure and SEO.
+
 For fetching categories and posts from an external frontend, see the [External Front-end Guide](#fetching-categories-and-posts).
+
+## Site Settings
+
+Site Settings is a global configuration for storing site-wide settings that can be used across all tenants. Only Super Admins can modify these settings.
+
+### Current Fields
+
+| Field | Description |
+|-------|-------------|
+| `industries` | Industry categories that can be assigned to tenants |
+
+### Adding More Site Settings
+
+To add new site-wide settings, edit `src/globals/SiteSettings.ts`:
+
+```ts
+export const SiteSettings: GlobalConfig = {
+  slug: 'site-settings',
+  // ...
+  fields: [
+    // Existing fields...
+    {
+      name: 'industries',
+      type: 'array',
+      // ...
+    },
+    // Add your new fields here
+    {
+      name: 'defaultCurrency',
+      type: 'select',
+      options: [
+        { label: 'USD', value: 'usd' },
+        { label: 'EUR', value: 'eur' },
+      ],
+    },
+    {
+      name: 'supportedLanguages',
+      type: 'array',
+      fields: [
+        { name: 'code', type: 'text' },
+        { name: 'name', type: 'text' },
+      ],
+    },
+  ],
+}
+```
+
+After adding fields, run migrations and regenerate types:
+
+```bash
+pnpm payload migrate:create
+pnpm payload:migrate
+pnpm generate:types
+```
+
+### API Endpoint
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/globals/site-settings` | GET | Get all site settings |
 
 ## Forms
 
@@ -1058,16 +1084,15 @@ Categories and posts have **separate URL patterns**:
 | URL Pattern | Purpose |
 |-------------|---------|
 | `/blog/my-post-slug` | Single post page |
-| `/blog/category/seo` | Category archive (list posts in "seo") |
-| `/blog/category/seo/seo-tips` | Nested category archive |
+| `/blog/category/technology` | Category archive (list posts in "technology") |
 
-### Get Category by URL Path
+### Get Category and Posts
 
 ```typescript
 // lib/cms.ts
-export async function getCategory(categoryPath: string) {
+export async function getCategory(slug: string) {
   const res = await fetch(
-    `${CMS_URL}/api/categories?where[fullUrl][equals]=${categoryPath}&where[tenant][equals]=${TENANT_ID}`
+    `${CMS_URL}/api/categories?where[slug][equals]=${slug}&where[tenant][equals]=${TENANT_ID}`
   )
   if (!res.ok) throw new Error('Failed to fetch category')
   const data = await res.json()
@@ -1076,7 +1101,7 @@ export async function getCategory(categoryPath: string) {
 
 export async function getPostsByCategory(categoryId: string) {
   const res = await fetch(
-    `${CMS_URL}/api/posts?where[categories][contains]=${categoryId}&where[tenant][equals]=${TENANT_ID}`
+    `${CMS_URL}/api/posts?where[category][equals]=${categoryId}&where[tenant][equals]=${TENANT_ID}`
   )
   if (!res.ok) throw new Error('Failed to fetch posts')
   return res.json()
@@ -1086,20 +1111,19 @@ export async function getPostsByCategory(categoryId: string) {
 ### Category Archive Page
 
 ```typescript
-// app/blog/category/[...slug]/page.tsx
+// app/blog/category/[slug]/page.tsx
 import { getCategory, getPostsByCategory } from '@/lib/cms'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
 type Props = {
-  params: Promise<{ slug: string[] }>
+  params: Promise<{ slug: string }>
 }
 
 export default async function CategoryPage({ params }: Props) {
   const { slug } = await params
-  const categoryPath = `/${slug.join('/')}`
 
-  const category = await getCategory(categoryPath)
+  const category = await getCategory(slug)
   if (!category) notFound()
 
   const { docs: posts } = await getPostsByCategory(category.id)
@@ -1117,38 +1141,6 @@ export default async function CategoryPage({ params }: Props) {
     </main>
   )
 }
-```
-
-### Including Child Categories
-
-To get posts from a category AND all its nested children:
-
-```typescript
-// lib/cms.ts
-export async function getCategoryWithChildren(parentPath: string) {
-  // Get parent and all children in one query
-  const res = await fetch(
-    `${CMS_URL}/api/categories?where[or][0][fullUrl][equals]=${parentPath}&where[or][1][fullUrl][like]=${parentPath}/%&where[tenant][equals]=${TENANT_ID}`
-  )
-  if (!res.ok) throw new Error('Failed to fetch categories')
-  return res.json()
-}
-
-export async function getPostsInCategories(categoryIds: string[]) {
-  const idsParam = categoryIds.join(',')
-  const res = await fetch(
-    `${CMS_URL}/api/posts?where[categories][in]=${idsParam}&where[tenant][equals]=${TENANT_ID}`
-  )
-  if (!res.ok) throw new Error('Failed to fetch posts')
-  return res.json()
-}
-```
-
-```typescript
-// Usage: Get all posts in /seo and its children (/seo/tips, /seo/technical, etc.)
-const { docs: categories } = await getCategoryWithChildren('/seo')
-const categoryIds = categories.map((c: { id: string }) => c.id)
-const { docs: posts } = await getPostsInCategories(categoryIds)
 ```
 
 ## SEO Metadata
