@@ -65,11 +65,18 @@ export default buildConfig({
       Component: '@/components/EmptyAvatar/empty-avatar#EmptyAvatar',
     },
     components: {
+      graphics: {
+        Logo: '@/components/AdminGraphics/logo#Logo',
+        Icon: '@/components/AdminGraphics/icon#Icon',
+      },
       providers: [
         '@/components/HideTrashProvider/hide-trash-provider#HideTrashProvider',
         '@/components/TenantSelector/top-level-mode-context#TopLevelModeProvider',
       ],
       beforeDashboard: ['@/components/TenantSelector/tenant-selector#TenantSelector'],
+    },
+    meta: {
+      icons: [{ url: '/favicon.svg' }],
     },
     importMap: {
       baseDir: path.resolve(dirname),
