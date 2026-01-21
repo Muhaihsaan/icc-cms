@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getPayload } from 'payload'
+import type { Where } from 'payload'
 import configPromise from '@payload-config'
 import { getTenantContext } from '@/app/(payload)/api/tenant/_lib/tenant-context'
 import { Collections } from '@/config'
 import { DocStatus } from '@/config'
 
-const paginationSchema = z.object({
+const querySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(10),
+  category: z.string().optional(),
 })
 
 type RouteParams = {
@@ -20,13 +22,14 @@ export async function GET(request: Request, { params }: { params: Promise<RouteP
     const { slug } = await params
 
     const url = new URL(request.url)
-    const paginationResult = paginationSchema.safeParse({
+    const queryResult = querySchema.safeParse({
       page: url.searchParams.get('page'),
       limit: url.searchParams.get('limit'),
+      category: url.searchParams.get('category'),
     })
-    const { page, limit } = paginationResult.success
-      ? paginationResult.data
-      : { page: 1, limit: 10 }
+    const { page, limit, category } = queryResult.success
+      ? queryResult.data
+      : { page: 1, limit: 10, category: undefined }
 
     const context = await getTenantContext(slug)
     if (!context.success) {
@@ -34,24 +37,59 @@ export async function GET(request: Request, { params }: { params: Promise<RouteP
     }
 
     const { payload, tenant, req } = context
+
+    // Base where conditions
+    const baseConditions: Where = {
+      and: [
+        { tenant: { equals: tenant.id } },
+        { _status: { equals: DocStatus.PUBLISHED } },
+        { deletedAt: { exists: false } },
+      ],
+    }
+
+    // Filter by category slug if provided
+    let whereQuery: Where = baseConditions
+
+    if (category) {
+      const categoryResult = await payload.find({
+        collection: Collections.CATEGORIES,
+        where: {
+          and: [
+            { tenant: { equals: tenant.id } },
+            { slug: { equals: category } },
+            { deletedAt: { exists: false } },
+          ],
+        },
+        limit: 1,
+      })
+
+      const foundCategory = categoryResult.docs[0]
+      if (!foundCategory) {
+        return NextResponse.json({ message: 'Category not found' }, { status: 404 })
+      }
+
+      whereQuery = {
+        and: [
+          { tenant: { equals: tenant.id } },
+          { _status: { equals: DocStatus.PUBLISHED } },
+          { deletedAt: { exists: false } },
+          { category: { equals: foundCategory.id } },
+        ],
+      }
+    }
+
     const result = await payload.find({
       collection: Collections.POSTS,
       page,
       limit,
       overrideAccess: false,
       req,
-      where: {
-        and: [
-          { tenant: { equals: tenant.id } },
-          { _status: { equals: DocStatus.PUBLISHED } },
-          { deletedAt: { exists: false } },
-        ],
-      },
+      where: whereQuery,
       sort: '-publishedAt',
       select: {
         title: true,
         slug: true,
-        categories: true,
+        category: true,
         meta: true,
         publishedAt: true,
       },
