@@ -34,6 +34,8 @@ import { RowLabel as RowLabel_be3925633cb26de1150de4d50e9f3b0c } from '@/compone
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { EmptyAvatar as EmptyAvatar_4655ba89ef562a7d47e53beb95d5d356 } from '@/components/EmptyAvatar/empty-avatar'
+import { Icon as Icon_f99c9b352525bd4d3a69749c2a5b9ab1 } from '@/components/AdminGraphics/icon'
+import { Logo as Logo_01e571e142556381f350a45d1eb2fa79 } from '@/components/AdminGraphics/logo'
 import { TenantSelector as TenantSelector_54dc7a134e28b2fee46c88b2a3449734 } from '@/components/TenantSelector/tenant-selector'
 import { TenantSelector as TenantSelector_d6d5f193a167989e2ee7d14202901e62 } from '@payloadcms/plugin-multi-tenant/rsc'
 import { HideTrashProvider as HideTrashProvider_56f36d910ba9be65f00c9296c1ee2c16 } from '@/components/HideTrashProvider/hide-trash-provider'
@@ -78,6 +80,8 @@ export const importMap = {
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "@/components/EmptyAvatar/empty-avatar#EmptyAvatar": EmptyAvatar_4655ba89ef562a7d47e53beb95d5d356,
+  "@/components/AdminGraphics/icon#Icon": Icon_f99c9b352525bd4d3a69749c2a5b9ab1,
+  "@/components/AdminGraphics/logo#Logo": Logo_01e571e142556381f350a45d1eb2fa79,
   "@/components/TenantSelector/tenant-selector#TenantSelector": TenantSelector_54dc7a134e28b2fee46c88b2a3449734,
   "@payloadcms/plugin-multi-tenant/rsc#TenantSelector": TenantSelector_d6d5f193a167989e2ee7d14202901e62,
   "@/components/HideTrashProvider/hide-trash-provider#HideTrashProvider": HideTrashProvider_56f36d910ba9be65f00c9296c1ee2c16,
